@@ -6,8 +6,8 @@ export default function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
-              Legacy Home Search
+            <div style={{ marginBottom: '12px' }}>
+              <img src="/legacy-home-team-logo.png" alt="Legacy Home Team" style={{ height: 36, width: 'auto', filter: 'brightness(0) invert(1)' }} />
             </div>
             <p>Barry Jenkins and the Legacy Home Team help families buy and sell across Virginia Beach, Chesapeake, Norfolk, and all of Hampton Roads.</p>
           </div>

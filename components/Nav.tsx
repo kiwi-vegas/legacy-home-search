@@ -16,8 +16,8 @@ export default function Nav() {
     <>
       <nav id="nav" className={scrolled ? 'scrolled' : ''}>
         <div className="container nav-inner">
-          <Link href="/" className="nav-logo-text">
-            Legacy Home Search
+          <Link href="/" className="nav-logo">
+            <img src="/legacy-home-team-logo.png" alt="Legacy Home Team" style={{ height: 38, width: 'auto' }} />
           </Link>
 
           <div className="nav-links">

@@ -37,23 +37,40 @@ export default function HomePage() {
     <>
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="hero" style={{ minHeight: 700 }}>
-        <div className="hero-bg" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1800&q=80)', opacity: 0.15 }} />
-        <div className="container">
+        {/* Vimeo background video */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
+          <iframe
+            src="https://player.vimeo.com/video/1175999385?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1"
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              minWidth: '100%', minHeight: '100%',
+              width: '177.78vh', height: '56.25vw',
+              border: 'none', pointerEvents: 'none',
+            }}
+            allow="autoplay; fullscreen"
+            title="Hero background video"
+          />
+          {/* Dark overlay for text readability */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
+        </div>
+        <div className="container" style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
             <div className="hero-content" style={{ maxWidth: '100%' }}>
-              <div className="hero-eyebrow">Virginia Beach &amp; Hampton Roads</div>
-              <h1>
+              <div className="hero-eyebrow" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', backdropFilter: 'blur(8px)' }}>Virginia Beach &amp; Hampton Roads</div>
+              <h1 style={{ color: '#fff' }}>
                 Your Home.<br />
-                <span>Your Legacy.</span>
+                <span style={{ color: '#fff', opacity: 0.85 }}>Your Legacy.</span>
               </h1>
-              <p className="hero-sub">
+              <p className="hero-sub" style={{ color: 'rgba(255,255,255,0.85)' }}>
                 Barry Jenkins and the Legacy Home Team have helped hundreds of Hampton Roads families buy and sell with confidence. Local expertise, honest guidance, and results you can count on.
               </p>
               <div className="hero-actions">
                 <a href="https://legacyhomesearch.com/search" className="btn-primary" target="_blank" rel="noopener noreferrer">
                   Search Homes
                 </a>
-                <a href="#contact" className="btn-outline">
+                <a href="#contact" className="btn-outline" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
                   Talk to Barry
                 </a>
               </div>
