@@ -20,10 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <YlopoInit />
         <Script id="ylopo-config" strategy="beforeInteractive">
-          {`window.YLOPO_WIDGETS = {"domain": "search.legacyhomesearch.com"}`}
+          {`window.YLOPO_WIDGETS = {"domain": "search.buyingva.com"}`}
         </Script>
         <Script
-          src="https://search.legacyhomesearch.com/build/js/widgets-1.0.0.js"
+          src="https://search.buyingva.com/build/js/widgets-1.0.0.js"
           strategy="afterInteractive"
         />
       </body>

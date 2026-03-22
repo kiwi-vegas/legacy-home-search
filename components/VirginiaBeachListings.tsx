@@ -17,7 +17,7 @@ export default function VirginiaBeachListings() {
         </div>
         <div className="listings-actions">
           <a
-            href="https://search.legacyhomesearch.com/search?s[orderBy]=sourceCreationDate%2Cdesc&s[page]=1&s[locations][0][city]=Virginia+Beach&s[locations][0][state]=VA"
+            href="https://search.buyingva.com/search?s[orderBy]=sourceCreationDate%2Cdesc&s[page]=1&s[locations][0][city]=Virginia+Beach&s[locations][0][state]=VA"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary"
