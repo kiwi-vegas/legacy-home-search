@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 
 export const metadata: Metadata = {
   title: 'Legacy Home Search | Virginia Beach & Hampton Roads Real Estate',
@@ -184,6 +185,29 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── ALTOS MARKET TRENDS ─────────────────────────────────────── */}
+      <section style={{ background: 'var(--off-white)' }}>
+        <div className="container">
+          <div className="section-header">
+            <span className="section-label">Market Data</span>
+            <h2>Virginia Beach Market Trends</h2>
+            <p>Live market data updated weekly — so you always know exactly what the Virginia Beach housing market is doing.</p>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <iframe
+              src="https://altos.re/html/s-html/8d125160-7a8d-4cb3-b0a0-c95d4cde0961?scale=1&marketNarrative=true&houses=true&weeklyChange=true&branding=true&size=medium"
+              style={{ border: 0, display: 'block', width: 480, maxWidth: '100%', height: 600 }}
+              scrolling="auto"
+              loading="lazy"
+              title="Virginia Beach Market Trends"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── VIRGINIA BEACH LISTINGS ──────────────────────────────────── */}
+      <VirginiaBeachListings />
 
       {/* ── WHY LEGACY ───────────────────────────────────────────────── */}
       <section style={{ background: 'var(--off-white)' }}>

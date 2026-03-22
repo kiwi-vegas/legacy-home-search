@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
+import YlopoInit from '@/components/YlopoInit'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -16,6 +18,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <YlopoInit />
+        <Script id="ylopo-config" strategy="beforeInteractive">
+          {`window.YLOPO_WIDGETS = {"domain": "search.legacyhomesearch.com"}`}
+        </Script>
+        <Script
+          src="https://search.legacyhomesearch.com/build/js/widgets-1.0.0.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )
