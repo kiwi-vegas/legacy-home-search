@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 import HeroSection from '@/components/HeroSection'
+import StatsBar from '@/components/StatsBar'
 
 export const metadata: Metadata = {
   title: 'Legacy Home Search | Virginia Beach & Hampton Roads Real Estate',
@@ -41,28 +42,7 @@ export default function HomePage() {
       <HeroSection />
 
       {/* ── STATS ────────────────────────────────────────────────────── */}
-      <div className="stats-bar">
-        <div className="container">
-          <div className="stats-grid">
-            <div className="stat-item">
-              <div className="stat-num">500+</div>
-              <div className="stat-lbl">Families Helped</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-num">$300M+</div>
-              <div className="stat-lbl">In Transactions</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-num">10+</div>
-              <div className="stat-lbl">Years in Hampton Roads</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-num">5★</div>
-              <div className="stat-lbl">Average Rating</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <StatsBar />
 
       {/* ── MEET BARRY ───────────────────────────────────────────────── */}
       <section>
