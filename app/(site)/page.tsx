@@ -124,9 +124,9 @@ export default function HomePage() {
               position: 'relative',
             }}>
               <img
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&q=80"
+                src="/Barry-AI.jpg"
                 alt="Barry Jenkins - Legacy Home Team"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
               />
               <div style={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
