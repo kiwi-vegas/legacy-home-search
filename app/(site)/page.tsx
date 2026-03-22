@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import VirginiaBeachListings from '@/components/VirginiaBeachListings'
+import HeroSection from '@/components/HeroSection'
 
 export const metadata: Metadata = {
   title: 'Legacy Home Search | Virginia Beach & Hampton Roads Real Estate',
@@ -37,73 +38,7 @@ export default function HomePage() {
   return (
     <>
       {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section className="hero" style={{ minHeight: 700 }}>
-        {/* Vimeo background video */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
-          <iframe
-            src="https://player.vimeo.com/video/1175999385?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1"
-            style={{
-              position: 'absolute',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              minWidth: '100%', minHeight: '100%',
-              width: '177.78vh', height: '56.25vw',
-              border: 'none', pointerEvents: 'none',
-            }}
-            allow="autoplay; fullscreen"
-            title="Hero background video"
-          />
-          {/* Dark overlay for text readability */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
-        </div>
-        <div className="container" style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
-            <div className="hero-content" style={{ maxWidth: '100%' }}>
-              <div className="hero-eyebrow" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', backdropFilter: 'blur(8px)' }}>Virginia Beach &amp; Hampton Roads</div>
-              <h1 style={{ color: '#fff' }}>
-                Your Home.<br />
-                <span style={{ color: '#fff', opacity: 0.85 }}>Your Legacy.</span>
-              </h1>
-              <p className="hero-sub" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                Barry Jenkins and the Legacy Home Team have helped hundreds of Hampton Roads families buy and sell with confidence. Local expertise, honest guidance, and results you can count on.
-              </p>
-              <div className="hero-actions">
-                <a href="https://legacyhomesearch.com/search" className="btn-primary" target="_blank" rel="noopener noreferrer">
-                  Search Homes
-                </a>
-                <a href="#contact" className="btn-outline" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
-                  Talk to Barry
-                </a>
-              </div>
-            </div>
-
-            {/* Contact Card */}
-            <div style={{
-              background: 'var(--white)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '36px 32px',
-              boxShadow: 'var(--shadow-lg)',
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20 }}>
-                Get a Free Home Valuation
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-                <input className="form-input" type="text" placeholder="Your Name" />
-                <input className="form-input" type="email" placeholder="Email Address" />
-                <input className="form-input" type="tel" placeholder="Phone Number" />
-                <input className="form-input" type="text" placeholder="Property Address" />
-              </div>
-              <a href="mailto:barry@yourfriendlyagent.net" className="btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: 15 }}>
-                Request My Free Valuation
-              </a>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center', lineHeight: 1.5 }}>
-                No obligation. Barry will personally review your home and reach out within 24 hours.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* ── STATS ────────────────────────────────────────────────────── */}
       <div className="stats-bar">
