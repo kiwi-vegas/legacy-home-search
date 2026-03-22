@@ -14,8 +14,27 @@ export default function HeroSection() {
     )
   }
 
+  const headlineStyle = {
+    color: '#fff',
+    fontSize: 'clamp(2.5rem, 5.5vw, 4.25rem)' as const,
+    fontWeight: 800,
+    lineHeight: 1.05,
+    letterSpacing: '-0.02em',
+    marginBottom: 24,
+    textTransform: 'uppercase' as const,
+  }
+
   return (
-    <section className="hero" style={{ minHeight: 700, alignItems: 'flex-start', paddingTop: 'calc(var(--nav-h) + 60px)', paddingBottom: 80 }}>
+    <section style={{
+      position: 'relative',
+      minHeight: 700,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      paddingTop: 'var(--nav-h)',
+      paddingBottom: 80,
+      overflow: 'hidden',
+    }}>
       {/* Vimeo background video */}
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
         <iframe
@@ -36,14 +55,14 @@ export default function HeroSection() {
 
       <div className="container" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
 
-        {/* ── Tab switcher ── */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 48, width: 'fit-content' }}>
-          {(['buy', 'sell'] as const).map(t => (
+        {/* ── Tab switcher — anchored above the content ── */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 40, width: 'fit-content' }}>
+          {(['buy', 'sell'] as const).map((t, i) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               style={{
-                padding: '12px 36px',
+                padding: '11px 40px',
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: '0.12em',
@@ -51,10 +70,10 @@ export default function HeroSection() {
                 border: 'none',
                 cursor: 'pointer',
                 background: tab === t ? 'var(--accent)' : 'rgba(255,255,255,0.12)',
-                color: tab === t ? '#fff' : 'rgba(255,255,255,0.7)',
+                color: tab === t ? '#fff' : 'rgba(255,255,255,0.65)',
                 backdropFilter: 'blur(8px)',
                 transition: 'all 0.18s',
-                borderRadius: t === 'buy' ? '8px 0 0 8px' : '0 8px 8px 0',
+                borderRadius: i === 0 ? '8px 0 0 8px' : '0 8px 8px 0',
               }}
             >
               {t === 'buy' ? 'Buy' : 'Sell'}
@@ -65,23 +84,15 @@ export default function HeroSection() {
         {/* ── BUY content ── */}
         {tab === 'buy' && (
           <div style={{ maxWidth: 780 }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
               The Best Real Estate Agents in Virginia Beach, VA
             </p>
-            <h1 style={{
-              color: '#fff',
-              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
-              fontWeight: 800,
-              lineHeight: 1.05,
-              letterSpacing: '-0.02em',
-              marginBottom: 24,
-              textTransform: 'uppercase',
-            }}>
+            <h1 style={headlineStyle}>
               Search All Homes<br />For Sale in<br />Virginia Beach
             </h1>
             <div style={{ width: 60, height: 4, background: 'var(--accent)', marginBottom: 28, borderRadius: 2 }} />
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 36, maxWidth: 520, lineHeight: 1.7 }}>
-              Let Barry Jenkins and the Legacy Home Team guide you through the entire process — from first search to closing day.
+              Let Barry Jenkins and the Legacy Home Team guide you through every step — from first search to closing day.
             </p>
             <form onSubmit={handleSearch} style={{ display: 'flex', gap: 0, maxWidth: 560 }}>
               <input
@@ -100,20 +111,17 @@ export default function HeroSection() {
                   color: 'var(--text)',
                 }}
               />
-              <button
-                type="submit"
-                style={{
-                  padding: '16px 28px',
-                  background: 'var(--accent)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '0 8px 8px 0',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <button type="submit" style={{
+                padding: '16px 28px',
+                background: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0 8px 8px 0',
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}>
                 Search
               </button>
             </form>
@@ -122,22 +130,15 @@ export default function HeroSection() {
 
         {/* ── SELL content ── */}
         {tab === 'sell' && (
-          <div style={{ maxWidth: 720 }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ maxWidth: 780 }}>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
               Sell With Legacy Home Team
             </p>
-            <h1 style={{
-              color: '#fff',
-              fontSize: 'clamp(2.2rem, 5vw, 4rem)',
-              fontWeight: 800,
-              lineHeight: 1.1,
-              letterSpacing: '-0.02em',
-              marginBottom: 24,
-            }}>
+            <h1 style={headlineStyle}>
               Sell Your Home For<br />The Highest Possible<br />Price On Your Timeline
             </h1>
             <div style={{ width: 60, height: 4, background: 'var(--accent)', marginBottom: 28, borderRadius: 2 }} />
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 17, marginBottom: 36, maxWidth: 520, lineHeight: 1.75 }}>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 36, maxWidth: 520, lineHeight: 1.7 }}>
               Click below to take the first step by finding out what your home is worth.
             </p>
             <a
