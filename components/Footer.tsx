@@ -9,7 +9,7 @@ export default function Footer() {
             <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
               Legacy Home Search
             </div>
-            <p>Your trusted real estate partner. We help buyers and sellers navigate the market with confidence.</p>
+            <p>Barry Jenkins and the Legacy Home Team help families buy and sell across Virginia Beach, Chesapeake, Norfolk, and all of Hampton Roads.</p>
           </div>
           <div className="footer-col">
             <h4>Navigate</h4>
@@ -25,13 +25,14 @@ export default function Footer() {
           </div>
           <div className="footer-col">
             <h4>Connect</h4>
-            <a href="mailto:hello@legacyhomesearch.com">Email Us</a>
-            <a href="tel:+15551234567">Call Us</a>
+            <a href="tel:+17578164037">(757) 816-4037</a>
+            <a href="mailto:barry@yourfriendlyagent.net">barry@yourfriendlyagent.net</a>
+            <a href="https://maps.google.com/?q=1545+Crossways+Blvd+Suite+250+Chesapeake+VA+23320" target="_blank" rel="noopener noreferrer">1545 Crossways Blvd, Ste 250<br />Chesapeake, VA 23320</a>
           </div>
         </div>
         <div className="footer-bottom">
-          <span>&copy; {new Date().getFullYear()} Legacy Home Search. All rights reserved.</span>
-          <span>Real Estate Services</span>
+          <span>&copy; {new Date().getFullYear()} Legacy Home Team. All rights reserved.</span>
+          <span>Virginia Beach &amp; Hampton Roads Real Estate</span>
         </div>
       </div>
     </footer>

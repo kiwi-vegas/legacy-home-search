@@ -21,7 +21,10 @@ export default function Nav() {
           </Link>
 
           <div className="nav-links">
+            <Link href="/#contact" className="nav-link">Buy</Link>
+            <Link href="/#contact" className="nav-link">Sell</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
+            <a href="tel:+17578164037" className="nav-link" style={{ fontWeight: 600 }}>(757) 816-4037</a>
             <Link href="/#contact" className="nav-link nav-cta">Contact Us</Link>
           </div>
 

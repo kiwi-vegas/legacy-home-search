@@ -185,6 +185,8 @@ section + section { border-top: 1px solid var(--border-light); }
   .stat-item { border-right: none; }
   .footer-grid { grid-template-columns: 1fr; gap: 32px; }
   .nav-links { display: none; }
+  .nav-hamburger { display: block !important; }
+  .two-col { grid-template-columns: 1fr !important; gap: 40px !important; }
 }
 
 /* ── Breadcrumb ── */
