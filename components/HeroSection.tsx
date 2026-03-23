@@ -151,7 +151,7 @@ export default function HeroSection() {
               className="btn-primary"
               style={{ fontSize: 16, padding: '16px 36px' }}
             >
-              Start Selling →
+              Get Your Free Home Valuation Report Now →
             </a>
           </div>
         )}
