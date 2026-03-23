@@ -108,6 +108,27 @@ export const TOOLS: Anthropic.Tool[] = [
       required: ['field', 'value'],
     },
   },
+  {
+    name: 'update_homepage_stats',
+    description: 'Updates the stats bar on the homepage (e.g. "500+ Families Helped", "12+ Years in Hampton Roads"). Pass the full set of stats you want displayed — this replaces all existing stats. Each stat needs a value (e.g. "12+", "$350M+", "5★") and a label (e.g. "Years in Hampton Roads").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        stats: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              value: { type: 'string', description: 'The display value, e.g. "12+", "$350M+", "500+", "5★"' },
+              label: { type: 'string', description: 'The label below the value, e.g. "Years in Hampton Roads"' },
+            },
+            required: ['value', 'label'],
+          },
+        },
+      },
+      required: ['stats'],
+    },
+  },
 ]
 
 // ─── Helper: get or create communityPage doc ──────────────────────────────────
@@ -224,6 +245,26 @@ export async function executeToolCall(name: string, input: Record<string, any>):
       if (!ALLOWED.includes(input.field)) return `Field "${input.field}" is not editable.`
       await writeClient.patch('homepage').set({ [input.field]: input.value }).commit()
       return `Updated homepage ${input.field}. Live within 60 seconds.`
+    }
+
+    case 'update_homepage_stats': {
+      const stats = (input.stats as Array<{ value: string; label: string }>).map((s) => ({
+        _type: 'object',
+        _key: Math.random().toString(36).slice(2, 8),
+        value: s.value,
+        label: s.label,
+      }))
+      // Ensure homepage doc exists
+      const existing = await client.fetch<{ _id: string } | null>(
+        `*[_type == "homepage" && _id == "homepage"][0]{ _id }`
+      )
+      if (!existing?._id) {
+        await writeClient.createIfNotExists({ _type: 'homepage', _id: 'homepage' })
+      }
+      await writeClient.patch('homepage').set({ trustStats: stats }).commit()
+      const summary = (input.stats as Array<{ value: string; label: string }>)
+        .map((s) => `${s.value} ${s.label}`).join(', ')
+      return `Updated homepage stats: ${summary}. Live within 60 seconds.`
     }
 
     default:

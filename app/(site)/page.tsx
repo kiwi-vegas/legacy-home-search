@@ -3,6 +3,7 @@ import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 import HeroSection from '@/components/HeroSection'
 import StatsBar from '@/components/StatsBar'
 import AreaCards from '@/components/AreaCards'
+import { client } from '@/sanity/client'
 
 export const metadata: Metadata = {
   title: 'Legacy Home Search | Virginia Beach & Hampton Roads Real Estate',
@@ -28,14 +29,21 @@ const reviews = [
 ]
 
 
-export default function HomePage() {
+export default async function HomePage() {
+  const homepageDoc = await client.fetch(
+    `*[_type == "homepage" && _id == "homepage"][0]{ trustStats[]{ value, label } }`,
+    {},
+    { next: { revalidate: 60 } }
+  )
+  const cmsStats: Array<{ value: string; label: string }> | undefined = homepageDoc?.trustStats
+
   return (
     <>
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <HeroSection />
 
       {/* ── STATS ────────────────────────────────────────────────────── */}
-      <StatsBar />
+      <StatsBar cmsStats={cmsStats} />
 
       {/* ── MEET BARRY ───────────────────────────────────────────────── */}
       <section>
