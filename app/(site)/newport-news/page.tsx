@@ -77,7 +77,7 @@ export default function NewportNewsPage() {
         background: '#101820',
       }}>
         <img
-          src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1800&q=80"
+          src="/NewportNews.jpg"
           alt="Newport News Virginia neighborhood"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }}
         />
@@ -245,7 +245,7 @@ export default function NewportNewsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=900&q=80"
+                src="/NewportNews.jpg"
                 alt="Newport News parks and outdoor lifestyle"
                 style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--radius-xl)' }}
               />

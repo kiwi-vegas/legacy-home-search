@@ -77,7 +77,7 @@ export default function NorfolkPage() {
         background: '#0d1b2a',
       }}>
         <img
-          src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1800&q=80"
+          src="/Norfolk.jpg"
           alt="Norfolk Virginia waterfront skyline"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }}
         />
@@ -245,7 +245,7 @@ export default function NorfolkPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1567880905822-56f8e06fe630?w=900&q=80"
+                src="/Norfolk.jpg"
                 alt="Norfolk waterfront lifestyle"
                 style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--radius-xl)' }}
               />

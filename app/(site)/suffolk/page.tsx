@@ -77,7 +77,7 @@ export default function SuffolkPage() {
         background: '#0d1e0a',
       }}>
         <img
-          src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1800&q=80"
+          src="/Sufolk.jpg"
           alt="Suffolk Virginia luxury home"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }}
         />
@@ -245,7 +245,7 @@ export default function SuffolkPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=900&q=80"
+                src="/Sufolk.jpg"
                 alt="Suffolk waterfront and nature"
                 style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--radius-xl)' }}
               />

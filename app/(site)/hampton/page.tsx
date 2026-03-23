@@ -77,7 +77,7 @@ export default function HamptonPage() {
         background: '#0a1820',
       }}>
         <img
-          src="https://images.unsplash.com/photo-1500259571355-332da5cb07aa?w=1800&q=80"
+          src="/Hampton.jpg"
           alt="Hampton Virginia waterfront"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }}
         />
@@ -245,7 +245,7 @@ export default function HamptonPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&q=80"
+                src="/Hampton.jpg"
                 alt="Hampton waterfront and beaches"
                 style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--radius-xl)' }}
               />

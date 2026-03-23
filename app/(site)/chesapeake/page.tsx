@@ -77,7 +77,7 @@ export default function ChesapeakePage() {
         background: '#0a1628',
       }}>
         <img
-          src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1800&q=80"
+          src="/Cheseapeak.jpg"
           alt="Chesapeake Virginia neighborhood"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }}
         />
@@ -245,7 +245,7 @@ export default function ChesapeakePage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1448630360428-65456885c650?w=900&q=80"
+                src="/Cheseapeak.jpg"
                 alt="Chesapeake outdoor lifestyle"
                 style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--radius-xl)' }}
               />

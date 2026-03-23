@@ -77,7 +77,7 @@ export default function VirginiaBeachPage() {
         background: '#0f1a2e',
       }}>
         <img
-          src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1800&q=80"
+          src="/virginia%20beach.jpg"
           alt="Virginia Beach coastline"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }}
         />
@@ -246,7 +246,7 @@ export default function VirginiaBeachPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1519046904884-53103b34b206?w=900&q=80"
+                src="/virginia%20beach.jpg"
                 alt="Virginia Beach outdoor lifestyle"
                 style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--radius-xl)' }}
               />
