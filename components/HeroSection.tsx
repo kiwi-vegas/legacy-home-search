@@ -81,6 +81,9 @@ export default function HeroSection() {
           ))}
         </div>
 
+        {/* ── Tab content — fixed height so buttons never move ── */}
+        <div style={{ minHeight: 320 }}>
+
         {/* ── BUY content ── */}
         {tab === 'buy' && (
           <div style={{ maxWidth: 780 }}>
@@ -224,6 +227,8 @@ export default function HeroSection() {
             </a>
           </div>
         )}
+
+        </div>{/* end fixed-height content wrapper */}
 
       </div>
     </section>
