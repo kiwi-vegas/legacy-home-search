@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import AgentCard from '@/components/AgentCard'
 
 export const metadata: Metadata = {
   title: 'Our Team | Legacy Home Team — Hampton Roads Real Estate Agents',
@@ -97,72 +97,7 @@ export default function TeamPage() {
             gap: 36,
           }}>
             {agents.map((agent) => (
-              <Link
-                key={agent.slug}
-                href={`/team/${agent.slug}`}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <div style={{
-                  background: '#fff',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-xl)',
-                  overflow: 'hidden',
-                  transition: 'box-shadow 0.2s, transform 0.2s',
-                  cursor: 'pointer',
-                }}
-                  onMouseEnter={e => {
-                    const el = e.currentTarget as HTMLDivElement
-                    el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.12)'
-                    el.style.transform = 'translateY(-4px)'
-                  }}
-                  onMouseLeave={e => {
-                    const el = e.currentTarget as HTMLDivElement
-                    el.style.boxShadow = 'none'
-                    el.style.transform = 'none'
-                  }}
-                >
-                  {/* Headshot */}
-                  <div style={{ aspectRatio: '4/3', overflow: 'hidden', background: 'var(--light-gray)' }}>
-                    <img
-                      src={agent.photo}
-                      alt={agent.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
-                    />
-                  </div>
-
-                  {/* Info */}
-                  <div style={{ padding: '24px 24px 28px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 6 }}>
-                      {agent.title}
-                    </div>
-                    <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 10, color: 'var(--text)' }}>
-                      {agent.name}
-                    </h3>
-                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 20 }}>
-                      {agent.bio.slice(0, 110)}…
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <a
-                        href={`tel:${agent.phone.replace(/\D/g, '')}`}
-                        onClick={e => e.stopPropagation()}
-                        style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none' }}
-                      >
-                        📞 {agent.phone}
-                      </a>
-                      <a
-                        href={`mailto:${agent.email}`}
-                        onClick={e => e.stopPropagation()}
-                        style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none' }}
-                      >
-                        ✉️ {agent.email}
-                      </a>
-                    </div>
-                    <div style={{ marginTop: 20, fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
-                      View Profile →
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <AgentCard key={agent.slug} agent={{ ...agent, bio: agent.bio }} />
             ))}
           </div>
         </div>
