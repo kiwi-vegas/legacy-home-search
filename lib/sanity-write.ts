@@ -38,7 +38,8 @@ export async function publishBlogPost(
     body: draft.body,
     metaTitle: draft.metaTitle,
     metaDescription: draft.metaDescription,
-    aiGenerated: true,
+    authorName: 'Barry Jenkins',
+    aiGenerated: false,
   }
 
   if (coverImageRef) {

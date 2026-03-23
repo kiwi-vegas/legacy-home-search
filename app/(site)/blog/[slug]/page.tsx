@@ -84,7 +84,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {category && <span className="blog-card-category">{category}</span>}
           <h1 className="blog-post-title">{post.title}</h1>
           <div className="blog-post-meta">
-            <span>Legacy Home Search</span>
+            <span>Barry Jenkins</span>
             {pubDate && <><span className="blog-post-sep">·</span><span>{pubDate}</span></>}
             {post.aiGenerated && <span className="blog-ai-badge">AI-Assisted</span>}
           </div>
