@@ -243,7 +243,7 @@ export default function VirginiaBeachPage() {
       {/* LIFESTYLE */}
       <section id="lifestyle">
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'start' }}>
             <div>
               <img
                 src="/virginia%20beach.jpg"
