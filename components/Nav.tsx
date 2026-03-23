@@ -50,6 +50,7 @@ export default function Nav() {
               </div>
             </div>
 
+            <Link href="/team" className="nav-link">Our Team</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
             <a href="tel:+17578164037" className="nav-link" style={{ fontWeight: 600 }}>(757) 816-4037</a>
             <Link href="/#contact" className="nav-link nav-cta">Contact Us</Link>
@@ -95,6 +96,7 @@ export default function Nav() {
               ))}
             </div>
           )}
+          <Link href="/team" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Our Team</Link>
           <Link href="/blog" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Blog</Link>
           <Link href="/#contact" style={{ display: 'block', padding: '12px 0', color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>Contact Us</Link>
         </div>
