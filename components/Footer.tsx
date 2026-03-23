@@ -14,14 +14,18 @@ export default function Footer() {
           <div className="footer-col">
             <h4>Navigate</h4>
             <Link href="/">Home</Link>
+            <Link href="/team">Our Team</Link>
             <Link href="/blog">Blog</Link>
             <Link href="/#contact">Contact</Link>
           </div>
           <div className="footer-col">
-            <h4>Resources</h4>
-            <Link href="/blog">Market Updates</Link>
-            <Link href="/blog">Buying Tips</Link>
-            <Link href="/blog">Selling Tips</Link>
+            <h4>Communities</h4>
+            <Link href="/virginia-beach">Virginia Beach</Link>
+            <Link href="/chesapeake">Chesapeake</Link>
+            <Link href="/norfolk">Norfolk</Link>
+            <Link href="/suffolk">Suffolk</Link>
+            <Link href="/hampton">Hampton</Link>
+            <Link href="/newport-news">Newport News</Link>
           </div>
           <div className="footer-col">
             <h4>Connect</h4>
