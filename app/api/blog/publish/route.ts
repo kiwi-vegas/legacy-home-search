@@ -4,7 +4,7 @@ import { writePost } from '@/lib/writer'
 import { fetchAndUploadCoverImage } from '@/lib/images'
 import { publishBlogPost } from '@/lib/sanity-write'
 
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(request: Request) {
   const adminSecret = process.env.ADMIN_SECRET
@@ -45,27 +45,26 @@ export async function POST(request: Request) {
     await recordShownArticles(skippedUrls)
   }
 
-  const results: Array<{ id: string; title: string; slug: string }> = []
-  const errors: string[] = []
-
-  for (const article of selectedArticles) {
-    try {
+  const settled = await Promise.allSettled(
+    selectedArticles.map(async (article) => {
       console.log(`[publish] Writing post for: ${article!.title}`)
-
       const [draft, coverImageRef] = await Promise.all([
         writePost(article!),
         fetchAndUploadCoverImage(article!.url, article!.category, article!),
       ])
-
       const sanityId = await publishBlogPost(draft, coverImageRef)
-      results.push({ id: sanityId, title: draft.title, slug: draft.slug })
       console.log(`[publish] Published: ${draft.title} → /blog/${draft.slug}`)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      console.error(`[publish] Failed for ${article!.title}:`, msg)
-      errors.push(`"${article!.title}": ${msg}`)
-    }
-  }
+      return { id: sanityId, title: draft.title, slug: draft.slug }
+    })
+  )
+
+  const results = settled
+    .filter((r): r is PromiseFulfilledResult<{ id: string; title: string; slug: string }> => r.status === 'fulfilled')
+    .map((r) => r.value)
+
+  const errors = settled
+    .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    .map((r) => String(r.reason))
 
   return NextResponse.json({
     success: results.length > 0,
