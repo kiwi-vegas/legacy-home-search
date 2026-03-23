@@ -48,7 +48,7 @@ export default async function HomePage() {
       {/* ── MEET BARRY ───────────────────────────────────────────────── */}
       <section>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 80, alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 80, alignItems: 'start' }}>
             {/* Photo placeholder */}
             <div style={{
               aspectRatio: '4/5',
@@ -81,18 +81,9 @@ export default async function HomePage() {
               <p style={{ fontSize: 16, marginBottom: 16 }}>
                 With deep roots in Hampton Roads and a decade of experience navigating the local market, Barry combines data-driven strategy with a personal touch that keeps clients coming back — and referring their friends and family.
               </p>
-              <p style={{ fontSize: 16, marginBottom: 32 }}>
+              <p style={{ fontSize: 16, marginBottom: 28 }}>
                 Whether you're buying your first home, upsizing, downsizing, or relocating to the area, Barry and the Legacy team will be with you every step of the way.
               </p>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 32 }}>
-                {['REALTOR®', 'Hampton Roads Native', 'YLOPO Certified', 'Top Producer'].map(badge => (
-                  <span key={badge} style={{
-                    background: 'var(--accent-light)', color: 'var(--accent)',
-                    fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
-                    padding: '6px 14px', borderRadius: 99,
-                  }}>{badge}</span>
-                ))}
-              </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <a href="tel:+17578164037" className="btn-primary">Call (757) 816-4037</a>
                 <a href="mailto:barry@yourfriendlyagent.net" className="btn-outline">Send an Email</a>
