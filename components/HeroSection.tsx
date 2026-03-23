@@ -30,8 +30,8 @@ export default function HeroSection() {
       minHeight: 700,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'flex-end',
-      paddingTop: 'var(--nav-h)',
+      justifyContent: 'flex-start',
+      paddingTop: 'calc(var(--nav-h) + 72px)',
       paddingBottom: 80,
       overflow: 'hidden',
     }}>
