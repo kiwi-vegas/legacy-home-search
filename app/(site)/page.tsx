@@ -104,8 +104,8 @@ export default function HomePage() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <iframe
-              src="https://altos.re/i-html/8d125160-7a8d-4cb3-b0a0-c95d4cde0961?data=price_median&title=true&size=medium&scale=1&houses=true&branding=true&dateRange=1617346800000__null"
-              style={{ border: 0, display: 'block', width: 480, maxWidth: '100%', height: 600 }}
+              src="https://altos.re/html/s-html/8d125160-7a8d-4cb3-b0a0-c95d4cde0961?scale=1&marketNarrative=true&houses=true&weeklyChange=true&branding=true&size=large"
+              style={{ border: 0, display: 'block', width: 640, maxWidth: '100%', height: 800 }}
               scrolling="auto"
               loading="lazy"
               title="Virginia Beach Market Trends"
