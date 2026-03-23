@@ -29,37 +29,54 @@ async function buildImagePrompt(article: ScoredArticle): Promise<string | null> 
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+    const categoryContext: Record<string, string> = {
+      'market-update': 'Visualize market movement and economic energy — rising values, neighborhood momentum, the feeling of a market in motion. Think dramatic aerial shots of thriving neighborhoods, beautifully lit home exteriors that signal strong demand, or cinematic street-level scenes of desirable communities.',
+      'buying-tips': 'Capture the emotional journey of finding and owning a home — discovery, possibility, the moment of arrival. A couple stepping through a sunlit doorway for the first time, an open floor plan flooded with natural light, a stunning backyard that makes someone imagine their life there.',
+      'selling-tips': 'Convey success, preparation, and premium results. A beautifully staged living room with perfect lighting, a home exterior that looks its absolute best, the visual feeling of a property that commands attention and top dollar.',
+      'community-spotlight': 'Bring the neighborhood to life — the energy of a specific place, its character, what makes it feel like home. Waterfront views, tree-lined streets, local parks at golden hour, the lifestyle that defines this community.',
+      'investment': 'Communicate financial opportunity and smart decision-making through architecture and scale. Multi-unit buildings with strong curb appeal, aerial views of growing neighborhoods, the visual language of value and return.',
+      'news': 'Capture the sense of something happening now — urgency, relevance, change in motion. Dynamic angles, dramatic lighting, a scene that feels current and important.',
+    }
+
+    const visualDirection = categoryContext[article.category] ?? categoryContext['news']
+
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 600,
       messages: [
         {
           role: 'user',
-          content: `You are an art director creating a cover image for a real estate blog post. Think Architectural Digest editorial photography meets Netflix documentary thumbnail — cinematic, specific, emotionally resonant.
+          content: `You are a world-class creative director for a premium real estate brand. Your job is to create DALL-E 3 image prompts that generate stunning, magazine-quality thumbnail images — the kind that stop someone mid-scroll and make them need to read the article.
 
-Article title: ${article.title}
-Article angle: ${article.whyItMatters}
+ARTICLE TO VISUALIZE:
+Title: ${article.title}
+Key angle: ${article.whyItMatters}
 Category: ${article.category}
 
-Your job: describe a SPECIFIC visual scene that captures the emotional story of this article. Not a literal illustration of the words — an atmospheric, evocative image that makes someone want to read more.
+VISUAL DIRECTION FOR THIS CATEGORY:
+${visualDirection}
 
-HARD RULES — never include any of these:
-- Moving trucks, vans, U-Haul, storage units, cardboard boxes, or anything associated with moving companies
-- Generic stock-photo scenes (handshakes, keys on counters, "sold" signs, agents pointing at houses)
-- Branded vehicles, logos, or signage of any company
-- Text, watermarks, or overlaid graphics
-- Faces clearly visible (keep people at a distance or shown from behind)
-- The words "blog post", "thumbnail", "real estate agent", or "DALL-E"
+YOUR TASK:
+1. Extract the CORE CONCEPT of this article — what is the single most powerful idea or emotion it conveys?
+2. Translate that concept into ONE specific, vivid scene. Not a generic real estate photo — a deliberately crafted visual that embodies the article's story.
+3. The image should work as a standalone thumbnail: someone who hasn't read the article should be able to feel what it's about just from the image.
 
-Instead, go for:
-- Lifestyle moments: a family on a beautiful patio at golden hour, a couple walking through a luxury neighborhood, someone relaxing by a pool
-- Dramatic scenery: a stunning skyline at dusk, mountain views from an upscale community, lake reflections
-- Architectural beauty: a stunning modern home exterior at magic hour, a luxury kitchen with natural light, resort-style backyard
-- Mood and aspiration: what does it FEEL like to live here?
+CRAFT RULES:
+- Be hyper-specific: name the time of day, exact lighting conditions, precise architectural details, specific colors
+- Virginia Beach / Hampton Roads context where it naturally fits (coastal light, Chesapeake Bay, waterfront neighborhoods, military community)
+- Photorealistic, shot on a high-end camera with a wide lens — not illustrated or painterly
+- Cinematic composition: rule of thirds, leading lines, depth of field
+- Lighting: golden hour, blue hour, or dramatic natural window light — never flat or overcast
+- 16:9 landscape format optimized for web thumbnail display
 
-Write a single DALL-E 3 image prompt (3-5 sentences). Style: photorealistic, cinematic lighting, rich warm tones, 16:9 landscape orientation.
+ABSOLUTE PROHIBITIONS — do not include:
+- Text, words, numbers, labels, watermarks, or graphics of any kind
+- Clearly visible faces (keep people at distance, silhouette, or shown from behind)
+- Moving trucks, boxes, "sold" signs, keys, handshakes, or agent-pointing-at-house clichés
+- Logos, brand names, or company signage
+- Anything that looks like stock photography
 
-Return ONLY the prompt text, nothing else.`,
+Write your DALL-E 3 prompt now. Be vivid and specific. 4-6 sentences. Return ONLY the prompt, no explanation.`,
         },
       ],
     })
@@ -82,7 +99,7 @@ async function generateWithDalle(prompt: string): Promise<string | null> {
       prompt,
       n: 1,
       size: '1792x1024',
-      quality: 'standard',
+      quality: 'hd',
       response_format: 'url',
     })
 
