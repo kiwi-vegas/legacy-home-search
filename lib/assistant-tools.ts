@@ -8,7 +8,14 @@ const COMMUNITY_PAGES: Array<{
   slug: string
   name: string
   driveTimes: string[]
-}> = []
+}> = [
+  { slug: 'virginia-beach', name: 'Virginia Beach', driveTimes: ['to Norfolk', 'to Chesapeake', 'to Hampton', 'to Richmond'] },
+  { slug: 'chesapeake', name: 'Chesapeake', driveTimes: ['to Norfolk', 'to Virginia Beach', 'to Suffolk', 'to Richmond'] },
+  { slug: 'norfolk', name: 'Norfolk', driveTimes: ['to Chesapeake', 'to Virginia Beach', 'to Hampton', 'to Washington DC'] },
+  { slug: 'suffolk', name: 'Suffolk', driveTimes: ['to Chesapeake', 'to Norfolk', 'to Virginia Beach', 'to Richmond'] },
+  { slug: 'hampton', name: 'Hampton', driveTimes: ['to Newport News', 'to Norfolk', 'to Williamsburg', 'to Virginia Beach'] },
+  { slug: 'newport-news', name: 'Newport News', driveTimes: ['to Hampton', 'to Williamsburg', 'to Norfolk', 'to Richmond'] },
+]
 
 // ─── Tool definitions (Anthropic tool_use format) ─────────────────────────────
 

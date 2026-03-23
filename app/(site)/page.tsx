@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 import HeroSection from '@/components/HeroSection'
 import StatsBar from '@/components/StatsBar'
+import AreaCards from '@/components/AreaCards'
 
 export const metadata: Metadata = {
   title: 'Legacy Home Search | Virginia Beach & Hampton Roads Real Estate',
@@ -26,14 +27,6 @@ const reviews = [
   },
 ]
 
-const areas = [
-  { name: 'Virginia Beach', desc: 'Oceanfront condos to suburban family homes — we know every pocket of VB.' },
-  { name: 'Chesapeake', desc: 'Top-rated schools, new construction, and established neighborhoods.' },
-  { name: 'Norfolk', desc: 'Urban living, historic charm, and a thriving waterfront community.' },
-  { name: 'Suffolk', desc: 'Room to grow with country estates and fast-growing master-planned communities.' },
-  { name: 'Hampton', desc: 'Waterfront access, military-friendly, and historically rich neighborhoods.' },
-  { name: 'Newport News', desc: 'Diverse housing stock with strong value and easy access to the Peninsula.' },
-]
 
 export default function HomePage() {
   return (
@@ -159,21 +152,7 @@ export default function HomePage() {
             <h2>Serving All of Hampton Roads</h2>
             <p>From oceanfront Virginia Beach to the quiet streets of Chesapeake — we know every corner of the region.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {areas.map(area => (
-              <div key={area.name} style={{
-                background: 'var(--white)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '24px 28px',
-                transition: 'box-shadow 0.18s, border-color 0.18s',
-                cursor: 'default',
-              }}>
-                <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)', marginBottom: 8 }}>{area.name}</div>
-                <p style={{ fontSize: 14 }}>{area.desc}</p>
-              </div>
-            ))}
-          </div>
+          <AreaCards />
         </div>
       </section>
 

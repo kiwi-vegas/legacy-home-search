@@ -2,7 +2,7 @@
 import { useState } from 'react'
 
 export default function HeroSection() {
-  const [tab, setTab] = useState<'buy' | 'sell'>('buy')
+  const [tab, setTab] = useState<'buy' | 'sell' | 'invest' | 'buy-before-sell'>('buy')
   const [city, setCity] = useState('')
 
   function handleSearch(e: React.FormEvent) {
@@ -57,12 +57,12 @@ export default function HeroSection() {
 
         {/* ── Tab switcher — anchored above the content ── */}
         <div style={{ display: 'flex', gap: 0, marginBottom: 40, width: 'fit-content' }}>
-          {(['buy', 'sell'] as const).map((t, i) => (
+          {(['buy', 'sell', 'invest', 'buy-before-sell'] as const).map((t, i) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               style={{
-                padding: '11px 40px',
+                padding: '11px 32px',
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: '0.12em',
@@ -73,10 +73,10 @@ export default function HeroSection() {
                 color: tab === t ? '#fff' : 'rgba(255,255,255,0.65)',
                 backdropFilter: 'blur(8px)',
                 transition: 'all 0.18s',
-                borderRadius: i === 0 ? '8px 0 0 8px' : '0 8px 8px 0',
+                borderRadius: i === 0 ? '8px 0 0 8px' : i === 3 ? '0 8px 8px 0' : '0',
               }}
             >
-              {t === 'buy' ? 'Buy' : 'Sell'}
+              {t === 'buy' ? 'Buy' : t === 'sell' ? 'Sell' : t === 'invest' ? 'Invest' : 'Buy-Before-Sell'}
             </button>
           ))}
         </div>
@@ -149,6 +149,78 @@ export default function HeroSection() {
               style={{ fontSize: 16, padding: '16px 36px' }}
             >
               Start Selling →
+            </a>
+          </div>
+        )}
+
+        {/* ── INVEST content ── */}
+        {tab === 'invest' && (
+          <div style={{ maxWidth: 780 }}>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
+              Investment Properties in Hampton Roads
+            </p>
+            <h1 style={headlineStyle}>
+              Find Your Ideal<br />Investment in<br />Hampton Roads
+            </h1>
+            <div style={{ width: 60, height: 4, background: 'var(--accent)', marginBottom: 28, borderRadius: 2 }} />
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 36, maxWidth: 520, lineHeight: 1.7 }}>
+              From short-term rentals to long-term income properties, Barry and the Legacy Home Team know the Hampton Roads investment landscape inside and out.
+            </p>
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 0, maxWidth: 560 }}>
+              <input
+                type="text"
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                placeholder="Search by City, Neighborhood, or ZIP"
+                style={{
+                  flex: 1,
+                  padding: '16px 20px',
+                  fontSize: 15,
+                  border: 'none',
+                  borderRadius: '8px 0 0 8px',
+                  outline: 'none',
+                  background: '#fff',
+                  color: 'var(--text)',
+                }}
+              />
+              <button type="submit" style={{
+                padding: '16px 28px',
+                background: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0 8px 8px 0',
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}>
+                Search
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ── BUY-BEFORE-SELL content ── */}
+        {tab === 'buy-before-sell' && (
+          <div style={{ maxWidth: 780 }}>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>
+              Buy Before You Sell — With Legacy Home Team
+            </p>
+            <h1 style={headlineStyle}>
+              For Such an Important<br />Life Event, Buy Before<br />You Sell Makes It Easy
+            </h1>
+            <div style={{ width: 60, height: 4, background: 'var(--accent)', marginBottom: 28, borderRadius: 2 }} />
+            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 36, maxWidth: 520, lineHeight: 1.8 }}>
+              <div>✔ Buy your new home before selling your old one.</div>
+              <div>✔ Move on time and avoid paying for temporary housing.</div>
+              <div>✔ Skip the hassle of showing your home while you, your family, or pets are still living in it.</div>
+            </div>
+            <a
+              href="mailto:barry@yourfriendlyagent.net"
+              className="btn-primary"
+              style={{ fontSize: 16, padding: '16px 36px' }}
+            >
+              Learn More →
             </a>
           </div>
         )}

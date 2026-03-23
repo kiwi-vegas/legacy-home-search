@@ -189,6 +189,27 @@ section + section { border-top: 1px solid var(--border-light); }
   .two-col { grid-template-columns: 1fr !important; gap: 40px !important; }
 }
 
+/* ── Nav dropdown ── */
+.nav-dropdown-wrap { position: relative; }
+.nav-dropdown { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 8px; min-width: 220px; z-index: 1001; opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease; transform: translateX(-50%) translateY(-4px); }
+.nav-dropdown-wrap:hover .nav-dropdown { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.nav-dropdown a { display: block; padding: 9px 16px; border-radius: var(--radius); color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500; transition: all var(--transition); }
+.nav-dropdown a:hover { background: var(--light-gray); color: var(--text); }
+.nav-dropdown-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 8px 16px 4px; }
+
+/* ── Area cards (homepage hover map) ── */
+.area-card { position: relative; overflow: hidden; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; transition: box-shadow var(--transition), border-color var(--transition); height: 200px; }
+.area-card:hover { box-shadow: var(--shadow-lg); border-color: var(--accent); }
+.area-card-content { position: absolute; inset: 0; padding: 24px 28px; display: flex; flex-direction: column; justify-content: space-between; transition: opacity 0.25s ease; z-index: 2; }
+.area-card:hover .area-card-content { opacity: 0; }
+.area-card-map { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity 0.25s ease; }
+.area-card-map img { width: 100%; height: 100%; object-fit: cover; }
+.area-card:hover .area-card-map { opacity: 1; }
+.area-card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 60%); z-index: 3; opacity: 0; transition: opacity 0.25s ease; }
+.area-card:hover .area-card-overlay { opacity: 1; }
+.area-card-hover-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 24px; z-index: 4; opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease; transform: translateY(6px); }
+.area-card:hover .area-card-hover-label { opacity: 1; transform: translateY(0); }
+
 /* ── Breadcrumb ── */
 .breadcrumb { padding: 12px 0; border-bottom: 1px solid var(--border-light); margin-top: var(--nav-h); background: var(--white); }
 .breadcrumb-inner { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
