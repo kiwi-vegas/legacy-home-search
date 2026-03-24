@@ -59,7 +59,7 @@ export async function writePost(article: ScoredArticle): Promise<BlogPostDraft> 
     messages: [
       {
         role: 'user',
-        content: `You are a knowledgeable real estate professional at Legacy Home Search in Las Vegas, Nevada. You're writing a blog post to share with clients and followers across Las Vegas, Henderson, Summerlin, North Las Vegas, and the greater Clark County area.
+        content: `You are a knowledgeable real estate professional at Legacy Home Search in Virginia Beach, Virginia. You're writing a blog post to share with clients and followers across Virginia Beach, Chesapeake, Norfolk, Suffolk, Hampton, and Newport News.
 
 Write a blog post based on this article:
 TITLE: ${article.title}
@@ -67,8 +67,8 @@ URL: ${article.url}
 SNIPPET: ${article.content.slice(0, 500)}
 WHY IT MATTERS: ${article.whyItMatters}
 
-Your audience: home buyers, sellers, and investors in the Las Vegas metro area.
-Your voice: knowledgeable, approachable, direct. Not salesy. You genuinely care about helping Las Vegas families and investors make smart real estate decisions. Where relevant, tie insights back to the local Las Vegas / Henderson / Summerlin market and what Nevada-specific factors mean for buyers and owners.
+Your audience: home buyers, sellers, and investors in Hampton Roads and Virginia Beach.
+Your voice: knowledgeable, approachable, direct. Not salesy. You genuinely care about helping Hampton Roads families make smart real estate decisions. Where relevant, tie insights back to the local Hampton Roads / Virginia Beach market and what Virginia-specific factors mean for buyers and owners.
 
 Return a JSON object with EXACTLY these fields:
 {

@@ -2,7 +2,9 @@
 
 ## Overview
 
-A fully automated daily blog pipeline that researches Las Vegas real estate news, lets the operator pick articles to publish, then writes full posts with AI-generated cover images and publishes them to Sanity CMS.
+A fully automated daily blog pipeline that researches Virginia Beach and Hampton Roads real estate news, lets the operator pick articles to publish, then writes full posts with AI-generated cover images and publishes them to Sanity CMS.
+
+**Market:** Virginia Beach, Chesapeake, Norfolk, Suffolk, Hampton, Newport News (Hampton Roads, VA)
 
 ---
 
@@ -37,37 +39,38 @@ Operator opens email
 
 ## Research Priorities
 
-Articles are scored 1–10. Claude gives extra weight to these high-value topics:
+Articles are scored 1–10. Claude gives extra weight to these high-value topics for the Hampton Roads / Virginia Beach market:
 
-### 1. Las Vegas Property Values & Investment
-- Home price forecasts and appreciation trends
+### 1. Virginia Beach / Hampton Roads Property Values & Investment
+- Home price forecasts and appreciation trends across Hampton Roads
 - Rental market returns and investment property outlook
-- Henderson, Summerlin, North Las Vegas neighborhood comparisons
+- Virginia Beach, Chesapeake, Norfolk, Suffolk neighborhood comparisons
 - What market conditions mean for current homeowners and buyers
 
-### 2. Nevada Law Changes Affecting Homeowners
+### 2. Virginia Law Changes Affecting Homeowners
 - Property tax changes and exemptions
 - HOA regulation updates
 - Zoning and land use changes
 - Tenant/landlord law updates
-- Any legislation affecting real estate transactions
+- Any Virginia legislation affecting real estate transactions
 
 ### 3. Major Development Projects (Economic Growth Signals)
-- Billion-dollar stadium, arena, or district developments
-- Tech campuses, data centers, corporate HQ relocations
-- New master-planned communities (Summerlin, Henderson expansions)
-- Infrastructure projects that increase neighborhood desirability
-- Job-creating projects signaling long-term demand
+- Port of Virginia expansions and related economic growth
+- Military base investments (NAS Oceana, Norfolk Naval Station, Langley AFB)
+- Corporate relocations and new employers in Hampton Roads
+- Infrastructure and community development projects
+- Job-creating projects signaling long-term housing demand
 
-### 4. Celebrity & High-Profile Moves to Las Vegas
-- Celebrities, athletes, or executives buying Las Vegas real estate
-- High-profile relocations signaling lifestyle appeal
-- Luxury real estate transactions that reflect market confidence
+### 4. Military & Defense Sector News
+- Base realignment or expansion news affecting housing demand
+- PCS (Permanent Change of Station) season trends
+- New military commands or units relocating to Hampton Roads
+- Defense contractor hiring affecting local economy
 
-### 5. Major Corporate Investments
-- Large employers building facilities in Nevada (Tesla-scale news)
-- Fortune 500 companies relocating to Las Vegas
-- Manufacturing, logistics, or tech companies expanding in Clark County
+### 5. Major Employers Expanding in Hampton Roads
+- Large companies building facilities in the region
+- Corporate HQ relocations to Virginia Beach or Chesapeake
+- Tech, logistics, or manufacturing companies entering the market
 - Any investment that signals economic growth and housing demand
 
 ---
@@ -76,7 +79,7 @@ Articles are scored 1–10. Claude gives extra weight to these high-value topics
 
 ### Primary: Google Gemini 2.0 Flash (requires `GOOGLE_API_KEY`)
 
-1. **Claude builds the prompt** — Analyzes the article's headline, `whyItMatters`, and category. Writes a hyper-specific, cinematic image prompt with Las Vegas context (desert light, Red Rock Canyon, Summerlin neighborhoods, mountain backdrops, blue Nevada sky).
+1. **Claude builds the prompt** — Analyzes the article's headline, `whyItMatters`, and category. Writes a hyper-specific, cinematic image prompt with Hampton Roads context (coastal light, Chesapeake Bay waterways, Virginia Beach oceanfront, colonial architecture, tree-lined streets of Chesapeake or Suffolk).
 
 2. **Gemini generates the image** — Model: `gemini-2.0-flash-exp-image-generation`. Returns base64 PNG inline.
 
@@ -115,9 +118,9 @@ Articles are scored 1–10. Claude gives extra weight to these high-value topics
 
 ## Blog Post Writing
 
-Each post is written by Claude Sonnet 4.6 as a Las Vegas real estate professional at Legacy Home Search. Voice is:
+Each post is written by Claude Sonnet 4.6 as a Virginia Beach real estate professional at Legacy Home Search. Voice is:
 - Knowledgeable and approachable, never salesy
-- Ties national or Nevada news back to the local Las Vegas / Henderson / Summerlin market
+- Ties national or Virginia news back to the local Hampton Roads / Virginia Beach market
 - Always includes a "## What This Means For You" section with 3–4 bullet points
 
 Post structure:

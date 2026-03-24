@@ -31,17 +31,17 @@ async function buildImagePrompt(article: ScoredArticle): Promise<string | null> 
 
     const categoryContext: Record<string, string> = {
       'market-update':
-        'Visualize market momentum and economic energy — rising values, neighborhood growth, the feeling of a city on the move. Think dramatic aerial shots of Las Vegas neighborhoods, beautifully lit luxury home exteriors that signal strong demand, or cinematic street-level scenes of desirable communities near the Strip or master-planned communities like Summerlin and Henderson.',
+        'Visualize market momentum in Hampton Roads — rising values, neighborhood vitality, the feeling of a coastal community thriving. Think aerial shots of Virginia Beach neighborhoods near the oceanfront, beautifully lit home exteriors in Chesapeake or Suffolk at golden hour, or cinematic street-level scenes of desirable waterfront or tree-lined communities.',
       'buying-tips':
-        'Capture the emotional journey of finding a home in Las Vegas — discovery, possibility, the moment of arrival. A family stepping through a sunlit doorway of a modern desert home, an open floor plan with mountain or Strip views, a stunning pool and backyard that makes someone imagine their life there in the Nevada sun.',
+        'Capture the emotional journey of finding a home in Hampton Roads — discovery, possibility, the moment of arrival. A family stepping through a sunlit doorway of a colonial or craftsman home, an open floor plan with coastal light, a beautiful backyard or deck that makes someone imagine their life near the water in Virginia Beach or Chesapeake.',
       'selling-tips':
-        'Convey success, preparation, and premium results. A beautifully staged living room in a Las Vegas luxury home with perfect desert lighting, a home exterior with xeriscaping and mountain backdrop that looks its absolute best, the visual feeling of a property that commands top dollar.',
+        'Convey success, preparation, and premium results. A beautifully staged living room in a Virginia Beach home with perfect coastal light, a home exterior with mature landscaping that looks its absolute best, the visual feeling of a Hampton Roads property that commands top dollar.',
       'community-spotlight':
-        'Bring the Las Vegas neighborhood to life — the energy of a specific place, its character, what makes it feel like home beyond the Strip. Red Rock Canyon backdrop, Summerlin parks, Henderson waterways, master-planned community amenities, the lifestyle that defines Las Vegas residential living.',
+        'Bring Hampton Roads to life — the energy of a specific neighborhood, its character, what makes it feel like home. Virginia Beach oceanfront boardwalk, Chesapeake tree-lined streets, Norfolk waterfront, Suffolk open spaces, the lifestyle that defines coastal Virginia residential living.',
       investment:
-        'Communicate financial opportunity through scale and architecture. Multi-unit properties in growing Las Vegas corridors, aerial views of expanding master-planned communities, the visual language of value and return in Nevada\'s high-growth market. New development cranes on the skyline signal momentum.',
+        'Communicate financial opportunity through architecture and scale. Multi-unit properties in growing Hampton Roads corridors, aerial views of Virginia Beach or Chesapeake neighborhoods, the visual language of value and return in a market anchored by the military and port economy.',
       news:
-        'Capture the sense of something significant happening in Las Vegas now — urgency, change, forward momentum. Dynamic angles, dramatic Nevada desert light, a scene that feels current and important, conveying the energy of a city constantly evolving.',
+        'Capture the sense of something significant happening in Hampton Roads — urgency, change, forward momentum. Dynamic angles, dramatic coastal Virginia light, a scene that feels current and important, conveying the energy of a community growing and evolving.',
     }
 
     const visualDirection = categoryContext[article.category] ?? categoryContext['news']
@@ -52,7 +52,7 @@ async function buildImagePrompt(article: ScoredArticle): Promise<string | null> 
       messages: [
         {
           role: 'user',
-          content: `You are a world-class creative director for a premium Las Vegas real estate brand. Your job is to create image generation prompts that produce stunning, magazine-quality thumbnail images — the kind that stop someone mid-scroll and make them need to read the article.
+          content: `You are a world-class creative director for a premium Hampton Roads / Virginia Beach real estate brand. Your job is to create image generation prompts that produce stunning, magazine-quality thumbnail images — the kind that stop someone mid-scroll and make them need to read the article.
 
 ARTICLE TO VISUALIZE:
 Title: ${article.title}
@@ -69,17 +69,17 @@ YOUR TASK:
 
 CRAFT RULES:
 - Be hyper-specific: name the time of day, exact lighting conditions, precise architectural details, specific colors
-- Las Vegas / Nevada context where it naturally fits (desert light, Red Rock Canyon backdrop, Strip skyline silhouette, Summerlin or Henderson neighborhoods, mountain views, blue sky with dramatic clouds)
+- Hampton Roads / Virginia Beach context where it naturally fits (coastal light, Chesapeake Bay waterways, oceanfront boardwalk, colonial and craftsman architecture, tree-lined streets of Chesapeake or Suffolk, Norfolk waterfront)
 - Photorealistic, shot on a high-end camera with a wide lens — not illustrated or painterly
 - Cinematic composition: rule of thirds, leading lines, depth of field
-- Lighting: golden hour, desert dusk, or dramatic clear Nevada sky — never flat or overcast
+- Lighting: golden hour, coastal sunrise/sunset, or dramatic Atlantic sky — never flat or overcast
 - 16:9 landscape format optimized for web thumbnail display
 
 ABSOLUTE PROHIBITIONS — do not include:
 - Text, words, numbers, labels, watermarks, or graphics of any kind
 - Clearly visible faces (keep people at distance, silhouette, or shown from behind)
 - Moving trucks, boxes, "sold" signs, keys, handshakes, or agent-pointing-at-house clichés
-- Logos, brand names, casino names, or company signage
+- Logos, brand names, military insignia, or company signage
 - Anything that looks like stock photography
 
 Write your image prompt now. Be vivid and specific. 4-6 sentences. Return ONLY the prompt, no explanation.`,

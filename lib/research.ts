@@ -4,38 +4,39 @@ import { getSkippedUrls } from './store'
 
 const SEARCH_QUERIES = [
   // Property values & investment — buyer/owner impact
-  'Las Vegas home prices forecast 2025 2026',
-  'Las Vegas real estate market update housing values',
-  'Nevada property investment returns rental market 2025',
-  'Las Vegas housing market buyers sellers trends',
-  'Henderson Summerlin home values appreciation 2025',
-  'Las Vegas real estate investment opportunity outlook',
+  'Virginia Beach real estate market news 2025',
+  'Hampton Roads housing market trends buyers sellers',
+  'Virginia Beach home prices forecast appreciation 2025',
+  'Hampton Roads investment property rental market returns',
+  'Virginia Beach real estate market update values',
+  'Chesapeake Norfolk Virginia real estate market 2025',
 
   // Law & policy changes affecting homeowners
-  'Nevada homeowner law changes 2025 property rights',
-  'Nevada property tax changes homeowners 2025',
-  'Nevada HOA law regulations 2025',
-  'Las Vegas zoning law changes development 2025',
-  'Nevada real estate legislation buyers sellers 2025',
+  'Virginia homeowner law changes 2025 property rights',
+  'Virginia property tax changes homeowners exemptions 2025',
+  'Virginia HOA law regulations changes 2025',
+  'Hampton Roads zoning development law 2025',
+  'Virginia real estate legislation buyers sellers 2025',
 
   // Major development projects & economic growth signals
-  'Las Vegas major development projects jobs economy 2025',
-  'Las Vegas new construction billion dollar development',
-  'Nevada economic growth tech company relocating Las Vegas',
-  'Las Vegas stadium arena district development',
-  'Summerlin Henderson new development master planned community',
-  'Las Vegas data center tech campus expansion 2025',
-  'Nevada corporate relocation headquarters Las Vegas 2025',
+  'Hampton Roads major development projects jobs economy 2025',
+  'Virginia Beach new construction development billion dollar',
+  'Hampton Roads military base expansion economy housing demand',
+  'Norfolk Newport News port development economic growth 2025',
+  'Virginia Beach Chesapeake new community development',
+  'Hampton Roads corporate relocation jobs economy 2025',
 
-  // Celebrity & high-profile moves to Las Vegas
-  'celebrity moving Las Vegas Nevada 2025',
-  'billionaire executive relocating Las Vegas Nevada',
-  'Las Vegas luxury real estate high profile purchase 2025',
+  // Military & relocation (key Hampton Roads driver)
+  'Military relocation Hampton Roads Virginia Beach homes',
+  'PCS military move Hampton Roads housing 2025',
+  'Norfolk Naval Station housing military families Virginia Beach',
 
-  // Big corporate investments (Tesla-scale signals)
-  'major company factory warehouse Las Vegas Nevada 2025',
-  'Tesla Panasonic Apple Google Las Vegas Nevada facility',
-  'Las Vegas economy jobs growth Fortune 500 2025',
+  // Lifestyle & community
+  'Virginia Beach oceanfront waterfront homes market 2025',
+  'Suffolk Virginia homes community growth 2025',
+  'Virginia Beach neighborhoods schools homes 2025',
+  'Hampton Roads first time home buyer programs 2025',
+  'Virginia Beach condo townhouse market trends 2025',
 ]
 
 // Pick 8 queries per day, rotating through the full list so all topics get covered
@@ -122,19 +123,19 @@ export async function fetchAndScoreArticles(): Promise<ScoredArticle[]> {
     messages: [
       {
         role: 'user',
-        content: `You are a real estate content strategist for Legacy Home Search, a Las Vegas real estate agency. Their clients are home buyers, sellers, and investors in the Las Vegas, Henderson, Summerlin, and greater Nevada market.
+        content: `You are a real estate content strategist for Legacy Home Search, a real estate agency serving Virginia Beach and Hampton Roads, Virginia. Their clients are home buyers, sellers, and investors in Virginia Beach, Chesapeake, Norfolk, Suffolk, Hampton, and Newport News.
 
 Evaluate these articles and return a JSON array. For each article, assign:
-- relevanceScore: 1-10 (how useful/interesting is this for Las Vegas homebuyers, sellers, or investors?)
+- relevanceScore: 1-10 (how useful/interesting is this for Hampton Roads / Virginia Beach homebuyers, sellers, or investors?)
 - category: one of "market-update" | "buying-tips" | "selling-tips" | "community-spotlight" | "investment" | "news"
-- whyItMatters: exactly 2 sentences explaining why a Las Vegas homeowner or buyer should care
+- whyItMatters: exactly 2 sentences explaining why a Hampton Roads homeowner or buyer should care
 
 SCORING PRIORITY (give extra weight to):
-1. Las Vegas / Nevada property values and investment returns — especially what affects buyers and current homeowners
-2. Nevada law changes affecting homeowners (property tax, HOA rules, zoning, tenant/landlord laws)
-3. Major development projects bringing jobs and economic growth to Las Vegas (stadiums, tech campuses, factories, corporate HQ relocations)
-4. High-profile celebrity or executive moves to Las Vegas — signals lifestyle appeal and market confidence
-5. Large corporate investments in Nevada (e.g., major employer opening a facility, data center, manufacturing plant)
+1. Virginia Beach / Hampton Roads property values and investment returns — what affects buyers and current homeowners
+2. Virginia law changes affecting homeowners (property tax, HOA rules, zoning, tenant/landlord laws)
+3. Major development projects bringing jobs and economic growth to Hampton Roads (port expansion, military base investments, corporate relocations)
+4. Military and defense-sector news affecting Hampton Roads housing demand (PCS moves, base expansions, new commands)
+5. Large employers or corporations expanding in Hampton Roads / Virginia — signals economic growth and housing demand
 
 Return ONLY a valid JSON array with objects in this format:
 {"index": 0, "relevanceScore": 8, "category": "market-update", "whyItMatters": "..."}
