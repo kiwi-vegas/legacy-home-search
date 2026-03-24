@@ -77,7 +77,7 @@ export async function sendDigestEmail(articles: ScoredArticle[], date: string): 
           <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e0ddd8;">
             <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #2563eb; margin-bottom: 8px;">Legacy Home Search · Daily Blog Digest</div>
             <div style="font-size: 22px; font-weight: 700; color: #1a1a1a;">${dateFormatted}</div>
-            <div style="font-size: 14px; color: #888884; margin-top: 4px;">${articles.length} articles found · Pick 3 to publish</div>
+            <div style="font-size: 14px; color: #888884; margin-top: 4px;">${articles.length} articles found · Pick 1–5 to publish</div>
           </td>
         </tr>
 
@@ -94,7 +94,7 @@ export async function sendDigestEmail(articles: ScoredArticle[], date: string): 
         <tr>
           <td style="padding: 32px;">
             <a href="${pickerUrl}" style="display:block;text-align:center;background:#2563eb;color:#ffffff;font-weight:700;font-size:15px;letter-spacing:0.05em;padding:16px 32px;border-radius:8px;text-decoration:none;">
-              Pick 3 Articles to Publish →
+              Pick Articles to Publish →
             </a>
             <div style="font-size: 11px; color: #888884; text-align: center; margin-top: 12px;">
               This link expires in 48 hours. Only you have access.
@@ -121,7 +121,7 @@ export async function sendDigestEmail(articles: ScoredArticle[], date: string): 
   await resend.emails.send({
     from: fromEmail,
     to: operatorEmail,
-    subject: `Blog Digest — ${articles.length} articles ready to publish (${dateFormatted})`,
+    subject: `Las Vegas Blog Digest — ${articles.length} articles ready to publish (${dateFormatted})`,
     html,
   })
 }

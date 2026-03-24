@@ -52,12 +52,14 @@ export default function BlogPickerPage() {
       .finally(() => setLoading(false))
   }, [date, secret])
 
+  const MAX_SELECTION = 5
+
   function toggleArticle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
         next.delete(id)
-      } else if (next.size < 3) {
+      } else if (next.size < MAX_SELECTION) {
         next.add(id)
       }
       return next
@@ -65,7 +67,7 @@ export default function BlogPickerPage() {
   }
 
   async function handlePublish() {
-    if (selected.size !== 3) return
+    if (selected.size === 0) return
     setPublishing(true)
     setError(null)
 
@@ -101,7 +103,7 @@ export default function BlogPickerPage() {
         <div style={styles.container}>
           <div style={styles.successBox}>
             <div style={styles.successIcon}>✓</div>
-            <h2 style={styles.successTitle}>{result.published.length} Posts Published</h2>
+            <h2 style={styles.successTitle}>{result.published.length} {result.published.length === 1 ? 'Post' : 'Posts'} Published</h2>
             <p style={styles.successSub}>They&apos;re live on the blog now.</p>
             <ul style={styles.publishedList}>
               {result.published.map((p) => (
@@ -136,8 +138,8 @@ export default function BlogPickerPage() {
         {/* Header */}
         <div style={styles.header}>
           <div style={styles.headerLabel}>Legacy Home Search · Blog Pipeline</div>
-          <h1 style={styles.headerTitle}>Pick 3 Articles to Publish</h1>
-          <p style={styles.headerSub}>{dateFormatted} · {articles.length} articles found</p>
+          <h1 style={styles.headerTitle}>Pick Articles to Publish</h1>
+          <p style={styles.headerSub}>{dateFormatted} · {articles.length} articles found · select 1–5</p>
         </div>
 
         {error && <div style={styles.errorBox}>{error}</div>}
@@ -145,10 +147,10 @@ export default function BlogPickerPage() {
         {/* Progress bar */}
         <div style={styles.progressBar}>
           <div style={styles.progressLabel}>
-            {selected.size}/3 selected
+            {selected.size}/{MAX_SELECTION} selected
           </div>
           <div style={styles.progressTrack}>
-            {[0, 1, 2].map((i) => (
+            {Array.from({ length: MAX_SELECTION }, (_, i) => (
               <div
                 key={i}
                 style={{
@@ -175,8 +177,8 @@ export default function BlogPickerPage() {
                     ? '2px solid #2563eb'
                     : '2px solid #e0ddd8',
                   background: isSelected ? '#eff6ff' : '#ffffff',
-                  cursor: selected.size >= 3 && !isSelected ? 'not-allowed' : 'pointer',
-                  opacity: selected.size >= 3 && !isSelected ? 0.4 : 1,
+                  cursor: selected.size >= MAX_SELECTION && !isSelected ? 'not-allowed' : 'pointer',
+                  opacity: selected.size >= MAX_SELECTION && !isSelected ? 0.4 : 1,
                 }}
               >
                 <div style={styles.cardTop}>
@@ -208,17 +210,21 @@ export default function BlogPickerPage() {
         <div style={styles.footer}>
           <button
             onClick={handlePublish}
-            disabled={selected.size !== 3 || publishing}
+            disabled={selected.size === 0 || publishing}
             style={{
               ...styles.publishBtn,
-              opacity: selected.size !== 3 || publishing ? 0.4 : 1,
-              cursor: selected.size !== 3 || publishing ? 'not-allowed' : 'pointer',
+              opacity: selected.size === 0 || publishing ? 0.4 : 1,
+              cursor: selected.size === 0 || publishing ? 'not-allowed' : 'pointer',
             }}
           >
-            {publishing ? 'Publishing...' : selected.size === 3 ? 'Publish 3 Posts →' : `Select ${3 - selected.size} more`}
+            {publishing
+              ? 'Publishing...'
+              : selected.size > 0
+                ? `Publish ${selected.size} Post${selected.size !== 1 ? 's' : ''} →`
+                : 'Select at least 1 article'}
           </button>
           <p style={styles.footerNote}>
-            Claude will write and publish all 3 posts to the site simultaneously. This may take up to 60 seconds.
+            Claude will write and publish all selected posts simultaneously. This may take up to 60 seconds per post.
           </p>
         </div>
 

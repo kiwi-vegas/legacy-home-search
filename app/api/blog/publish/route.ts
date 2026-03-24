@@ -23,8 +23,8 @@ export async function POST(request: Request) {
 
   const { date, articleIds } = body
 
-  if (!date || !articleIds || articleIds.length !== 3) {
-    return NextResponse.json({ error: 'Provide date and exactly 3 articleIds' }, { status: 400 })
+  if (!date || !articleIds || articleIds.length < 1 || articleIds.length > 5) {
+    return NextResponse.json({ error: 'Provide date and 1-5 articleIds' }, { status: 400 })
   }
 
   const stored = await loadArticles(date)
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
   const selectedArticles = articleIds.map((id) => stored.articles.find((a) => a.id === id)).filter(Boolean)
 
-  if (selectedArticles.length !== 3) {
+  if (selectedArticles.length !== articleIds.length) {
     return NextResponse.json({ error: 'One or more article IDs not found' }, { status: 400 })
   }
 
@@ -70,6 +70,6 @@ export async function POST(request: Request) {
     success: results.length > 0,
     published: results,
     errors,
-    message: `${results.length} of 3 posts published successfully`,
+    message: `${results.length} of ${articleIds.length} posts published successfully`,
   })
 }

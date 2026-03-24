@@ -11,16 +11,62 @@ const UNSPLASH_CATEGORY_QUERIES: Record<ArticleCategory, string> = {
   news: 'city skyline real estate',
 }
 
-// Hardcoded fallback images — real estate photos uploaded once per category.
-// Used when OG image fetch fails AND Unsplash API key is not set.
-// These are direct Unsplash photo URLs (no API key required to download).
-const FALLBACK_IMAGE_URLS: Record<ArticleCategory, string> = {
-  'market-update':      'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80',
-  'buying-tips':        'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&q=80',
-  'selling-tips':       'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
-  'community-spotlight':'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80',
-  investment:           'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80',
-  news:                 'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=1200&q=80',
+// Fallback image pools — multiple options per category so same-category posts
+// never share an image. Selection is deterministic based on article URL.
+const FALLBACK_IMAGE_POOLS: Record<ArticleCategory, string[]> = {
+  'market-update': [
+    'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80',
+    'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1200&q=80',
+    'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80',
+    'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1200&q=80',
+    'https://images.unsplash.com/photo-1448630360428-65456885c650?w=1200&q=80',
+  ],
+  'buying-tips': [
+    'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&q=80',
+    'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&q=80',
+    'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=80',
+    'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=1200&q=80',
+    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80',
+  ],
+  'selling-tips': [
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
+    'https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=1200&q=80',
+    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
+    'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&q=80',
+    'https://images.unsplash.com/photo-1588880331179-bc9b93a8cb5e?w=1200&q=80',
+  ],
+  'community-spotlight': [
+    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80',
+    'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&q=80',
+    'https://images.unsplash.com/photo-1449844908441-8829872d2607?w=1200&q=80',
+    'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80',
+    'https://images.unsplash.com/photo-1464082354059-27db6ce50048?w=1200&q=80',
+  ],
+  investment: [
+    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80',
+    'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200&q=80',
+    'https://images.unsplash.com/photo-1460317442991-0ec209397118?w=1200&q=80',
+    'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&q=80',
+    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=80',
+  ],
+  news: [
+    'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=1200&q=80',
+    'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1200&q=80',
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=80',
+    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=80',
+    'https://images.unsplash.com/photo-1516156008625-3a9d6067fab5?w=1200&q=80',
+  ],
+}
+
+// Pick a fallback deterministically by hashing the article URL — same article
+// always gets the same image, but different articles get different ones.
+function pickFallback(category: ArticleCategory, articleUrl: string): string {
+  const pool = FALLBACK_IMAGE_POOLS[category]
+  let hash = 0
+  for (let i = 0; i < articleUrl.length; i++) {
+    hash = (hash * 31 + articleUrl.charCodeAt(i)) >>> 0
+  }
+  return pool[hash % pool.length]
 }
 
 async function fetchOgImage(url: string): Promise<string | null> {
@@ -101,29 +147,36 @@ export async function fetchAndUploadCoverImage(
   category: ArticleCategory,
   article?: import('./types').ScoredArticle
 ): Promise<{ _type: 'reference'; _ref: string } | null> {
-  // 1. AI-generated image — custom DALL-E 3 image based on the article (preferred)
+  // 1. Gemini AI-generated image (preferred — uses Google Gemini 2.0 Flash)
+  if (article && process.env.GOOGLE_API_KEY) {
+    const { generateAndUploadCoverImageGemini } = await import('./image-gen-gemini')
+    const ref = await generateAndUploadCoverImageGemini(article)
+    if (ref) return ref
+  }
+
+  // 2. DALL-E 3 fallback (if OpenAI key is set and Gemini failed)
   if (article && process.env.OPENAI_API_KEY) {
     const { generateAndUploadCoverImage } = await import('./image-gen')
     const ref = await generateAndUploadCoverImage(article)
     if (ref) return ref
   }
 
-  // 2. OG image from the article URL
+  // 3. OG image from the article URL
   const ogUrl = await fetchOgImage(articleUrl)
   if (ogUrl) {
     const ref = await uploadImageToSanity(ogUrl)
     if (ref) return ref
   }
 
-  // 3. Unsplash API (if key is set)
+  // 4. Unsplash API (if key is set)
   const unsplashUrl = await fetchUnsplashImage(category)
   if (unsplashUrl) {
     const ref = await uploadImageToSanity(unsplashUrl)
     if (ref) return ref
   }
 
-  // 4. Hardcoded fallback photo per category (always works)
-  const fallbackUrl = FALLBACK_IMAGE_URLS[category]
+  // 5. Fallback pool — deterministic pick based on article URL (always unique across same-day posts)
+  const fallbackUrl = pickFallback(category, articleUrl)
   const ref = await uploadImageToSanity(fallbackUrl)
   if (ref) return ref
 

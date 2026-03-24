@@ -3,34 +3,49 @@ import type { RawArticle, ScoredArticle, ArticleCategory } from './types'
 import { getSkippedUrls } from './store'
 
 const SEARCH_QUERIES = [
-  'Virginia Beach real estate market news 2025',
-  'Hampton Roads housing market trends buyers sellers',
-  'Virginia first time home buyer programs 2025',
-  'Military relocation Hampton Roads Virginia Beach homes',
-  'Chesapeake Virginia homes for sale market update',
-  'Norfolk Virginia real estate market trends 2025',
-  'Virginia Beach new construction homes development',
-  'Hampton Roads mortgage rates housing market',
-  'Suffolk Virginia homes community growth 2025',
-  'Virginia Beach oceanfront luxury homes market',
-  'Hampton Roads investment property rental market',
-  'Newport News Hampton Virginia real estate trends',
-  'Virginia Beach neighborhoods top rated schools',
-  'Virginia Beach condo townhouse market 2025',
-  'Hampton Roads relocation moving military families',
-  'Virginia property tax homeowner exemptions 2025',
-  'Virginia Beach waterfront homes boating community',
-  'Hampton Roads economy jobs housing demand 2025',
+  // Property values & investment — buyer/owner impact
+  'Las Vegas home prices forecast 2025 2026',
+  'Las Vegas real estate market update housing values',
+  'Nevada property investment returns rental market 2025',
+  'Las Vegas housing market buyers sellers trends',
+  'Henderson Summerlin home values appreciation 2025',
+  'Las Vegas real estate investment opportunity outlook',
+
+  // Law & policy changes affecting homeowners
+  'Nevada homeowner law changes 2025 property rights',
+  'Nevada property tax changes homeowners 2025',
+  'Nevada HOA law regulations 2025',
+  'Las Vegas zoning law changes development 2025',
+  'Nevada real estate legislation buyers sellers 2025',
+
+  // Major development projects & economic growth signals
+  'Las Vegas major development projects jobs economy 2025',
+  'Las Vegas new construction billion dollar development',
+  'Nevada economic growth tech company relocating Las Vegas',
+  'Las Vegas stadium arena district development',
+  'Summerlin Henderson new development master planned community',
+  'Las Vegas data center tech campus expansion 2025',
+  'Nevada corporate relocation headquarters Las Vegas 2025',
+
+  // Celebrity & high-profile moves to Las Vegas
+  'celebrity moving Las Vegas Nevada 2025',
+  'billionaire executive relocating Las Vegas Nevada',
+  'Las Vegas luxury real estate high profile purchase 2025',
+
+  // Big corporate investments (Tesla-scale signals)
+  'major company factory warehouse Las Vegas Nevada 2025',
+  'Tesla Panasonic Apple Google Las Vegas Nevada facility',
+  'Las Vegas economy jobs growth Fortune 500 2025',
 ]
 
-// Pick 6 queries, rotating by day of week
+// Pick 8 queries per day, rotating through the full list so all topics get covered
 function getQueriesForToday(): string[] {
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
   )
-  const start = (dayOfYear * 6) % SEARCH_QUERIES.length
+  const start = (dayOfYear * 8) % SEARCH_QUERIES.length
   const queries: string[] = []
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) {
     queries.push(SEARCH_QUERIES[(start + i) % SEARCH_QUERIES.length])
   }
   return queries
@@ -107,12 +122,19 @@ export async function fetchAndScoreArticles(): Promise<ScoredArticle[]> {
     messages: [
       {
         role: 'user',
-        content: `You are a real estate content strategist for Legacy Home Search, a real estate agency. Their clients are home buyers, sellers, and investors.
+        content: `You are a real estate content strategist for Legacy Home Search, a Las Vegas real estate agency. Their clients are home buyers, sellers, and investors in the Las Vegas, Henderson, Summerlin, and greater Nevada market.
 
 Evaluate these articles and return a JSON array. For each article, assign:
-- relevanceScore: 1-10 (how useful/interesting is this for homebuyers, sellers, or investors?)
+- relevanceScore: 1-10 (how useful/interesting is this for Las Vegas homebuyers, sellers, or investors?)
 - category: one of "market-update" | "buying-tips" | "selling-tips" | "community-spotlight" | "investment" | "news"
-- whyItMatters: exactly 2 sentences explaining why a homeowner or buyer should care
+- whyItMatters: exactly 2 sentences explaining why a Las Vegas homeowner or buyer should care
+
+SCORING PRIORITY (give extra weight to):
+1. Las Vegas / Nevada property values and investment returns — especially what affects buyers and current homeowners
+2. Nevada law changes affecting homeowners (property tax, HOA rules, zoning, tenant/landlord laws)
+3. Major development projects bringing jobs and economic growth to Las Vegas (stadiums, tech campuses, factories, corporate HQ relocations)
+4. High-profile celebrity or executive moves to Las Vegas — signals lifestyle appeal and market confidence
+5. Large corporate investments in Nevada (e.g., major employer opening a facility, data center, manufacturing plant)
 
 Return ONLY a valid JSON array with objects in this format:
 {"index": 0, "relevanceScore": 8, "category": "market-update", "whyItMatters": "..."}
