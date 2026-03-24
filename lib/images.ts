@@ -147,21 +147,34 @@ export async function fetchAndUploadCoverImage(
   category: ArticleCategory,
   article?: import('./types').ScoredArticle
 ): Promise<{ _type: 'reference'; _ref: string } | null> {
-  // 1. Gemini AI-generated image (preferred — uses Google Gemini 2.0 Flash)
+  // 1. Google Imagen 4 / Gemini (primary — custom AI image per article)
   if (article && process.env.GOOGLE_API_KEY) {
+    console.log(`[images] Generating custom image via Google AI for: "${article.title.slice(0, 60)}"`)
     const { generateAndUploadCoverImageGemini } = await import('./image-gen-gemini')
     const ref = await generateAndUploadCoverImageGemini(article)
-    if (ref) return ref
+    if (ref) {
+      console.log(`[images] Google AI image generated and uploaded: ${ref._ref}`)
+      return ref
+    }
+    console.warn('[images] Google AI image generation failed — trying DALL-E fallback')
+  } else if (!process.env.GOOGLE_API_KEY) {
+    console.warn('[images] GOOGLE_API_KEY not set — skipping AI image generation')
   }
 
-  // 2. DALL-E 3 fallback (if OpenAI key is set and Gemini failed)
+  // 2. DALL-E 3 fallback
   if (article && process.env.OPENAI_API_KEY) {
+    console.log('[images] Trying DALL-E 3 fallback...')
     const { generateAndUploadCoverImage } = await import('./image-gen')
     const ref = await generateAndUploadCoverImage(article)
-    if (ref) return ref
+    if (ref) {
+      console.log(`[images] DALL-E image uploaded: ${ref._ref}`)
+      return ref
+    }
+    console.warn('[images] DALL-E failed — falling back to OG image')
   }
 
   // 3. OG image from the article URL
+  console.log('[images] Trying OG image scrape...')
   const ogUrl = await fetchOgImage(articleUrl)
   if (ogUrl) {
     const ref = await uploadImageToSanity(ogUrl)

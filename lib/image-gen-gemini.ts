@@ -46,13 +46,14 @@ async function buildImagePrompt(article: ScoredArticle): Promise<string | null> 
 
     const visualDirection = categoryContext[article.category] ?? categoryContext['news']
 
+    console.log('[image-gen] Building image prompt with Claude...')
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 600,
+      max_tokens: 800,
       messages: [
         {
           role: 'user',
-          content: `You are a world-class creative director for a premium Hampton Roads / Virginia Beach real estate brand. Your job is to create image generation prompts that produce stunning, magazine-quality thumbnail images — the kind that stop someone mid-scroll and make them need to read the article.
+          content: `You are a world-class creative director for a premium Hampton Roads / Virginia Beach real estate brand. Your job is to write an image generation prompt that produces a STUNNING, magazine-quality hero image — the kind that stops someone mid-scroll and makes them need to read the article.
 
 ARTICLE TO VISUALIZE:
 Title: ${article.title}
@@ -62,30 +63,35 @@ Category: ${article.category}
 VISUAL DIRECTION FOR THIS CATEGORY:
 ${visualDirection}
 
-YOUR TASK:
-1. Extract the CORE CONCEPT of this article — what is the single most powerful idea or emotion it conveys?
-2. Translate that concept into ONE specific, vivid scene. Not a generic real estate photo — a deliberately crafted visual that embodies the article's story.
-3. The image should work as a standalone thumbnail: someone who hasn't read the article should be able to feel what it's about just from the image.
+YOUR PROCESS:
+1. Identify the single most powerful EMOTION or IDEA in this article (growth, uncertainty, opportunity, community, loss, momentum, etc.)
+2. Find the most compelling VISUAL METAPHOR for that emotion — something specific to Hampton Roads / Virginia Beach
+3. Describe ONE precise, cinematic scene that embodies it. Make it feel lived-in and real, not staged.
 
-CRAFT RULES:
-- Be hyper-specific: name the time of day, exact lighting conditions, precise architectural details, specific colors
-- Hampton Roads / Virginia Beach context where it naturally fits (coastal light, Chesapeake Bay waterways, oceanfront boardwalk, colonial and craftsman architecture, tree-lined streets of Chesapeake or Suffolk, Norfolk waterfront)
-- Photorealistic, shot on a high-end camera with a wide lens — not illustrated or painterly
-- Cinematic composition: rule of thirds, leading lines, depth of field
-- Lighting: golden hour, coastal sunrise/sunset, or dramatic Atlantic sky — never flat or overcast
-- 16:9 landscape format optimized for web thumbnail display
+WHAT MAKES A GREAT PROMPT:
+- Hyper-specific details: name the exact time of day, describe the quality of light, the architectural style, the colors in the sky
+- A strong foreground subject with depth behind it — not a flat snapshot
+- Something slightly unexpected that elevates it above stock photography
+- Hampton Roads DNA: Chesapeake Bay waterways, Virginia Beach oceanfront, Norfolk skyline at dusk, colonial homes with deep porches, naval vessels in the distance, tidal creeks through marshland, tree-lined Chesapeake streets
 
-ABSOLUTE PROHIBITIONS — do not include:
-- Text, words, numbers, labels, watermarks, or graphics of any kind
-- Clearly visible faces (keep people at distance, silhouette, or shown from behind)
-- Moving trucks, boxes, "sold" signs, keys, handshakes, or agent-pointing-at-house clichés
-- Logos, brand names, military insignia, or company signage
-- Anything that looks like stock photography
+TECHNICAL REQUIREMENTS:
+- Photorealistic — shot on a high-end full-frame camera, 24mm wide lens
+- Cinematic composition: rule of thirds, strong leading lines, bokeh depth of field
+- Lighting: golden hour warmth, dramatic coastal sunrise/sunset, or Atlantic storm light — never flat, grey, or overcast
+- 16:9 widescreen format, optimized for blog hero display
 
-Write your image prompt now. Be vivid and specific. 4-6 sentences. Return ONLY the prompt, no explanation.`,
+HARD RULES — never include:
+- Text, words, numbers, signs, watermarks, or graphics of any kind
+- Clearly visible faces — people only at distance, in silhouette, or from behind
+- "For Sale" signs, sold signs, keys, moving trucks, handshakes, or pointing
+- Logos, brand names, flags, military insignia, or company signage
+- Anything that looks like a generic real estate stock photo
+
+Write the final image prompt now. 5-7 vivid sentences. Return ONLY the prompt — no explanation, no preamble.`,
         },
       ],
     })
+    console.log('[image-gen] Prompt built. Sending to Google Imagen 4...')
 
     const text = response.content[0].type === 'text' ? response.content[0].text.trim() : null
     return text
@@ -103,6 +109,7 @@ async function generateWithGemini(prompt: string): Promise<Buffer | null> {
 
   // Try Imagen 4.0 first — best quality, native 16:9 aspect ratio
   try {
+    console.log('[image-gen] Calling Imagen 4.0...')
     const response = await ai.models.generateImages({
       model: 'imagen-4.0-generate-001',
       prompt,
@@ -110,16 +117,17 @@ async function generateWithGemini(prompt: string): Promise<Buffer | null> {
     })
     const imageBytes = response.generatedImages?.[0]?.image?.imageBytes
     if (imageBytes) {
-      return Buffer.isBuffer(imageBytes)
-        ? imageBytes
-        : Buffer.from(imageBytes as string, 'base64')
+      const buf = Buffer.isBuffer(imageBytes) ? imageBytes : Buffer.from(imageBytes as string, 'base64')
+      console.log(`[image-gen] Imagen 4.0 success — ${Math.round(buf.length / 1024)}KB image received`)
+      return buf
     }
   } catch (err) {
-    console.error('[image-gen-gemini] Imagen 4 error:', err instanceof Error ? err.message : err)
+    console.error('[image-gen] Imagen 4.0 error:', err instanceof Error ? err.message : err)
   }
 
   // Fallback: Gemini 2.5 Flash Image
   try {
+    console.log('[image-gen] Trying Gemini 2.5 Flash Image fallback...')
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: prompt,
@@ -128,14 +136,16 @@ async function generateWithGemini(prompt: string): Promise<Buffer | null> {
     const parts = response.candidates?.[0]?.content?.parts ?? []
     for (const part of parts) {
       if (part.inlineData?.data) {
-        return Buffer.from(part.inlineData.data, 'base64')
+        const buf = Buffer.from(part.inlineData.data, 'base64')
+        console.log(`[image-gen] Gemini 2.5 Flash success — ${Math.round(buf.length / 1024)}KB image received`)
+        return buf
       }
     }
   } catch (err) {
-    console.error('[image-gen-gemini] Gemini 2.5 Flash error:', err instanceof Error ? err.message : err)
+    console.error('[image-gen] Gemini 2.5 Flash error:', err instanceof Error ? err.message : err)
   }
 
-  console.error('[image-gen-gemini] All Google AI image models failed')
+  console.error('[image-gen] All Google AI image models failed — falling back to OG/stock image')
   return null
 }
 
