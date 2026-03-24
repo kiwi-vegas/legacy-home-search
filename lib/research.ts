@@ -130,6 +130,11 @@ Evaluate these articles and return a JSON array. For each article, assign:
 - category: one of "market-update" | "buying-tips" | "selling-tips" | "community-spotlight" | "investment" | "news"
 - whyItMatters: exactly 2 sentences explaining why a Hampton Roads homeowner or buyer should care
 
+MARKET RESTRICTION — THIS IS CRITICAL:
+Only include articles that are specifically about Virginia, Virginia Beach, Hampton Roads, Chesapeake, Norfolk, Suffolk, Hampton, Newport News, or the broader Mid-Atlantic/East Coast region when directly relevant to Virginia homeowners.
+Score any article about Las Vegas, Nevada, California, Texas, Florida, or any other non-Virginia market as 1 — these must be dropped.
+Score any national article (interest rates, mortgage trends, Fed policy) at 6 or above ONLY if it has clear direct relevance to Virginia Beach buyers and sellers.
+
 SCORING PRIORITY (give extra weight to):
 1. Virginia Beach / Hampton Roads property values and investment returns — what affects buyers and current homeowners
 2. Virginia law changes affecting homeowners (property tax, HOA rules, zoning, tenant/landlord laws)
