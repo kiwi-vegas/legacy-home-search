@@ -33,7 +33,7 @@ const agents = [
     title: 'REALTOR®',
     phone: '(757) 383-1020',
     email: 'julzgatbeats@gmail.com',
-    photo: '/team/julz-gat.jpg',
+    photo: '/team/julz-gat.png',
     subdomain: 'julz.legacyhomesearch.com',
     bio: 'Julz brings energy, creativity, and a passion for helping people find their perfect home in Hampton Roads. With a sharp eye for opportunity and a talent for negotiation, Julz is a valuable advocate for buyers and sellers alike.',
   },
