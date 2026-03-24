@@ -5,6 +5,8 @@ import imageUrlBuilder from '@sanity/image-url'
 import { createClient } from '@sanity/client'
 import { getBlogPosts } from '@/sanity/queries'
 
+export const revalidate = 60
+
 export const metadata: Metadata = {
   title: 'Real Estate Blog | Legacy Home Search',
   description:
@@ -24,7 +26,7 @@ const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? '2nr7n3lm',
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET ?? 'production',
   apiVersion: '2024-01-01',
-  useCdn: true,
+  useCdn: false,
 })
 const builder = imageUrlBuilder(sanityClient)
 
