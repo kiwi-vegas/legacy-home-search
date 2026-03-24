@@ -29,10 +29,10 @@ CSS variables defined in `app/globals.css`:
 The `COMMUNITY_PAGES` array in `lib/assistant-tools.ts` is currently empty (`[]`). Add entries as community pages are built.
 
 ## Blog Pipeline
-Automated daily blog pipeline via Vercel Cron (same as chris-nevada-next):
-- 6:00 AM PT: research runs, email digest sent
-- Operator picks 3 articles at `/admin/blog-picker/[date]?secret=ADMIN_SECRET`
-- Claude writes posts, DALL-E 3 generates cover images, posts published to Sanity
+Automated daily blog pipeline via Vercel Cron. Full details in `BLOG_PIPELINE.md`.
+- 6:00 AM PT: researches Virginia Beach / Hampton Roads articles only, email digest sent
+- Operator picks 1–5 articles at `/admin/blog-picker/[date]?secret=ADMIN_SECRET`
+- Claude writes posts, Gemini generates custom hero images (DALL-E fallback), posts published to Sanity
 - Live at `/blog` within 60 seconds (ISR revalidation)
 
 ## AI Content Assistant
