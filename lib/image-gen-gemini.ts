@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, Modality } from '@google/genai'
 import { getSanityWriteClient } from './sanity-write'
 import type { ScoredArticle } from './types'
 
@@ -94,33 +94,49 @@ Write your image prompt now. Be vivid and specific. 4-6 sentences. Return ONLY t
   }
 }
 
-// ─── Step 2: Gemini generates the image ──────────────────────────────────────
+// ─── Step 2: Google AI generates the image ───────────────────────────────────
+// Primary: Imagen 4.0 (purpose-built image gen, 16:9 native)
+// Fallback: Gemini 2.5 Flash Image
 
 async function generateWithGemini(prompt: string): Promise<Buffer | null> {
+  const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY })
+
+  // Try Imagen 4.0 first — best quality, native 16:9 aspect ratio
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY })
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp-image-generation',
-      contents: prompt,
-      config: {
-        responseModalities: ['IMAGE'],
-      },
+    const response = await ai.models.generateImages({
+      model: 'imagen-4.0-generate-001',
+      prompt,
+      config: { numberOfImages: 1, aspectRatio: '16:9' },
     })
+    const imageBytes = response.generatedImages?.[0]?.image?.imageBytes
+    if (imageBytes) {
+      return Buffer.isBuffer(imageBytes)
+        ? imageBytes
+        : Buffer.from(imageBytes as string, 'base64')
+    }
+  } catch (err) {
+    console.error('[image-gen-gemini] Imagen 4 error:', err instanceof Error ? err.message : err)
+  }
 
+  // Fallback: Gemini 2.5 Flash Image
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: prompt,
+      config: { responseModalities: [Modality.IMAGE] },
+    })
     const parts = response.candidates?.[0]?.content?.parts ?? []
     for (const part of parts) {
       if (part.inlineData?.data) {
         return Buffer.from(part.inlineData.data, 'base64')
       }
     }
-
-    console.error('[image-gen-gemini] No image data in response')
-    return null
   } catch (err) {
-    console.error('[image-gen-gemini] Gemini error:', err instanceof Error ? err.message : err)
-    return null
+    console.error('[image-gen-gemini] Gemini 2.5 Flash error:', err instanceof Error ? err.message : err)
   }
+
+  console.error('[image-gen-gemini] All Google AI image models failed')
+  return null
 }
 
 // ─── Step 3: Upload buffer to Sanity CDN ─────────────────────────────────────
@@ -132,7 +148,7 @@ async function uploadToSanity(
     const client = getSanityWriteClient()
 
     const asset = await client.assets.upload('image', buffer, {
-      filename: `gemini-cover-${Date.now()}.png`,
+      filename: `google-ai-cover-${Date.now()}.png`,
       contentType: 'image/png',
     })
 
