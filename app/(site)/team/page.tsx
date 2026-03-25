@@ -53,7 +53,7 @@ const agents = [
     title: 'REALTOR®',
     phone: '(757) 773-2188',
     email: 'chrisaugust757homes@gmail.com',
-    photo: '/team/chris-august.jpg',
+    photo: '/team/Chrisheadshot-1.png',
     subdomain: 'chris.legacyhomesearch.com',
     bio: 'Chris is a trusted Hampton Roads REALTOR® who brings a genuine passion for real estate and a commitment to his clients\' success. Known for his responsiveness and work ethic, Chris guides buyers and sellers through every step of the process with confidence.',
   },
