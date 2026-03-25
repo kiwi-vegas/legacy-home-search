@@ -90,6 +90,59 @@ export async function getSiteSettings(): Promise<SanitySiteSettings | null> {
   )
 }
 
+// ─── Team Members ─────────────────────────────────────────────────────────────
+
+export type SanityTeamMember = {
+  _id: string
+  name: string
+  slug: string
+  title?: string
+  phone?: string
+  email?: string
+  photoUrl?: string
+  photoPath?: string
+  subdomain?: string
+  bio?: string[]
+  specialties?: string[]
+  years?: string | null
+  transactions?: string | null
+  sortOrder?: number
+  active?: boolean
+}
+
+export async function getTeamMembers(): Promise<SanityTeamMember[]> {
+  return client.fetch(
+    `*[_type == "teamMember" && active != false] | order(sortOrder asc, name asc){
+      _id, name, "slug": slug.current, title, phone, email,
+      "photoUrl": photo.asset->url, photoPath,
+      subdomain, bio, specialties, years, transactions, sortOrder, active
+    }`,
+    {},
+    { next: { revalidate: 60 } }
+  )
+}
+
+export async function getAllTeamMemberSlugs(): Promise<string[]> {
+  const results = await client.fetch<Array<{ slug: string }>>(
+    `*[_type == "teamMember"]{ "slug": slug.current }`,
+    {},
+    { next: { revalidate: 60 } }
+  )
+  return results.map((r) => r.slug)
+}
+
+export async function getTeamMember(slug: string): Promise<SanityTeamMember | null> {
+  return client.fetch(
+    `*[_type == "teamMember" && slug.current == $slug][0]{
+      _id, name, "slug": slug.current, title, phone, email,
+      "photoUrl": photo.asset->url, photoPath,
+      subdomain, bio, specialties, years, transactions, sortOrder, active
+    }`,
+    { slug },
+    { next: { revalidate: 60 } }
+  )
+}
+
 // ─── Blog ─────────────────────────────────────────────────────────────────────
 
 export type SanityBlogPost = {

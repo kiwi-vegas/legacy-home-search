@@ -1,75 +1,27 @@
 import type { Metadata } from 'next'
 import AgentCard from '@/components/AgentCard'
+import { getTeamMembers } from '@/sanity/queries'
+
+export const revalidate = 60
 
 export const metadata: Metadata = {
   title: 'Our Team | Legacy Home Team — Hampton Roads Real Estate Agents',
   description: 'Meet the Legacy Home Team — experienced Hampton Roads REALTORS® led by Barry Jenkins. We help families buy and sell homes across Virginia Beach, Chesapeake, Norfolk, and beyond.',
 }
 
-const agents = [
-  {
-    slug: 'barry-jenkins',
-    name: 'Barry Jenkins',
-    title: 'Team Owner & Lead Agent',
-    phone: '(757) 654-5059',
-    email: 'Barry@yourfriendlyagent.net',
-    photo: '/team/barry-jenkins-main.jpg',
-    subdomain: 'listings.legacyhomesearch.com',
-    bio: 'Barry began his real estate career at 18 and has spent over two decades mastering the Hampton Roads market. He leads Legacy Home Team and is ranked among the top teams in America, having sold nearly 900 units in a single year. He also serves as Head Realtor in Residence at Ylopo, where he trains agents and assists with product development nationwide.',
-  },
-  {
-    slug: 'tanya-thompson',
-    name: 'Tanya Thompson',
-    title: 'REALTOR®',
-    phone: '(757) 737-1866',
-    email: 'tanyasellsvirginia@gmail.com',
-    photo: '/team/tanya-thompson.jpg',
-    subdomain: 'tanya.legacyhomesearch.com',
-    bio: 'Tanya brings dedication, local knowledge, and a client-first mindset to every transaction. Whether you\'re buying your first home or making your next move, Tanya is committed to making the process smooth and successful.',
-  },
-  {
-    slug: 'julz-gat',
-    name: 'Julz Gat',
-    title: 'REALTOR®',
-    phone: '(757) 383-1020',
-    email: 'julzgatbeats@gmail.com',
-    photo: '/team/julz-gat.png',
-    subdomain: 'julz.legacyhomesearch.com',
-    bio: 'Julz brings energy, creativity, and a passion for helping people find their perfect home in Hampton Roads. With a sharp eye for opportunity and a talent for negotiation, Julz is a valuable advocate for buyers and sellers alike.',
-  },
-  {
-    slug: 'jon-mironchik',
-    name: 'Jon Mironchik',
-    title: 'REALTOR®',
-    phone: '(757) 383-1020',
-    email: 'jonm.realestate@gmail.com',
-    photo: '/team/jon-mironchik.jpg',
-    subdomain: 'jon.legacyhomesearch.com',
-    bio: 'Jon combines market expertise with a straightforward, honest approach that clients appreciate. He takes the time to understand each client\'s goals and works tirelessly to deliver results — whether that means finding the right home or getting top dollar on a sale.',
-  },
-  {
-    slug: 'chris-august',
-    name: 'Chris August',
-    title: 'REALTOR®',
-    phone: '(757) 773-2188',
-    email: 'chrisaugust757homes@gmail.com',
-    photo: '/team/Chrisheadshot-1.png',
-    subdomain: 'chris.legacyhomesearch.com',
-    bio: 'Chris is a trusted Hampton Roads REALTOR® who brings a genuine passion for real estate and a commitment to his clients\' success. Known for his responsiveness and work ethic, Chris guides buyers and sellers through every step of the process with confidence.',
-  },
-  {
-    slug: 'matt-moubray',
-    name: 'Matt Moubray',
-    title: 'REALTOR®',
-    phone: '(804) 852-8866',
-    email: 'matt@moubrayhome.com',
-    photo: '/team/matt-moubray.jpg',
-    subdomain: 'matt.legacyhomesearch.com',
-    bio: 'Matt brings a sharp analytical mind and deep market knowledge to every deal. Serving Hampton Roads and the surrounding region, Matt is focused on helping his clients make confident, well-informed real estate decisions.',
-  },
-]
+export default async function TeamPage() {
+  const members = await getTeamMembers()
 
-export default function TeamPage() {
+  const agents = members.map((m) => ({
+    slug: m.slug,
+    name: m.name,
+    title: m.title ?? 'REALTOR®',
+    phone: m.phone ?? '',
+    email: m.email ?? '',
+    photo: m.photoUrl ?? m.photoPath ?? '/team/placeholder.jpg',
+    bio: m.bio?.join(' ') ?? '',
+  }))
+
   return (
     <>
       {/* HERO */}
@@ -97,7 +49,7 @@ export default function TeamPage() {
             gap: 36,
           }}>
             {agents.map((agent) => (
-              <AgentCard key={agent.slug} agent={{ ...agent, bio: agent.bio }} />
+              <AgentCard key={agent.slug} agent={agent} />
             ))}
           </div>
         </div>

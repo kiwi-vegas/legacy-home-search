@@ -108,6 +108,138 @@ export const TOOLS: Anthropic.Tool[] = [
       required: ['field', 'value'],
     },
   },
+  // ── Site Settings ───────────────────────────────────────────────────────────
+  {
+    name: 'get_site_settings',
+    description: 'Reads the current site-wide contact details: phone number, email, address, brokerage name, tagline, and agent/team name.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'update_site_settings',
+    description: 'Updates one or more site-wide fields. Allowed fields: phone, email, address, brokerage, tagline, agentName. Changes go live within 60 seconds.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        fields: {
+          type: 'object',
+          description: 'Key/value pairs to update, e.g. { "phone": "(757) 555-1234", "email": "info@legacyhomesearch.com" }',
+          properties: {
+            phone: { type: 'string' },
+            email: { type: 'string' },
+            address: { type: 'string' },
+            brokerage: { type: 'string' },
+            tagline: { type: 'string' },
+            agentName: { type: 'string' },
+          },
+        },
+      },
+      required: ['fields'],
+    },
+  },
+
+  // ── Team Members ────────────────────────────────────────────────────────────
+  {
+    name: 'get_team_members',
+    description: 'Returns the full list of team members (name, slug, title, phone, email, active status).',
+    input_schema: { type: 'object', properties: {
+      includeInactive: { type: 'boolean', description: 'Set true to include archived/inactive agents. Default false.' },
+    }, required: [] },
+  },
+  {
+    name: 'get_agent_details',
+    description: 'Fetches all details for a specific agent by their slug.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Agent slug, e.g. "barry-jenkins"' },
+      },
+      required: ['slug'],
+    },
+  },
+  {
+    name: 'update_agent_info',
+    description: 'Updates one or more fields for an existing agent. Updatable fields: name, title, phone, email, subdomain, years, transactions, bio (array of paragraph strings), specialties (array of strings), sortOrder.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Agent slug to update' },
+        fields: {
+          type: 'object',
+          description: 'Fields to update. bio should be an array of paragraph strings. specialties should be an array of strings.',
+          properties: {
+            name: { type: 'string' },
+            title: { type: 'string' },
+            phone: { type: 'string' },
+            email: { type: 'string' },
+            subdomain: { type: 'string' },
+            years: { type: 'string' },
+            transactions: { type: 'string' },
+            bio: { type: 'array', items: { type: 'string' } },
+            specialties: { type: 'array', items: { type: 'string' } },
+            sortOrder: { type: 'number' },
+          },
+        },
+      },
+      required: ['slug', 'fields'],
+    },
+  },
+  {
+    name: 'upload_agent_photo',
+    description: 'Uploads an image and sets it as the headshot for an agent. The image is automatically extracted from the conversation — do NOT include imageBase64 or mimeType in your call.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Agent slug' },
+        imageBase64: { type: 'string', description: 'Leave blank — auto-filled from conversation' },
+        mimeType: { type: 'string', description: 'Leave blank — auto-filled from conversation' },
+      },
+      required: ['slug'],
+    },
+  },
+  {
+    name: 'add_team_member',
+    description: 'Creates a new agent profile on the team. The agent will appear live on the /team page within 60 seconds. If the client uploads a photo in the same message, it will be attached automatically.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Full name' },
+        title: { type: 'string', description: 'Role, e.g. "REALTOR®"' },
+        phone: { type: 'string' },
+        email: { type: 'string' },
+        subdomain: { type: 'string', description: 'Personal listings URL, e.g. https://jane.legacyhomesearch.com' },
+        bio: { type: 'array', items: { type: 'string' }, description: 'Bio paragraphs' },
+        specialties: { type: 'array', items: { type: 'string' } },
+        years: { type: 'string', description: 'Years of experience, e.g. "5+"' },
+        transactions: { type: 'string', description: 'Transaction count, e.g. "100+"' },
+        imageBase64: { type: 'string', description: 'Leave blank — auto-filled from conversation if photo uploaded' },
+        mimeType: { type: 'string', description: 'Leave blank — auto-filled from conversation' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'deactivate_team_member',
+    description: 'Hides an agent from the website by marking them inactive. Their record is preserved — use reactivate_team_member to bring them back.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Agent slug to deactivate' },
+      },
+      required: ['slug'],
+    },
+  },
+  {
+    name: 'reactivate_team_member',
+    description: 'Re-activates a previously deactivated agent so they appear on the site again.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Agent slug to reactivate' },
+      },
+      required: ['slug'],
+    },
+  },
+
   {
     name: 'update_homepage_stats',
     description: 'Updates the stats bar on the homepage (e.g. "500+ Families Helped", "12+ Years in Hampton Roads"). Pass the full set of stats you want displayed — this replaces all existing stats. Each stat needs a value (e.g. "12+", "$350M+", "5★") and a label (e.g. "Years in Hampton Roads").',
@@ -228,6 +360,151 @@ export async function executeToolCall(name: string, input: Record<string, any>):
         await writeClient.patch(docId).set({ sectionImages: existing }).commit()
         return `"${input.role}" section image updated for ${input.slug}. Live within 60 seconds.`
       }
+    }
+
+    case 'get_site_settings': {
+      const doc = await client.fetch(
+        `*[_type == "siteSettings" && _id == "siteSettings"][0]{
+          agentName, phone, email, licenseNumber, address, brokerage, tagline
+        }`
+      )
+      return doc ? JSON.stringify(doc, null, 2) : 'No site settings found in CMS.'
+    }
+
+    case 'update_site_settings': {
+      const ALLOWED_SETTINGS = ['phone', 'email', 'address', 'brokerage', 'tagline', 'agentName']
+      const fields = input.fields as Record<string, string>
+      const updates: Record<string, string> = {}
+      for (const [k, v] of Object.entries(fields)) {
+        if (ALLOWED_SETTINGS.includes(k)) updates[k] = v
+      }
+      if (Object.keys(updates).length === 0) return 'No valid fields to update.'
+      const existing = await client.fetch<{ _id: string } | null>(
+        `*[_type == "siteSettings" && _id == "siteSettings"][0]{ _id }`
+      )
+      if (!existing?._id) {
+        await writeClient.createIfNotExists({ _type: 'siteSettings', _id: 'siteSettings' })
+      }
+      await writeClient.patch('siteSettings').set(updates).commit()
+      const summary = Object.entries(updates).map(([k, v]) => `${k}: "${v}"`).join(', ')
+      return `Updated site settings — ${summary}. Live within 60 seconds.`
+    }
+
+    case 'get_team_members': {
+      const includeInactive = input.includeInactive === true
+      const query = includeInactive
+        ? `*[_type == "teamMember"] | order(sortOrder asc, name asc){ _id, name, "slug": slug.current, title, phone, email, active, sortOrder }`
+        : `*[_type == "teamMember" && active != false] | order(sortOrder asc, name asc){ _id, name, "slug": slug.current, title, phone, email, active, sortOrder }`
+      const members = await client.fetch(query)
+      return JSON.stringify(members, null, 2)
+    }
+
+    case 'get_agent_details': {
+      const agent = await client.fetch(
+        `*[_type == "teamMember" && slug.current == $slug][0]{
+          _id, name, "slug": slug.current, title, phone, email,
+          subdomain, bio, specialties, years, transactions, sortOrder, active,
+          "hasPhoto": defined(photo)
+        }`,
+        { slug: input.slug }
+      )
+      if (!agent) return `No agent found with slug "${input.slug}".`
+      return JSON.stringify(agent, null, 2)
+    }
+
+    case 'update_agent_info': {
+      const ALLOWED_AGENT_FIELDS = ['name', 'title', 'phone', 'email', 'subdomain', 'years', 'transactions', 'bio', 'specialties', 'sortOrder']
+      const agent = await client.fetch<{ _id: string } | null>(
+        `*[_type == "teamMember" && slug.current == $slug][0]{ _id }`,
+        { slug: input.slug }
+      )
+      if (!agent?._id) return `No agent found with slug "${input.slug}".`
+      const fields = input.fields as Record<string, any>
+      const updates: Record<string, any> = {}
+      for (const [k, v] of Object.entries(fields)) {
+        if (ALLOWED_AGENT_FIELDS.includes(k)) updates[k] = v
+      }
+      if (Object.keys(updates).length === 0) return 'No valid fields to update.'
+      await writeClient.patch(agent._id).set(updates).commit()
+      const summary = Object.keys(updates).join(', ')
+      return `Updated ${summary} for ${input.slug}. Live within 60 seconds.`
+    }
+
+    case 'upload_agent_photo': {
+      const agent = await client.fetch<{ _id: string } | null>(
+        `*[_type == "teamMember" && slug.current == $slug][0]{ _id }`,
+        { slug: input.slug }
+      )
+      if (!agent?._id) return `No agent found with slug "${input.slug}".`
+      const buffer = Buffer.from(input.imageBase64, 'base64')
+      const ext = (input.mimeType as string).split('/')[1] ?? 'jpg'
+      const asset = await writeClient.assets.upload('image', buffer, {
+        filename: `team-${input.slug}-${Date.now()}.${ext}`,
+        contentType: input.mimeType,
+      })
+      await writeClient.patch(agent._id).set({
+        photo: { _type: 'image', asset: { _type: 'reference', _ref: asset._id } },
+      }).commit()
+      return `Photo updated for ${input.slug}. It will appear on the site within 60 seconds.`
+    }
+
+    case 'add_team_member': {
+      const slugText = (input.name as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      // Check for slug collision
+      const existing = await client.fetch<{ _id: string } | null>(
+        `*[_type == "teamMember" && slug.current == $slug][0]{ _id }`,
+        { slug: slugText }
+      )
+      if (existing?._id) return `An agent with slug "${slugText}" already exists. Update them with update_agent_info instead.`
+
+      const doc: Record<string, any> = {
+        _type: 'teamMember',
+        name: input.name,
+        slug: { _type: 'slug', current: slugText },
+        active: true,
+        sortOrder: 99,
+      }
+      const optionalFields = ['title', 'phone', 'email', 'subdomain', 'bio', 'specialties', 'years', 'transactions']
+      for (const f of optionalFields) {
+        if (input[f] !== undefined) doc[f] = input[f]
+      }
+
+      const created = await writeClient.create(doc)
+
+      // Attach photo if one was uploaded in the conversation
+      if (input.imageBase64 && input.mimeType) {
+        const buffer = Buffer.from(input.imageBase64 as string, 'base64')
+        const ext = (input.mimeType as string).split('/')[1] ?? 'jpg'
+        const asset = await writeClient.assets.upload('image', buffer, {
+          filename: `team-${slugText}-${Date.now()}.${ext}`,
+          contentType: input.mimeType as string,
+        })
+        await writeClient.patch(created._id).set({
+          photo: { _type: 'image', asset: { _type: 'reference', _ref: asset._id } },
+        }).commit()
+      }
+
+      return `Created agent profile for ${input.name} (slug: ${slugText}). Their profile is live at /team/${slugText} within 60 seconds.`
+    }
+
+    case 'deactivate_team_member': {
+      const agent = await client.fetch<{ _id: string; name: string } | null>(
+        `*[_type == "teamMember" && slug.current == $slug][0]{ _id, name }`,
+        { slug: input.slug }
+      )
+      if (!agent?._id) return `No agent found with slug "${input.slug}".`
+      await writeClient.patch(agent._id).set({ active: false }).commit()
+      return `${agent.name} has been archived and removed from the site. Their record is preserved — use reactivate_team_member if they rejoin.`
+    }
+
+    case 'reactivate_team_member': {
+      const agent = await client.fetch<{ _id: string; name: string } | null>(
+        `*[_type == "teamMember" && slug.current == $slug][0]{ _id, name }`,
+        { slug: input.slug }
+      )
+      if (!agent?._id) return `No agent found with slug "${input.slug}".`
+      await writeClient.patch(agent._id).set({ active: true }).commit()
+      return `${agent.name} is now active again and will appear on the site within 60 seconds.`
     }
 
     case 'get_homepage_content': {
