@@ -51,6 +51,9 @@ export async function POST(request: Request) {
   const subject: string = emailData.subject ?? ''
   const emailId: string = emailData.email_id ?? emailData.id ?? ''
 
+  console.log('[market-report-inbound] Payload keys:', Object.keys(emailData).join(', '))
+  console.log('[market-report-inbound] subject:', subject, '| emailId:', emailId)
+
   // ── Fetch email body from Resend API ───────────────────────────────────
   // Direct test POSTs can include body text inline to skip the API call
   let emailText: string = emailData.text ?? emailData.body ?? ''
@@ -62,15 +65,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'RESEND_API_KEY not configured' }, { status: 500 })
     }
     try {
-      const res = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+      const url = `https://api.resend.com/emails/receiving/${emailId}`
+      console.log('[market-report-inbound] Fetching email body from:', url)
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${apiKey}` },
       })
-      if (!res.ok) throw new Error(`Resend API ${res.status}: ${await res.text()}`)
-      const email = await res.json()
+      const responseText = await res.text()
+      console.log('[market-report-inbound] Resend API response', res.status, ':', responseText.slice(0, 500))
+      if (!res.ok) throw new Error(`Resend API ${res.status}: ${responseText}`)
+      const email = JSON.parse(responseText)
       emailText = email.text ?? email.html ?? ''
+      console.log('[market-report-inbound] Email body length:', emailText.length)
     } catch (err) {
       console.error('[market-report-inbound] Failed to fetch email body:', err instanceof Error ? err.message : err)
-      return NextResponse.json({ error: 'Could not retrieve email body from Resend' }, { status: 502 })
+      return NextResponse.json({ error: 'Could not retrieve email body from Resend', detail: err instanceof Error ? err.message : String(err) }, { status: 502 })
     }
   }
 
