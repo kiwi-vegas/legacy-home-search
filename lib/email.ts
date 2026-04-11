@@ -121,7 +121,7 @@ export async function sendDigestEmail(articles: ScoredArticle[], date: string): 
   await resend.emails.send({
     from: fromEmail,
     to: operatorEmail,
-    subject: `Las Vegas Blog Digest — ${articles.length} articles ready to publish (${dateFormatted})`,
+    subject: `Virginia Beach Blog Digest — ${articles.length} articles ready to publish (${dateFormatted})`,
     html,
   })
 }
