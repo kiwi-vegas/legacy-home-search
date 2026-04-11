@@ -18,6 +18,62 @@ import { GoogleGenAI, Modality } from '@google/genai'
 import { getSanityWriteClient } from './sanity-write'
 import type { ScoredArticle } from './types'
 
+// ─── CLIENT CONFIGURATION ────────────────────────────────────────────────────
+
+const CLIENT_CONFIG = {
+  market: 'Virginia Beach',
+  visualAnchors: `
+    • Virginia Beach nice middle class homes (well kept, nice landscaping with clean looking lighting from dusk or dawn, very appealing and feels like a really nice place to live in but not overly expensive or excessive.
+    • The Virginia Beach Oceanfront and Boardwalk as dramatic backdrops, and sometimes use the famous King Neptune statue
+    • Chesapeake is known for its raw, untouched nature—cypress trees, still water reflections, and wooden boardwalks through the Great Dismal Swamp. It gives off a peaceful, almost hidden-gem vibe that feels worlds away from the city.
+    • Norfolk - tree-lined streets, classic architecture, walkability, and a mix of coffee shops and local boutiques. It gives Norfolk a timeless, livable feel.
+    • Hampton Roads is defined by water everywhere—wide bays, rivers, and iconic bridge-tunnels connecting cities. These sweeping aerials instantly communicate scale, connectivity, and coastal living beyond just "the beach."
+  `,
+  communities: [
+    'Virginia Beach', 'Chesapeake', 'Norfolk', 'Suffolk', 'Hampton', 'Newport News',
+  ],
+  defaultCommunity: 'Virginia Beach',
+}
+
+// ─── CATEGORY VISUAL DIRECTION ────────────────────────────────────────────────
+
+const categoryContext: Record<string, { scene: string; graphicElements: string }> = {
+  'market-update': {
+    scene: `Show market momentum — a stunning aerial of ${CLIENT_CONFIG.market} neighborhoods at golden hour, beautifully lit homes that signal demand, or a cinematic streetscape that makes you feel the market is alive.`,
+    graphicElements: `Upward-trending arrow graphics rising from the foreground into the sky, glowing green or gold arrows showing growth trajectory. Floating dollar sign ($) symbols scattered around the arrows with subtle sparkle effects. Charts or bar graphs implied through stylized arrows at different heights. The graphic elements should feel bold and confident — this market is moving up.`,
+  },
+  'buying-tips': {
+    scene: `The emotional moment of possibility — a beautiful ${CLIENT_CONFIG.market} home in perfect light, a welcoming front porch, or a great room with large windows looking out at lush Virginia greenery.`,
+    graphicElements: `Soft golden checkmark symbols or subtle glowing stars suggesting "smart choice" energy. A gentle upward arrow near the home suggesting value appreciation. Keep graphic elements minimal and aspirational — one or two subtle overlays that feel like a green light to buy.`,
+  },
+  'selling-tips': {
+    scene: `A staged ${CLIENT_CONFIG.market} home that looks absolutely irresistible — a beautifully lit great room with local views, a curb-appealing front elevation at sunset, the feeling of a premium property at peak value.`,
+    graphicElements: `Bold upward price arrow graphic with a dollar sign, suggesting strong sale price. A subtle "%" symbol implying above-asking results. Graphic elements should feel like a strong market signal — this home will sell well.`,
+  },
+  'community-spotlight': {
+    scene: `The best version of ${CLIENT_CONFIG.market} life — golden hour parks, tree-lined streets, a waterfront community scene, dramatic coastal scenery as a backdrop, the feeling of a place worth belonging to.`,
+    graphicElements: `Keep graphic elements to a minimum — this is about atmosphere. One or two subtle star or location-pin icons to reinforce the "place" theme. The community name text is the main graphic element.`,
+  },
+  investment: {
+    scene: `Scale and growth — well-maintained multi-unit properties against a ${CLIENT_CONFIG.market} blue sky, an aerial showing a rapidly expanding neighborhood, the visual language of opportunity and return.`,
+    graphicElements: `Multiple upward arrows at varying heights suggesting a rising market — green and gold tones. Dollar signs and percentage symbols floating in the air with a sparkle effect. A bar chart implied by arrow heights. Make it feel like visible, tangible returns — this is where the money is.`,
+  },
+  news: {
+    scene: `Urgency and relevance — something is happening right now in ${CLIENT_CONFIG.market}. A dramatic coastal sky over a thriving neighborhood, the energy of a story that matters.`,
+    graphicElements: `A bold exclamation or news-alert graphic element to create urgency. Subtle arrow showing the direction of change. Keep it simple — the story is the element.`,
+  },
+}
+
+// ─── COMMUNITY DETECTION ─────────────────────────────────────────────────────
+
+function detectCommunity(title: string): string {
+  const lower = title.toLowerCase()
+  for (const community of CLIENT_CONFIG.communities) {
+    if (lower.includes(community.toLowerCase())) return community
+  }
+  return CLIENT_CONFIG.defaultCommunity
+}
+
 export async function generateAndUploadCoverImageGemini(
   article: ScoredArticle
 ): Promise<{ _type: 'reference'; _ref: string } | null> {
@@ -38,31 +94,15 @@ export async function generateAndUploadCoverImageGemini(
   }
 }
 
-// ─── Step 1: Claude writes the psychology-driven image prompt ─────────────────
+// ─── Step 1: Claude writes the 3-layer image prompt ─────────────────────────
 
 async function buildImagePrompt(article: ScoredArticle): Promise<string | null> {
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const community = detectCommunity(article.title)
+    const ctx = categoryContext[article.category] ?? categoryContext['news']
 
-    // Category-level visual direction — what story does each category tell?
-    const categoryContext: Record<string, string> = {
-      'market-update':
-        'DESIRE: Confidence and clarity in a confusing market. PAIN: Uncertainty about whether to buy, sell, or hold. TRANSFORMATION: They\'ll understand exactly what\'s happening and what to do next. Visual: Show market momentum — a striking aerial of thriving Hampton Roads neighborhoods, beautifully lit homes that signal demand, or a cinematic street scene that makes you feel the market is alive.',
-      'buying-tips':
-        'DESIRE: The feeling of finally finding the right home. PAIN: The fear of making the wrong decision or missing out. TRANSFORMATION: They\'ll feel equipped and confident. Visual: The emotional moment of possibility — sunlight through a doorway, a perfect porch overlooking a quiet Virginia Beach street, a family-sized backyard that makes someone imagine their life there.',
-      'selling-tips':
-        'DESIRE: Maximum price, minimal stress, a clean close. PAIN: Worry about leaving money on the table or a slow sale. TRANSFORMATION: Their home sells fast and above asking. Visual: A staged home that looks absolutely irresistible — a beautifully lit living room, a front exterior that commands attention, the feeling of a premium property.',
-      'community-spotlight':
-        'DESIRE: Finding a neighborhood that truly feels like home. PAIN: Not knowing which area is right for your family. TRANSFORMATION: A vivid sense of place and community. Visual: The best version of Hampton Roads life — Chesapeake Bay at sunset, tree-lined streets with colonial homes, a waterfront park, the feeling of a place worth belonging to.',
-      investment:
-        'DESIRE: Smart returns and long-term wealth. PAIN: Fear of making the wrong real estate investment. TRANSFORMATION: Clarity on where the real opportunity is. Visual: Scale and growth — multi-unit properties with strong curb appeal, an aerial showing a neighborhood expanding, the visual language of opportunity and return.',
-      news:
-        'DESIRE: Being ahead of the curve and making informed decisions. PAIN: Feeling blindsided by changes that affect their home\'s value. TRANSFORMATION: They\'ll know about this before everyone else. Visual: Urgency and relevance — something is happening right now in Hampton Roads. Dynamic angles, dramatic coastal light, the energy of a story that matters.',
-    }
-
-    const desireLoop = categoryContext[article.category] ?? categoryContext['news']
-
-    console.log('[image-gen] Building prompt with Claude thumbnail psychology...')
+    console.log(`[image-gen] Building prompt for community: "${community}", category: "${article.category}"`)
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -70,62 +110,46 @@ async function buildImagePrompt(article: ScoredArticle): Promise<string | null> 
       messages: [
         {
           role: 'user',
-          content: `You are a world-class creative director applying YouTube thumbnail psychology to blog hero images for a Hampton Roads / Virginia Beach real estate brand. Your images stop scrollers and make them feel something before they read a word.
+          content: `You are a creative director making eye-catching blog thumbnail images for a real estate brand. Your images combine a cinematic photorealistic background with bold text overlays and graphic elements — like high-performing YouTube thumbnails and real estate marketing graphics.
 
 ARTICLE:
 Title: "${article.title}"
 Angle: ${article.whyItMatters}
 Category: ${article.category}
-
-DESIRE LOOP FOR THIS CATEGORY:
-${desireLoop}
+Community: ${community}
 
 ─────────────────────────────────────
-THE 3-STEP READER PSYCHOLOGY (your image must pass all 3):
+THE IMAGE STRUCTURE (3 layers — describe all 3):
 
-1. VISUAL STUN GUN — The image must POP and stop the scroll immediately. Ask: "Would someone slow their thumb for this?"
-2. TITLE VALUE HUNT — After stopping, the reader scans the headline. The image must make that headline feel MORE urgent and relevant.
-3. VISUAL VALIDATION — The reader returns to the image to confirm the article is worth reading. The image must support the article's promise.
+LAYER 1 — CINEMATIC BACKGROUND SCENE:
+${ctx.scene}
+Use these visual anchors naturally:
+${CLIENT_CONFIG.visualAnchors}
+
+LAYER 2 — TEXT OVERLAY (REQUIRED — this is non-negotiable):
+The image MUST include two pieces of text rendered directly onto the scene:
+1. COMMUNITY NAME: The word "${community}" in large, bold, elegant script or serif lettering — placed prominently in the upper portion of the image, as if painted across the sky. Gold, cream, or white color with a subtle glow or drop shadow so it reads clearly over any background. Large enough to be read at a glance.
+2. SHORT HOOK TEXT: A 3-5 word condensed phrase from the article title that captures the core idea. NOT the full title — a punchy fragment. Example: if the title is "Why Hampton Roads Home Values Are Rising Fast", the hook text would be "Home Values Are Rising". Place this below the community name in a clean bold sans-serif, slightly smaller. Make it feel like an editorial graphic or news chyron.
+
+LAYER 3 — GRAPHIC ELEMENTS (REQUIRED — bring energy and meaning):
+${ctx.graphicElements}
+All graphic elements must be rendered as part of the scene — not as post-production overlays. They should look illustrated or semi-realistic, integrated into the image naturally. Use blue (#3762E3), bright blue, or white for graphic elements. They should feel bold, confident, and professional — not clipart.
+
 ─────────────────────────────────────
+FORMAT:
+- Wide 16:9 composition, cinematic and vibrant
+- Saturated, warm colors — golden hour light, vivid sky
+- Rule of thirds: scene anchored in lower half, text and graphics in upper/sky area
+- Photorealistic background, illustrated graphic elements layered on top
+- High contrast so text reads clearly
 
-VISUAL STUN GUN TOOLKIT (choose the strongest 2-3 for this article):
-• Color contrast — vivid, saturated colors that pop against competing content
-• Compelling scene — a visual that immediately represents the desire or transformation
-• Big implied number or scale — show magnitude without text (a massive port crane, rows of homes, a dramatic skyline)
-• Aesthetic imagery — cinematic, beautiful, the kind of photo you'd hang on a wall
-• A→B transformation — show contrast: before/after, problem/solution, old/new
-• Emotional atmosphere — golden hour warmth = opportunity; dark sky = urgency; blue dawn = fresh start
+HARD PROHIBITIONS:
+- NO faces — people only at distance, silhouette, or from behind
+- NO for-sale signs, keys, moving trucks, handshakes
+- NO logos, brand names, or company signage
+- NOTHING generic or stock-photo looking
 
-HAMPTON ROADS VISUAL ANCHORS (use what naturally fits):
-• Virginia Beach oceanfront at golden hour — warmth, lifestyle, aspiration
-• Chesapeake Bay with tidal marshes — depth, permanence, natural wealth
-• Norfolk waterfront skyline at dusk — economic momentum, urban energy
-• Colonial or craftsman homes on tree-lined streets — community, stability, roots
-• Port of Virginia cranes — economic scale, growth, jobs
-• Naval vessels in the distance — military community, discipline, Hampton Roads identity
-• Aerial neighborhoods — scale, growth, investment opportunity
-
-YOUR TASK:
-Write the final image generation prompt for Gemini. It must describe ONE specific, vivid, cinematic scene. Not a generic photo — a deliberately crafted image that:
-- Passes the stun gun test (you'd stop scrolling for it)
-- Reinforces the article's emotional promise
-- Feels authentic to Hampton Roads
-
-FORMAT REQUIREMENTS:
-- Photorealistic, shot on a high-end full-frame camera with a 24mm wide lens
-- Cinematic composition with rule of thirds and strong leading lines
-- Golden hour, dramatic coastal light, or dynamic Atlantic sky — never flat, grey, or overcast
-- 16:9 widescreen, optimized for web hero display
-- Depth of field: sharp foreground subject, layered background
-
-HARD PROHIBITIONS (if included the image fails entirely):
-- NO text, words, numbers, signs, overlays, watermarks of any kind
-- NO clearly visible faces — people only at distance, silhouette, or from behind
-- NO for-sale signs, sold signs, keys, moving trucks, handshakes
-- NO logos, brand names, flags, military insignia, or company signage
-- NOTHING that looks like a generic real estate stock photo
-
-Write the prompt now. 5-8 rich sentences. Return ONLY the prompt — nothing else.`,
+Write the final Gemini image prompt now. 6-9 rich sentences describing all three layers. Return ONLY the prompt — no labels, no preamble.`,
         },
       ],
     })
