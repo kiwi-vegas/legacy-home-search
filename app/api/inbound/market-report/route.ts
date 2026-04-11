@@ -44,11 +44,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // ── Extract email content ──────────────────────────────────────────────
-  // Support both Resend inbound format and direct POST for testing
+  // ── Extract email metadata from webhook payload ────────────────────────
+  // Resend inbound webhooks only include metadata — body must be fetched separately
+  // Payload: { type: "email.received", data: { email_id, subject, from, to, ... } }
   const emailData = payload.data ?? payload
   const subject: string = emailData.subject ?? ''
-  const emailText: string = emailData.text ?? emailData.body ?? ''
+  const emailId: string = emailData.email_id ?? emailData.id ?? ''
+
+  // ── Fetch email body from Resend API ───────────────────────────────────
+  // Direct test POSTs can include body text inline to skip the API call
+  let emailText: string = emailData.text ?? emailData.body ?? ''
+
+  if (!emailText && emailId) {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      console.error('[market-report-inbound] RESEND_API_KEY not set — cannot fetch email body')
+      return NextResponse.json({ error: 'RESEND_API_KEY not configured' }, { status: 500 })
+    }
+    try {
+      const res = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      })
+      if (!res.ok) throw new Error(`Resend API ${res.status}: ${await res.text()}`)
+      const email = await res.json()
+      emailText = email.text ?? email.html ?? ''
+    } catch (err) {
+      console.error('[market-report-inbound] Failed to fetch email body:', err instanceof Error ? err.message : err)
+      return NextResponse.json({ error: 'Could not retrieve email body from Resend' }, { status: 502 })
+    }
+  }
 
   if (!emailText && !subject) {
     return NextResponse.json({ error: 'No email content found in payload' }, { status: 400 })
