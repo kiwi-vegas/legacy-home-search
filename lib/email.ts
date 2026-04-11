@@ -125,3 +125,80 @@ export async function sendDigestEmail(articles: ScoredArticle[], date: string): 
     html,
   })
 }
+
+// ─── Market Report Ready Email ────────────────────────────────────────────────
+
+export async function sendMarketReportReadyEmail(
+  communityName: string,
+  reportPeriod: string,
+  draftId: string
+): Promise<void> {
+  const resendKey = process.env.RESEND_API_KEY
+  const fromEmail = process.env.FROM_EMAIL
+  const operatorEmail = process.env.OPERATOR_EMAIL
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legacy-home-search.vercel.app'
+  const adminSecret = process.env.ADMIN_SECRET
+
+  if (!resendKey || !fromEmail || !operatorEmail) return
+
+  const reviewUrl = `${appUrl}/admin/market-reports/review/${draftId}?secret=${adminSecret}`
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8f7f4;font-family:Inter,-apple-system,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f7f4;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;border:1px solid #e0ddd8;">
+        <tr>
+          <td style="padding:32px 32px 24px;border-bottom:1px solid #e0ddd8;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#2563eb;margin-bottom:8px;">Legacy Home Search · Market Reports</div>
+            <div style="font-size:22px;font-weight:700;color:#1a1a1a;">${communityName} — ${reportPeriod}</div>
+            <div style="font-size:14px;color:#888884;margin-top:4px;">Your market report is ready to review and publish.</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px;">
+            <p style="font-size:15px;color:#1a1a1a;margin:0 0 20px;">Claude has processed your Altos data and written a complete market report for <strong>${communityName}</strong> covering ${reportPeriod}. The report includes sections for buyers, sellers, and investors.</p>
+            <p style="font-size:14px;color:#555550;margin:0 0 28px;">Review the draft, make any edits, and publish with one click. It will be live on the site within 60 seconds.</p>
+            <a href="${reviewUrl}" style="display:block;text-align:center;background:#2563eb;color:#ffffff;font-weight:700;font-size:15px;padding:16px 32px;border-radius:8px;text-decoration:none;">Review &amp; Publish Report →</a>
+            <div style="font-size:11px;color:#888884;text-align:center;margin-top:12px;">This link is private — only you have access.</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px;border-top:1px solid #e0ddd8;">
+            <div style="font-size:11px;color:#888884;text-align:center;">Legacy Home Search · Automated Market Reports</div>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+
+  const resend = new Resend(resendKey)
+  await resend.emails.send({
+    from: fromEmail,
+    to: operatorEmail,
+    subject: `${communityName} Market Report Ready — ${reportPeriod}`,
+    html,
+  })
+}
+
+// ─── Market Report Safety-Net Reminder Email ──────────────────────────────────
+
+export async function sendMarketReportMissingEmail(missingCities: string[]): Promise<void> {
+  const resendKey = process.env.RESEND_API_KEY
+  const fromEmail = process.env.FROM_EMAIL
+  const operatorEmail = process.env.OPERATOR_EMAIL
+  if (!resendKey || !fromEmail || !operatorEmail) return
+
+  const resend = new Resend(resendKey)
+  await resend.emails.send({
+    from: fromEmail,
+    to: operatorEmail,
+    subject: `Market reports missing for: ${missingCities.join(', ')}`,
+    html: `<p style="font-family:Inter,sans-serif;font-size:15px;">No Altos market report email was received this month for: <strong>${missingCities.join(', ')}</strong>.</p><p style="font-family:Inter,sans-serif;font-size:14px;color:#555;">Check your Altos campaign settings to make sure the campaigns are set to deliver to your inbound address.</p>`,
+  })
+}

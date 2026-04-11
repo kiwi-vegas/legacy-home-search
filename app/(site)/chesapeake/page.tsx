@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommunityFAQ from '@/components/CommunityFAQ'
 import CommunityMapWrapper from '@/components/CommunityMapWrapper'
+import { getLatestMarketReport } from '@/sanity/queries'
 
 export const metadata: Metadata = {
   title: 'Chesapeake Homes For Sale | Legacy Home Team',
@@ -52,7 +53,9 @@ const faqs = [
   { q: 'Does Chesapeake have good access to nature and outdoors?', a: 'Yes — Chesapeake borders the Great Dismal Swamp (112,000+ acres), has multiple city parks, and is within easy reach of the Albemarle & Chesapeake Canal for boating. The Northwest River Park and Chesapeake Arboretum are popular local spots.' },
 ]
 
-export default function ChesapeakePage() {
+export default async function ChesapeakePage() {
+  const latestReport = await getLatestMarketReport('chesapeake')
+
   return (
     <main>
       {/* BREADCRUMB */}
@@ -341,6 +344,19 @@ export default function ChesapeakePage() {
             <h2>Chesapeake Market Trends</h2>
             <p>Live market data updated weekly — median prices, inventory levels, and market conditions in real time.</p>
           </div>
+          {latestReport && (
+            <div style={{ marginBottom: 24, padding: '20px 24px', background: '#f0f4ff', border: '1px solid rgba(37,99,235,0.15)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2563eb', marginBottom: 6 }}>Latest Market Report</div>
+                <div style={{ fontWeight: 700, fontSize: 17, color: '#1a1a1a', marginBottom: 4 }}>{latestReport.communityName} — {latestReport.reportPeriod}</div>
+                {latestReport.medianListPrice && <div style={{ fontSize: 14, fontWeight: 600, color: '#2563eb', marginBottom: 4 }}>{latestReport.medianListPrice}</div>}
+                {latestReport.marketSummary && <p style={{ fontSize: 14, color: '#555550', margin: 0 }}>{latestReport.marketSummary.slice(0, 120)}…</p>}
+              </div>
+              <a href={`/market-reports/${latestReport.slug}`} style={{ display: 'inline-block', background: '#2563eb', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                Read Full Report →
+              </a>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <iframe
               src="https://altos.re/html/s-html/d0698a30-2b4f-41d2-be37-018147dd9d8c?scale=1&marketNarrative=true&houses=true&weeklyChange=true&branding=true&size=medium"

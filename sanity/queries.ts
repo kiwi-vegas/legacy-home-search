@@ -181,3 +181,64 @@ export async function getBlogPost(slug: string): Promise<SanityBlogPost | null> 
     { next: { revalidate: 60 } }
   )
 }
+
+// ─── Market Reports ───────────────────────────────────────────────────────────
+
+export type SanityMarketReport = {
+  _id: string
+  community: string
+  communityName: string
+  reportPeriod: string
+  slug: string
+  publishedAt?: string
+  medianListPrice?: string
+  medianPriceChange?: string
+  daysOnMarket?: string
+  activeInventory?: string
+  inventoryChange?: string
+  priceReductions?: string
+  marketSummary?: string
+  buyerSection?: string
+  sellerSection?: string
+  investorSection?: string
+  barrysTake?: string
+  coverImage?: any
+  metaTitle?: string
+  metaDescription?: string
+}
+
+export async function getMarketReports(limit = 24): Promise<SanityMarketReport[]> {
+  return client.fetch(
+    `*[_type == "marketReport" && published == true] | order(publishedAt desc)[0...$limit]{
+      _id, community, communityName, reportPeriod, "slug": slug.current,
+      publishedAt, medianListPrice, medianPriceChange, marketSummary, coverImage
+    }`,
+    { limit: limit - 1 },
+    { next: { revalidate: 60 } }
+  )
+}
+
+export async function getMarketReport(slug: string): Promise<SanityMarketReport | null> {
+  return client.fetch(
+    `*[_type == "marketReport" && slug.current == $slug && published == true][0]{
+      _id, community, communityName, reportPeriod, "slug": slug.current, publishedAt,
+      medianListPrice, medianPriceChange, daysOnMarket, activeInventory,
+      inventoryChange, priceReductions, marketSummary, buyerSection,
+      sellerSection, investorSection, barrysTake, coverImage,
+      metaTitle, metaDescription
+    }`,
+    { slug },
+    { next: { revalidate: 60 } }
+  )
+}
+
+export async function getLatestMarketReport(community: string): Promise<SanityMarketReport | null> {
+  return client.fetch(
+    `*[_type == "marketReport" && community == $community && published == true] | order(publishedAt desc)[0]{
+      _id, community, communityName, reportPeriod, "slug": slug.current,
+      publishedAt, medianListPrice, medianPriceChange, marketSummary
+    }`,
+    { community },
+    { next: { revalidate: 60 } }
+  )
+}
