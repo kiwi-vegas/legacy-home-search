@@ -60,14 +60,14 @@ export const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'update_community_text',
-    description: 'Updates a text field on a community page. Allowed fields: heroHeadline, heroSubheadline, overviewTitle, metaTitle, metaDescription.',
+    description: 'Updates a text field on a community page. Allowed fields: heroHeadline, heroSubheadline, overviewTitle, overviewBody, metaTitle, metaDescription. For overviewBody, pass the full text as plain paragraphs separated by newlines — it will be converted to rich text automatically.',
     input_schema: {
       type: 'object',
       properties: {
         slug: { type: 'string' },
         field: {
           type: 'string',
-          enum: ['heroHeadline', 'heroSubheadline', 'overviewTitle', 'metaTitle', 'metaDescription'],
+          enum: ['heroHeadline', 'heroSubheadline', 'overviewTitle', 'overviewBody', 'metaTitle', 'metaDescription'],
         },
         value: { type: 'string' },
       },
@@ -240,6 +240,60 @@ export const TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Blog Posts ──────────────────────────────────────────────────────────────
+  {
+    name: 'list_blog_posts',
+    description: 'Returns all published blog posts with their title, slug, category, and published date. Use this to find a post before reading or editing it.',
+    input_schema: { type: 'object', properties: {
+      limit: { type: 'number', description: 'Max number of posts to return. Default 20.' },
+    }, required: [] },
+  },
+  {
+    name: 'get_blog_post',
+    description: 'Fetches the full editable content of a blog post by slug: title, excerpt, metaTitle, metaDescription, category, and whether it has a cover image.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Post slug, e.g. "virginia-beach-market-update-2026"' },
+      },
+      required: ['slug'],
+    },
+  },
+  {
+    name: 'update_blog_post',
+    description: 'Updates one or more text fields on a blog post. Editable fields: title, excerpt, metaTitle, metaDescription. Changes go live within 60 seconds.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Post slug to update' },
+        fields: {
+          type: 'object',
+          description: 'Fields to update',
+          properties: {
+            title: { type: 'string' },
+            excerpt: { type: 'string' },
+            metaTitle: { type: 'string' },
+            metaDescription: { type: 'string' },
+          },
+        },
+      },
+      required: ['slug', 'fields'],
+    },
+  },
+  {
+    name: 'upload_blog_cover_image',
+    description: 'Replaces the cover image on a blog post. The image is automatically extracted from the conversation — do NOT include imageBase64 or mimeType in your call.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Post slug' },
+        imageBase64: { type: 'string', description: 'Leave blank — auto-filled from conversation' },
+        mimeType: { type: 'string', description: 'Leave blank — auto-filled from conversation' },
+      },
+      required: ['slug'],
+    },
+  },
+
   {
     name: 'update_homepage_stats',
     description: 'Updates the stats bar on the homepage (e.g. "500+ Families Helped", "12+ Years in Hampton Roads"). Pass the full set of stats you want displayed — this replaces all existing stats. Each stat needs a value (e.g. "12+", "$350M+", "5★") and a label (e.g. "Years in Hampton Roads").',
@@ -330,10 +384,22 @@ export async function executeToolCall(name: string, input: Record<string, any>):
     }
 
     case 'update_community_text': {
-      const ALLOWED = ['heroHeadline', 'heroSubheadline', 'overviewTitle', 'metaTitle', 'metaDescription']
+      const ALLOWED = ['heroHeadline', 'heroSubheadline', 'overviewTitle', 'overviewBody', 'metaTitle', 'metaDescription']
       if (!ALLOWED.includes(input.field)) return `Field "${input.field}" is not editable via this tool.`
       const docId = await getOrCreateCommunityDoc(input.slug)
-      await writeClient.patch(docId).set({ [input.field]: input.value }).commit()
+      if (input.field === 'overviewBody') {
+        // Convert plain text paragraphs to Portable Text blocks
+        const blocks = (input.value as string).split('\n').filter((l: string) => l.trim()).map((line: string) => ({
+          _type: 'block',
+          _key: Math.random().toString(36).slice(2, 10),
+          style: 'normal',
+          markDefs: [],
+          children: [{ _type: 'span', _key: Math.random().toString(36).slice(2, 10), text: line.trim(), marks: [] }],
+        }))
+        await writeClient.patch(docId).set({ overviewBody: blocks }).commit()
+      } else {
+        await writeClient.patch(docId).set({ [input.field]: input.value }).commit()
+      }
       return `Updated ${input.field} for ${input.slug}. Live within 60 seconds.`
     }
 
@@ -542,6 +608,67 @@ export async function executeToolCall(name: string, input: Record<string, any>):
       const summary = (input.stats as Array<{ value: string; label: string }>)
         .map((s) => `${s.value} ${s.label}`).join(', ')
       return `Updated homepage stats: ${summary}. Live within 60 seconds.`
+    }
+
+    case 'list_blog_posts': {
+      const limit = (input.limit as number) ?? 20
+      const posts = await client.fetch(
+        `*[_type == "blogPost"] | order(publishedAt desc) [0...$limit]{
+          title, "slug": slug.current, category, publishedAt,
+          "hasCoverImage": defined(coverImage)
+        }`,
+        { limit }
+      )
+      return JSON.stringify(posts, null, 2)
+    }
+
+    case 'get_blog_post': {
+      const post = await client.fetch(
+        `*[_type == "blogPost" && slug.current == $slug][0]{
+          title, "slug": slug.current, excerpt, category,
+          metaTitle, metaDescription, publishedAt,
+          "hasCoverImage": defined(coverImage)
+        }`,
+        { slug: input.slug }
+      )
+      if (!post) return `No blog post found with slug "${input.slug}". Use list_blog_posts to find the correct slug.`
+      return JSON.stringify(post, null, 2)
+    }
+
+    case 'update_blog_post': {
+      const ALLOWED_BLOG_FIELDS = ['title', 'excerpt', 'metaTitle', 'metaDescription']
+      const post = await client.fetch<{ _id: string } | null>(
+        `*[_type == "blogPost" && slug.current == $slug][0]{ _id }`,
+        { slug: input.slug }
+      )
+      if (!post?._id) return `No blog post found with slug "${input.slug}". Use list_blog_posts to find the correct slug.`
+      const fields = input.fields as Record<string, string>
+      const updates: Record<string, string> = {}
+      for (const [k, v] of Object.entries(fields)) {
+        if (ALLOWED_BLOG_FIELDS.includes(k)) updates[k] = v
+      }
+      if (Object.keys(updates).length === 0) return 'No valid fields to update.'
+      await writeClient.patch(post._id).set(updates).commit()
+      const summary = Object.keys(updates).join(', ')
+      return `Updated ${summary} on "${input.slug}". Live within 60 seconds.`
+    }
+
+    case 'upload_blog_cover_image': {
+      const post = await client.fetch<{ _id: string } | null>(
+        `*[_type == "blogPost" && slug.current == $slug][0]{ _id }`,
+        { slug: input.slug }
+      )
+      if (!post?._id) return `No blog post found with slug "${input.slug}". Use list_blog_posts to find the correct slug.`
+      const buffer = Buffer.from(input.imageBase64, 'base64')
+      const ext = (input.mimeType as string).split('/')[1] ?? 'jpg'
+      const asset = await writeClient.assets.upload('image', buffer, {
+        filename: `blog-cover-${input.slug}-${Date.now()}.${ext}`,
+        contentType: input.mimeType,
+      })
+      await writeClient.patch(post._id).set({
+        coverImage: { _type: 'image', asset: { _type: 'reference', _ref: asset._id } },
+      }).commit()
+      return `Cover image updated for "${input.slug}". Live within 60 seconds.`
     }
 
     default:
