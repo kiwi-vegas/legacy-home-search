@@ -295,6 +295,21 @@ export const TOOLS: Anthropic.Tool[] = [
   },
 
   {
+    name: 'update_homepage_agent_bio',
+    description: "Updates Barry's bio section on the homepage. You can update the headline (e.g. 'Helping Families Move Since 2014') and/or the bio paragraphs. Pass bio as an array of paragraph strings — each string becomes one paragraph.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        headline: { type: 'string', description: 'The section headline, e.g. "Helping Families Move Since 2014"' },
+        paragraphs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of paragraph strings for the bio. Each string is one paragraph.',
+        },
+      },
+    },
+  },
+  {
     name: 'update_homepage_stats',
     description: 'Updates the stats bar on the homepage (e.g. "500+ Families Helped", "12+ Years in Hampton Roads"). Pass the full set of stats you want displayed — this replaces all existing stats. Each stat needs a value (e.g. "12+", "$350M+", "5★") and a label (e.g. "Years in Hampton Roads").',
     input_schema: {
@@ -608,6 +623,24 @@ export async function executeToolCall(name: string, input: Record<string, any>):
       const summary = (input.stats as Array<{ value: string; label: string }>)
         .map((s) => `${s.value} ${s.label}`).join(', ')
       return `Updated homepage stats: ${summary}. Live within 60 seconds.`
+    }
+
+    case 'update_homepage_agent_bio': {
+      const existing = await client.fetch<{ _id: string } | null>(
+        `*[_type == "homepage" && _id == "homepage"][0]{ _id }`
+      )
+      if (!existing?._id) {
+        await writeClient.createIfNotExists({ _type: 'homepage', _id: 'homepage' })
+      }
+      const updates: Record<string, any> = {}
+      if (input.headline) updates.agentBioHeadline = input.headline
+      if (input.paragraphs?.length) updates.agentBio = input.paragraphs
+      if (Object.keys(updates).length === 0) return 'Nothing to update — provide headline and/or paragraphs.'
+      await writeClient.patch('homepage').set(updates).commit()
+      const parts = []
+      if (updates.agentBioHeadline) parts.push(`headline: "${updates.agentBioHeadline}"`)
+      if (updates.agentBio) parts.push(`bio (${updates.agentBio.length} paragraphs)`)
+      return `Updated Barry's homepage bio — ${parts.join(', ')}. Live within 60 seconds.`
     }
 
     case 'list_blog_posts': {

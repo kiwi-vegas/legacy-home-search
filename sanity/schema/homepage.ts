@@ -29,6 +29,19 @@ export default {
       rows: 3,
     },
     {
+      name: 'agentBioHeadline',
+      title: 'Meet Barry — Section Headline',
+      type: 'string',
+      description: 'e.g. "Helping Families Move Since 2014"',
+    },
+    {
+      name: 'agentBio',
+      title: 'Meet Barry — Bio Paragraphs',
+      type: 'array',
+      of: [{ type: 'text', rows: 3 }],
+      description: 'Each item is one paragraph in the homepage bio section.',
+    },
+    {
       name: 'trustStats',
       title: 'Trust Bar Stats',
       type: 'array',

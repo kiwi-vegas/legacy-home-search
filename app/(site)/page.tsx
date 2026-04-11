@@ -31,11 +31,19 @@ const reviews = [
 
 export default async function HomePage() {
   const homepageDoc = await client.fetch(
-    `*[_type == "homepage" && _id == "homepage"][0]{ trustStats[]{ value, label } }`,
+    `*[_type == "homepage" && _id == "homepage"][0]{ trustStats[]{ value, label }, agentBioHeadline, agentBio }`,
     {},
     { next: { revalidate: 60 } }
   )
   const cmsStats: Array<{ value: string; label: string }> | undefined = homepageDoc?.trustStats
+  const agentBioHeadline: string = homepageDoc?.agentBioHeadline || 'Helping Families Move Since 2014'
+  const agentBio: string[] = homepageDoc?.agentBio?.length
+    ? homepageDoc.agentBio
+    : [
+        'Barry Jenkins built Legacy Home Team on a simple belief: every family deserves an agent who treats their home purchase like it\'s the most important transaction in the world — because it is.',
+        'With deep roots in Hampton Roads and a decade of experience navigating the local market, Barry combines data-driven strategy with a personal touch that keeps clients coming back — and referring their friends and family.',
+        'Whether you\'re buying your first home, upsizing, downsizing, or relocating to the area, Barry and the Legacy team will be with you every step of the way.',
+      ]
 
   return (
     <>
@@ -74,16 +82,12 @@ export default async function HomePage() {
 
             <div>
               <span className="section-label">Meet Your Agent</span>
-              <h2 style={{ marginBottom: 20 }}>Helping Families Move Since 2014</h2>
-              <p style={{ fontSize: 16, marginBottom: 16 }}>
-                Barry Jenkins built Legacy Home Team on a simple belief: every family deserves an agent who treats their home purchase like it's the most important transaction in the world — because it is.
-              </p>
-              <p style={{ fontSize: 16, marginBottom: 16 }}>
-                With deep roots in Hampton Roads and a decade of experience navigating the local market, Barry combines data-driven strategy with a personal touch that keeps clients coming back — and referring their friends and family.
-              </p>
-              <p style={{ fontSize: 16, marginBottom: 28 }}>
-                Whether you're buying your first home, upsizing, downsizing, or relocating to the area, Barry and the Legacy team will be with you every step of the way.
-              </p>
+              <h2 style={{ marginBottom: 20 }}>{agentBioHeadline}</h2>
+              {agentBio.map((para, i) => (
+                <p key={i} style={{ fontSize: 16, marginBottom: i < agentBio.length - 1 ? 16 : 28 }}>
+                  {para}
+                </p>
+              ))}
               <div style={{ display: 'flex', gap: 12 }}>
                 <a href="tel:+17578164037" className="btn-primary">Call (757) 816-4037</a>
                 <a href="mailto:barry@yourfriendlyagent.net" className="btn-outline">Send an Email</a>
