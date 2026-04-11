@@ -469,7 +469,7 @@ export async function executeToolCall(name: string, input: Record<string, any>):
         if (input[f] !== undefined) doc[f] = input[f]
       }
 
-      const created = await writeClient.create(doc)
+      const created = await writeClient.create(doc as any)
 
       // Attach photo if one was uploaded in the conversation
       if (input.imageBase64 && input.mimeType) {
