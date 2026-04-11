@@ -78,7 +78,11 @@ export async function POST(request: Request) {
       console.log('[market-report-inbound] Email body length:', emailText.length)
     } catch (err) {
       console.error('[market-report-inbound] Failed to fetch email body:', err instanceof Error ? err.message : err)
-      return NextResponse.json({ error: 'Could not retrieve email body from Resend', detail: err instanceof Error ? err.message : String(err) }, { status: 502 })
+      return NextResponse.json({
+        error: 'Could not retrieve email body from Resend',
+        detail: err instanceof Error ? err.message : String(err),
+        debug: { emailId, subject, payloadKeys: Object.keys(emailData) },
+      }, { status: 502 })
     }
   }
 
