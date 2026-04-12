@@ -75,7 +75,7 @@ Extract all stats from the PDF and write the full report. Return ONLY a valid JS
   "sellerSection": "3-4 sentences. What sellers can realistically expect — pricing strategy, days to expect, any leverage they have. Specific to the data.",
   "investorSection": "3-4 sentences. Rental market signal (use median rent if in the PDF), appreciation direction, where the value is moving in this market.",
   "barrysTake": "3-4 sentences, first person (I/my/we). Draw a pattern from 20 years of cycles — what this data reminds you of, what you'd tell a client sitting across the table. No cheerleading.",
-  "metaTitle": "Virginia Beach Real Estate Market — April 2026 | Legacy Home Team",
+  "metaTitle": "Virginia Beach Real Estate Market Trends Data, April 2026",
   "metaDescription": "120-155 chars: key stat + what it means + call to action"
 }
 

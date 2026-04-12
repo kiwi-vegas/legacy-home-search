@@ -34,7 +34,7 @@ export async function generateMetadata(
   const report = await getMarketReport(slug)
   if (!report) return { title: 'Report Not Found' }
   return {
-    title: report.metaTitle ?? `${report.communityName} Market Report — ${report.reportPeriod}`,
+    title: report.metaTitle ?? `${report.communityName} Real Estate Market Trends Data, ${report.reportPeriod}`,
     description: report.metaDescription ?? report.marketSummary,
   }
 }
@@ -86,6 +86,22 @@ export default async function MarketReportPage({ params }: { params: Promise<{ s
           {report.marketSummary && <p className="blog-post-excerpt">{report.marketSummary}</p>}
         </div>
 
+        {/* ── BARRY'S TAKE ──────────────────────────────────────────────── */}
+        {report.barrysTake && (
+          <div style={{ padding: '32px', background: '#1a1a1a', borderRadius: 16, marginBottom: 40, display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+            <img
+              src="/Barry-AI.jpg"
+              alt="Barry Jenkins"
+              style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '3px solid rgba(255,255,255,0.2)' }}
+            />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2563eb', marginBottom: 10 }}>Barry's Take</div>
+              <p style={{ fontSize: 16, lineHeight: 1.75, color: 'rgba(255,255,255,0.9)', margin: 0, fontStyle: 'italic' }}>"{report.barrysTake}"</p>
+              <div style={{ marginTop: 16, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Barry Jenkins · Lead Agent, Legacy Home Team</div>
+            </div>
+          </div>
+        )}
+
         {/* ── AT A GLANCE ───────────────────────────────────────────────── */}
         {metrics.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, margin: '0 0 40px' }}>
@@ -123,22 +139,6 @@ export default async function MarketReportPage({ params }: { params: Promise<{ s
           )}
 
         </div>
-
-        {/* ── BARRY'S TAKE ──────────────────────────────────────────────── */}
-        {report.barrysTake && (
-          <div style={{ padding: '32px', background: '#1a1a1a', borderRadius: 16, marginBottom: 48, display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-            <img
-              src="/Barry-AI.jpg"
-              alt="Barry Jenkins"
-              style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '3px solid rgba(255,255,255,0.15)' }}
-            />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2563eb', marginBottom: 10 }}>Barry's Take</div>
-              <p style={{ fontSize: 16, lineHeight: 1.7, color: 'rgba(255,255,255,0.9)', margin: 0, fontStyle: 'italic' }}>"{report.barrysTake}"</p>
-              <div style={{ marginTop: 16, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Barry Jenkins · Lead Agent, Legacy Home Team</div>
-            </div>
-          </div>
-        )}
 
         {/* ── LIVE ALTOS DATA ────────────────────────────────────────────── */}
         {altosId && (
