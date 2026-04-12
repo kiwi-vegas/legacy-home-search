@@ -9,17 +9,18 @@ function getRedis() {
 }
 
 const TTL_SECONDS = 48 * 60 * 60 // 48 hours
-const SHOWN_COUNTS_KEY = 'article_shown_counts'
+const KEY_PREFIX = 'lhs:' // namespace all keys to avoid collisions with other projects on the same Redis instance
+const SHOWN_COUNTS_KEY = `${KEY_PREFIX}article_shown_counts`
 const MAX_SHOWN = 2 // skip after being presented this many times without being picked
 
 export async function storeArticles(date: string, data: StoredArticles): Promise<void> {
   const redis = getRedis()
-  await redis.set(`articles:${date}`, JSON.stringify(data), { ex: TTL_SECONDS })
+  await redis.set(`${KEY_PREFIX}articles:${date}`, JSON.stringify(data), { ex: TTL_SECONDS })
 }
 
 export async function loadArticles(date: string): Promise<StoredArticles | null> {
   const redis = getRedis()
-  const raw = await redis.get<string>(`articles:${date}`)
+  const raw = await redis.get<string>(`${KEY_PREFIX}articles:${date}`)
   if (!raw) return null
   return typeof raw === 'string' ? JSON.parse(raw) : raw
 }
