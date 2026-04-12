@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { client } from '@/sanity/client'
-import { sendMarketReportMissingEmail } from '@/lib/email'
+import { sendMarketReportMissingEmail, sendAltosUploadReminderEmail } from '@/lib/email'
 
 const ALL_COMMUNITIES = [
   'virginia-beach', 'chesapeake', 'norfolk', 'suffolk', 'hampton', 'newport-news',
@@ -25,11 +25,18 @@ export async function POST(request: Request) {
 }
 
 async function runCheck() {
-  // Check which communities have a market report for the current month
   const now = new Date()
   const year = now.getFullYear()
   const monthName = now.toLocaleDateString('en-US', { month: 'long' })
   const period = `${monthName} ${year}` // e.g. "April 2026"
+
+  // Always send Barry the monthly upload reminder first
+  try {
+    await sendAltosUploadReminderEmail(monthName, year)
+    console.log(`[market-reports-cron] Upload reminder sent to Barry for ${period}`)
+  } catch (err) {
+    console.error('[market-reports-cron] Failed to send reminder email:', err)
+  }
 
   const existing = await client.fetch<Array<{ community: string }>>(
     `*[_type == "marketReport" && reportPeriod == $period]{ community }`,
