@@ -8,9 +8,9 @@ import { getBlogPosts, getMarketReports } from '@/sanity/queries'
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Real Estate Blog | Legacy Home Search',
+  title: 'Hampton Roads Real Estate Blog | Legacy Home Search',
   description:
-    'Expert insights on real estate — market updates, buying tips, community spotlights, and investment analysis from the Legacy Home Search team.',
+    'Expert insights on Hampton Roads real estate — market updates, buying tips, community spotlights, and investment analysis from the Legacy Home Search team.',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -93,7 +93,7 @@ export default async function BlogPage({
       <section className="blog-hero">
         <div className="container">
           <span className="section-label">Insights &amp; News</span>
-          <h1 className="blog-hero-title">Real Estate Blog</h1>
+          <h1 className="blog-hero-title">Hampton Roads Real Estate Blog</h1>
           <p className="blog-hero-sub">
             Market reports, buying &amp; selling guides, and community insights — from the Legacy Home Search team.
           </p>
