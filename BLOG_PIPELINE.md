@@ -2,9 +2,15 @@
 
 ## Overview
 
-A fully automated daily blog pipeline that researches Virginia Beach and Hampton Roads real estate news, lets the operator pick articles to publish, then writes full posts with AI-generated cover images and publishes them to Sanity CMS.
+Two complementary content pipelines feed the `/blog` listing page:
+
+1. **Daily blog pipeline** — automated research, operator picks articles, Claude writes posts with AI hero images, published to Sanity CMS
+2. **Monthly market reports pipeline** — Barry uploads Altos Research PDFs, Claude reads and writes full reports, published automatically to Sanity. Full details in `MARKET_REPORTS.md`.
+
+Both appear together in the `/blog` listing, merged and sorted by date. A category filter bar at the top lets readers filter by type.
 
 **Market:** Virginia Beach, Chesapeake, Norfolk, Suffolk, Hampton, Newport News (Hampton Roads, VA)
+**Blog page title:** Hampton Roads Real Estate Blog
 **Sanity project ID:** `2nr7n3lm`
 **Production URL:** `https://legacy-home-search.vercel.app`
 
@@ -116,6 +122,37 @@ Claude Sonnet analyzes the article's title, `whyItMatters`, and category, then w
 
 ---
 
+## Blog Listing Page (`/blog`)
+
+**Title:** Hampton Roads Real Estate Blog
+
+Both blog posts and market reports are fetched in parallel and merged into a single feed sorted by `publishedAt` descending:
+- `getBlogPosts(24)` — regular blog posts
+- `getMarketReports(12)` — published market reports
+
+### Category Filter Tabs
+Filter tabs appear at the top of the grid. Only tabs with at least one published post are shown. Tabs are server-rendered links using `?category=` URL params — no JavaScript required, URLs are shareable.
+
+| Tab label | Filter value | What it shows |
+|---|---|---|
+| All | *(none)* | Everything |
+| Market Reports | `market-report` | Monthly Altos reports only |
+| Market Update | `market-update` | Blog posts in that category |
+| Buying Tips | `buying-tips` | Blog posts in that category |
+| Selling Tips | `selling-tips` | Blog posts in that category |
+| Community Spotlight | `community-spotlight` | Blog posts in that category |
+| Investment | `investment` | Blog posts in that category |
+| News | `news` | Blog posts in that category |
+
+### Market Report Cards (on `/blog`)
+- Badge: **Market Report**
+- Title format: `{communityName} Real Estate Market Trends Data, {reportPeriod}`
+- Excerpt: first 120 chars of `marketSummary`
+- Meta row: `reportPeriod` + `medianListPrice` (in blue)
+- Link: `/market-reports/{slug}`
+
+---
+
 ## Article Selection Rules
 
 - **Volume**: Research fetches up to 30 articles per day, scores top 10 for display
@@ -160,16 +197,18 @@ Post structure:
 | Variable | Purpose |
 |---|---|
 | `ANTHROPIC_API_KEY` | Claude Sonnet (writing + prompt building) + Claude Opus (scoring) |
-| `GOOGLE_API_KEY` | Gemini/Imagen image generation (primary) |
-| `OPENAI_API_KEY` | DALL-E 3 image generation (fallback) |
+| `GOOGLE_API_KEY` | Gemini/Imagen image generation (primary, blog posts) |
+| `OPENAI_API_KEY` | DALL-E 3 — fallback for blog posts; **primary** for market report covers |
 | `TAVILY_API_KEY` | Article research searches |
 | `UPSTASH_REDIS_REST_URL` | Article storage (48hr TTL) |
 | `UPSTASH_REDIS_REST_TOKEN` | Redis auth |
-| `RESEND_API_KEY` | Digest email delivery |
+| `RESEND_API_KEY` | All email delivery (digest, market report ready, monthly reminder) |
 | `FROM_EMAIL` | Sender address |
-| `OPERATOR_EMAIL` | Digest recipient |
-| `ADMIN_SECRET` | Auth for blog picker and publish API |
-| `CRON_SECRET` | Auth for Vercel cron job |
+| `OPERATOR_EMAIL` | Blog digest recipient |
+| `BARRY_EMAIL` | `barry@yourfriendlyagent.net` — monthly Altos upload reminder |
+| `ADMIN_SECRET` | Auth for blog picker, publish API, and market report admin pages |
+| `ADMIN_PIN` | Short memorable password for the `/upload` gateway (falls back to `ADMIN_SECRET`) |
+| `CRON_SECRET` | Auth for Vercel cron jobs |
 | `NEXT_PUBLIC_SANITY_PROJECT_ID` | `2nr7n3lm` |
 | `NEXT_PUBLIC_APP_URL` | `https://legacy-home-search.vercel.app` |
 | `UNSPLASH_ACCESS_KEY` | Optional — Unsplash fallback images |
@@ -199,17 +238,36 @@ GET /api/articles/2026-03-24?secret=YOUR_ADMIN_SECRET
 
 ## Key Files
 
+### Blog Pipeline
 | File | Purpose |
 |---|---|
 | `lib/research.ts` | Tavily searches + Claude scoring — Hampton Roads queries only |
 | `lib/writer.ts` | Claude writes blog post as Legacy Home Search professional |
-| `lib/image-gen-gemini.ts` | Gemini image generation — Hampton Roads visual anchors |
-| `lib/image-gen.ts` | DALL-E 3 fallback |
+| `lib/image-gen-gemini.ts` | Gemini image generation — Hampton Roads visual anchors (blog posts) |
+| `lib/image-gen.ts` | DALL-E 3 fallback for blog post images |
+| `lib/image-gen-market-report.ts` | DALL-E 3 image gen for market reports — YouTube/financial illustration style |
 | `lib/images.ts` | Orchestrates full image fallback chain |
-| `lib/email.ts` | Digest email HTML + Resend delivery |
+| `lib/email.ts` | All emails: blog digest, market report ready, monthly Altos reminder |
 | `lib/store.ts` | Upstash Redis read/write |
-| `lib/sanity-write.ts` | Publishes post to Sanity CMS |
-| `app/api/cron/research/route.ts` | Cron endpoint |
-| `app/api/blog/publish/route.ts` | Publish endpoint (1–5 articles) |
-| `app/admin/blog-picker/[date]/page.tsx` | Operator selection UI |
-| `vercel.json` | Cron schedule (6:00 AM PT daily) |
+| `lib/sanity-write.ts` | Publishes content to Sanity CMS |
+| `app/api/cron/research/route.ts` | Daily blog research cron |
+| `app/api/blog/publish/route.ts` | Blog publish endpoint (1–5 articles) |
+| `app/admin/blog-picker/[date]/page.tsx` | Operator article selection UI |
+| `app/(site)/blog/page.tsx` | Blog listing — merges posts + market reports, category filter tabs |
+
+### Market Reports Pipeline
+| File | Purpose |
+|---|---|
+| `app/upload/page.tsx` | `/upload` gateway — password form with 7-day session cookie |
+| `app/admin/market-reports/upload/page.tsx` | Drag-and-drop multi-PDF upload form with per-file status + recent reports list |
+| `app/api/market-reports/auto-publish/route.ts` | PDF → Claude → DALL-E cover → Sanity (published immediately, city detected from filename) |
+| `app/api/market-reports/recent/route.ts` | Returns last 10 reports for admin display |
+| `app/(site)/market-reports/page.tsx` | Public market reports listing |
+| `app/(site)/market-reports/[slug]/page.tsx` | Individual report page |
+| `app/api/cron/market-reports/route.ts` | 1st of month: sends Barry upload reminder + missing-reports safety check |
+
+### Cron Schedule (`vercel.json`)
+| Schedule | Route | What it does |
+|---|---|---|
+| `0 13 * * *` (6 AM PT daily) | `/api/cron/research` | Daily blog research + digest email |
+| `0 14 1 * *` (7 AM PT, 1st of month) | `/api/cron/market-reports` | Sends Barry the monthly Altos upload reminder; checks for missing reports |
