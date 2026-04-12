@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 const COMMUNITIES = [
@@ -12,6 +12,16 @@ const COMMUNITIES = [
   { slug: 'newport-news', name: 'Newport News' },
 ]
 
+interface RecentReport {
+  _id: string
+  communityName: string
+  reportPeriod: string
+  slug: string
+  publishedAt: string | null
+  _createdAt: string
+  published: boolean
+}
+
 function UploadForm() {
   const searchParams = useSearchParams()
   const secret = searchParams.get('secret') ?? ''
@@ -21,6 +31,15 @@ function UploadForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ reviewUrl: string; community: string; period: string } | null>(null)
+  const [recentReports, setRecentReports] = useState<RecentReport[]>([])
+
+  useEffect(() => {
+    if (!secret) return
+    fetch(`/api/market-reports/recent?secret=${secret}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setRecentReports(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [secret])
 
   if (!secret) {
     return (
@@ -107,7 +126,7 @@ function UploadForm() {
           <div style={s.section}>
             <div style={s.sectionTitle}>Altos Research PDF</div>
             <p style={{ fontSize: 13, color: '#888884', marginBottom: 16, lineHeight: 1.6 }}>
-              In Altos, click the button to view your Virginia Beach report, then use the print or download option to save it as a PDF. Upload that file here.
+              In Altos, click the button to view your report, then use the print or download option to save it as a PDF. Upload that file here.
             </p>
             <label style={s.fileLabel}>
               <input
@@ -148,6 +167,58 @@ function UploadForm() {
             )}
           </div>
         </form>
+
+        {/* ── RECENT REPORTS ──────────────────────────────────────── */}
+        {recentReports.length > 0 && (
+          <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid #e0ddd8' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: '#888884', marginBottom: 16 }}>
+              Recent Reports
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 0 }}>
+              {recentReports.map((r, i) => {
+                const dateStr = (r.publishedAt ?? r._createdAt)
+                  ? new Date(r.publishedAt ?? r._createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : '—'
+                const title = `${r.communityName} Real Estate Market Trends Data, ${r.reportPeriod}`
+                const isLast = i === recentReports.length - 1
+                return (
+                  <div
+                    key={r._id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
+                      padding: '12px 0',
+                      borderBottom: isLast ? 'none' : '1px solid #f0ede8',
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: '#aaa9a4', whiteSpace: 'nowrap' as const, minWidth: 90 }}>
+                      {dateStr}
+                    </span>
+                    {r.published && r.slug ? (
+                      <a
+                        href={`/market-reports/${r.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: 14, color: '#2563eb', textDecoration: 'none', fontWeight: 500, flex: 1 }}
+                      >
+                        {title}
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: 14, color: '#888884', flex: 1 }}>
+                        {title}
+                        <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#92400e', padding: '2px 6px', borderRadius: 4, verticalAlign: 'middle' }}>
+                          Draft
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   )

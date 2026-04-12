@@ -99,6 +99,11 @@ export default function MarketReportReviewPage() {
         <a href={published.url} target="_blank" rel="noopener noreferrer" style={s.btn}>
           View Live Report →
         </a>
+        <div style={{ marginTop: 20 }}>
+          <a href="/upload" style={{ fontSize: 13, color: '#888884', textDecoration: 'underline', cursor: 'pointer' }}>
+            Upload another report
+          </a>
+        </div>
       </div>
     </div></div>
   )
