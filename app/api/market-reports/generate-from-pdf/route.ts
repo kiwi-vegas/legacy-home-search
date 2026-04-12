@@ -4,8 +4,7 @@ import { getSanityWriteClient } from '@/lib/sanity-write'
 import { client } from '@/sanity/client'
 import { buildSlug, detectPeriod } from '@/lib/market-report-writer'
 import { sendMarketReportReadyEmail } from '@/lib/email'
-import { generateAndUploadCoverImageGemini } from '@/lib/image-gen-gemini'
-import type { ScoredArticle } from '@/lib/types'
+import { generateAndUploadMarketReportCover } from '@/lib/image-gen-market-report'
 
 export const maxDuration = 300
 
@@ -119,19 +118,11 @@ Extract the period from the report date (e.g. "REPORT FOR 4/11/2026" → "April 
   const period = content.period ?? detectPeriod('', '')
   const slug = buildSlug(community, period)
 
-  // ── Generate cover image ───────────────────────────────────────────────
+  // ── Generate cover image (DALL-E 3 — YouTube/financial illustration style) ──
   let coverImageRef: { _type: 'reference'; _ref: string } | null = null
   try {
-    const fakeArticle: ScoredArticle = {
-      id: `market-report-${slug}`,
-      title: `${communityName} Real Estate Market — ${period}`,
-      url: '',
-      content: content.marketSummary,
-      category: 'community-spotlight',
-      relevanceScore: 9,
-      whyItMatters: content.marketSummary,
-    }
-    coverImageRef = await generateAndUploadCoverImageGemini(fakeArticle)
+    const headlineStat = content.medianListPrice ?? content.medianPriceChange ?? ''
+    coverImageRef = await generateAndUploadMarketReportCover(communityName, period, headlineStat)
     console.log(`[generate-from-pdf] Cover image: ${coverImageRef?._ref}`)
   } catch (err) {
     console.error('[generate-from-pdf] Cover image failed:', err instanceof Error ? err.message : err)

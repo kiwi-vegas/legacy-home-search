@@ -35,6 +35,14 @@ Automated daily blog pipeline via Vercel Cron. Full details in `BLOG_PIPELINE.md
 - Claude writes posts, Gemini generates custom hero images (DALL-E fallback), posts published to Sanity
 - Live at `/blog` within 60 seconds (ISR revalidation)
 
+## Market Reports Pipeline
+Monthly PDF-upload pipeline that turns Altos Research PDFs into full market reports. Full details in `MARKET_REPORTS.md`.
+- Barry uploads Altos PDF at `/admin/market-reports/upload?secret=ADMIN_SECRET`
+- Claude reads the PDF natively and writes a 5-section report in Barry's voice
+- Cover images use **DALL-E 3** (YouTube/financial illustration style — different from blog post covers which use Gemini)
+- Draft saved to Sanity → Barry reviews and publishes → live at `/market-reports/[slug]`
+- Reports also appear in `/blog` listing and community pages show "Latest Market Report" card
+
 ## AI Content Assistant
 Available at `/admin/assistant` (password-protected). Same architecture as chris-nevada-next. Update `COMMUNITY_PAGES` in `lib/assistant-tools.ts` as pages are added.
 

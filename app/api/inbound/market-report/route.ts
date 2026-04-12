@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSanityWriteClient } from '@/lib/sanity-write'
 import { writeMarketReport, detectCommunity, detectPeriod, buildSlug } from '@/lib/market-report-writer'
 import { sendMarketReportReadyEmail } from '@/lib/email'
-import { generateAndUploadCoverImageGemini } from '@/lib/image-gen-gemini'
-import type { ScoredArticle } from '@/lib/types'
+import { generateAndUploadMarketReportCover } from '@/lib/image-gen-market-report'
 
 export const maxDuration = 300
 
@@ -112,21 +111,11 @@ export async function POST(request: Request) {
   const content = await writeMarketReport(emailText, community, period)
   console.log(`[market-report-inbound] Report written for ${content.communityName}`)
 
-  // ── Generate cover image ───────────────────────────────────────────────
-  // Reuse the blog image pipeline — treat as a community-spotlight article
-  const fakeArticle: ScoredArticle = {
-    id: `market-report-${slug}`,
-    title: `${content.communityName} Real Estate Market — ${period}`,
-    url: '',
-    content: content.marketSummary,
-    category: 'community-spotlight',
-    relevanceScore: 9,
-    whyItMatters: content.marketSummary,
-  }
-
+  // ── Generate cover image (DALL-E 3 — YouTube/financial illustration style) ──
   let coverImageRef: { _type: 'reference'; _ref: string } | null = null
   try {
-    coverImageRef = await generateAndUploadCoverImageGemini(fakeArticle)
+    const headlineStat = content.medianListPrice ?? content.medianPriceChange ?? ''
+    coverImageRef = await generateAndUploadMarketReportCover(content.communityName, period, headlineStat)
     console.log(`[market-report-inbound] Cover image generated: ${coverImageRef?._ref}`)
   } catch (err) {
     console.error('[market-report-inbound] Cover image failed:', err instanceof Error ? err.message : err)

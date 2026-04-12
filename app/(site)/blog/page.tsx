@@ -22,6 +22,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   news: 'News',
 }
 
+// Tabs in display order — value matches the ?category= param
+const CATEGORY_TABS = [
+  { value: 'market-report', label: 'Market Reports' },
+  { value: 'market-update', label: 'Market Update' },
+  { value: 'buying-tips', label: 'Buying Tips' },
+  { value: 'selling-tips', label: 'Selling Tips' },
+  { value: 'community-spotlight', label: 'Community Spotlight' },
+  { value: 'investment', label: 'Investment' },
+  { value: 'news', label: 'News' },
+]
+
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? '2nr7n3lm',
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET ?? 'production',
@@ -34,7 +45,13 @@ function urlFor(source: any) {
   return builder.image(source)
 }
 
-export default async function BlogPage() {
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>
+}) {
+  const { category } = await searchParams
+
   const [posts, reports] = await Promise.all([
     getBlogPosts(24),
     getMarketReports(12),
@@ -54,6 +71,22 @@ export default async function BlogPage() {
     return db - da
   })
 
+  // Compute which tabs actually have content (only show populated tabs)
+  const populatedCategories = new Set<string>()
+  for (const item of items) {
+    if (item.kind === 'report') populatedCategories.add('market-report')
+    else if (item.kind === 'post' && item.category) populatedCategories.add(item.category)
+  }
+  const visibleTabs = CATEGORY_TABS.filter((t) => populatedCategories.has(t.value))
+
+  // Filter by selected category
+  const filtered = category
+    ? items.filter((item) => {
+        if (category === 'market-report') return item.kind === 'report'
+        return item.kind === 'post' && item.category === category
+      })
+    : items
+
   return (
     <>
       {/* ── HERO ──────────────────────────────────────────────────────── */}
@@ -70,13 +103,73 @@ export default async function BlogPage() {
       {/* ── POSTS GRID ────────────────────────────────────────────────── */}
       <section className="blog-listing">
         <div className="container">
-          {items.length === 0 ? (
+
+          {/* ── CATEGORY FILTER TABS ──────────────────────────────────── */}
+          {visibleTabs.length > 0 && (
+            <div style={{ marginBottom: 36 }}>
+              <div style={{
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}>
+                {/* All tab */}
+                <Link
+                  href="/blog"
+                  style={{
+                    display: 'inline-block',
+                    padding: '7px 16px',
+                    borderRadius: 999,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    border: '1.5px solid',
+                    transition: 'all 0.15s',
+                    ...(!category
+                      ? { background: '#2563eb', borderColor: '#2563eb', color: '#fff' }
+                      : { background: '#fff', borderColor: '#e0ddd8', color: '#555550' }
+                    ),
+                  }}
+                >
+                  All
+                </Link>
+
+                {visibleTabs.map((tab) => {
+                  const isActive = category === tab.value
+                  return (
+                    <Link
+                      key={tab.value}
+                      href={`/blog?category=${tab.value}`}
+                      style={{
+                        display: 'inline-block',
+                        padding: '7px 16px',
+                        borderRadius: 999,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        border: '1.5px solid',
+                        transition: 'all 0.15s',
+                        ...(isActive
+                          ? { background: '#2563eb', borderColor: '#2563eb', color: '#fff' }
+                          : { background: '#fff', borderColor: '#e0ddd8', color: '#555550' }
+                        ),
+                      }}
+                    >
+                      {tab.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {filtered.length === 0 ? (
             <div className="blog-empty">
-              <p>No posts yet — check back soon. Our blog publishes fresh insights regularly.</p>
+              <p>No posts in this category yet — check back soon.</p>
             </div>
           ) : (
             <div className="blog-grid">
-              {items.map((item) => {
+              {filtered.map((item) => {
                 if (item.kind === 'report') {
                   const imgUrl = item.coverImage
                     ? urlFor(item.coverImage).width(600).height(340).fit('crop').url()
@@ -113,7 +206,7 @@ export default async function BlogPage() {
                 const pubDate = item.publishedAt
                   ? new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
                   : ''
-                const category = CATEGORY_LABELS[item.category ?? ''] ?? item.category
+                const categoryLabel = CATEGORY_LABELS[item.category ?? ''] ?? item.category
 
                 return (
                   <Link key={item._id} href={`/blog/${item.slug}`} className="blog-card">
@@ -125,7 +218,7 @@ export default async function BlogPage() {
                       )}
                     </div>
                     <div className="blog-card-body">
-                      {category && <span className="blog-card-category">{category}</span>}
+                      {categoryLabel && <span className="blog-card-category">{categoryLabel}</span>}
                       <h2 className="blog-card-title">{item.title}</h2>
                       {item.excerpt && <p className="blog-card-excerpt">{item.excerpt}</p>}
                       <div className="blog-card-meta">
