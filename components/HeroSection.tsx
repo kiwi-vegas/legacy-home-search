@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-export default function HeroSection() {
+export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
   const [tab, setTab] = useState<'buy' | 'sell' | 'invest' | 'buy-before-sell'>('buy')
   const [city, setCity] = useState('')
 
@@ -36,9 +36,15 @@ export default function HeroSection() {
       overflow: 'hidden',
     }}>
       {/* Vimeo background video */}
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
+      <div style={{
+        position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0,
+        // Poster image renders instantly — eliminates the blank flash while the video loads
+        background: posterUrl
+          ? `url("${posterUrl}") center/cover no-repeat`
+          : '#0d1b2a',
+      }}>
         <iframe
-          src="https://player.vimeo.com/video/1175999385?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1"
+          src="https://player.vimeo.com/video/599068943?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1"
           style={{
             position: 'absolute',
             top: '50%', left: '50%',

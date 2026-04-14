@@ -26,16 +26,31 @@ export default async function HomePage() {
     ? homepageDoc.agentBio
     : [
         'Barry Jenkins built Legacy Home Team on a simple belief: every family deserves an agent who treats their home purchase like it\'s the most important transaction in the world — because it is.',
-        'With deep roots in Hampton Roads and over a decade of experience navigating the local market, Barry combines a personal, relationship-first approach with elite-level digital marketing strategies that consistently give his clients an edge.',
-        'In addition to leading one of the top-performing teams in the region, Barry serves as Senior Realtor in Residence at Ylopo — one of the most recognized and innovative real estate marketing platforms in the country. In this role, he helps design and refine the very tools, systems, and strategies used by thousands of agents and teams nationwide to generate more exposure, attract more buyers, and sell homes faster.',
-        'Widely respected as a leader in the industry, Barry regularly speaks, trains, and coaches agents across the country on how to win in today\'s digital-first market. His ability to blend cutting-edge marketing with real-world sales experience gives his clients a distinct advantage — whether they\'re selling for top dollar or finding the perfect home.',
-        'Whether you\'re buying your first home, upsizing, downsizing, or relocating to the area, Barry and the Legacy team will guide you every step of the way — with the expertise, strategy, and care you deserve.',
+        'With deep roots in Hampton Roads and over a decade of experience, Barry combines a relationship-first approach with advanced digital marketing strategies that give his clients a clear edge.',
+        'In addition to leading a top-performing local team, Barry serves as Senior Realtor in Residence at Ylopo — one of the most recognized real estate marketing platforms in the country. He helps shape the tools and strategies used by thousands of agents nationwide to generate more exposure, attract buyers, and sell homes faster.',
+        'A respected industry leader, Barry regularly trains and coaches agents across the country. His ability to blend cutting-edge marketing with real-world experience gives his clients a distinct advantage in today\'s market.',
+        'Whether you\'re buying, selling, or relocating, Barry and the Legacy team will guide you every step of the way — with the expertise and care you deserve.',
       ]
+
+  // Fetch Vimeo thumbnail server-side so HeroSection has a poster image immediately on load
+  let heroPosterUrl = ''
+  try {
+    const vimeoRes = await fetch(
+      'https://vimeo.com/api/oembed.json?url=https://vimeo.com/599068943&width=1920',
+      { next: { revalidate: 3600 } }
+    )
+    if (vimeoRes.ok) {
+      const vimeoData = await vimeoRes.json()
+      heroPosterUrl = (vimeoData.thumbnail_url as string) ?? ''
+    }
+  } catch {
+    // silently fall back to dark background
+  }
 
   return (
     <>
       {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <HeroSection />
+      <HeroSection posterUrl={heroPosterUrl} />
 
       {/* ── STATS ────────────────────────────────────────────────────── */}
       <StatsBar cmsStats={cmsStats} />
