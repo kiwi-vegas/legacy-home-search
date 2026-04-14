@@ -3,6 +3,7 @@ import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 import HeroSection from '@/components/HeroSection'
 import StatsBar from '@/components/StatsBar'
 import AreaCards from '@/components/AreaCards'
+import TestimonialsSection from '@/components/TestimonialsSection'
 import { client } from '@/sanity/client'
 
 export const metadata: Metadata = {
@@ -10,23 +11,6 @@ export const metadata: Metadata = {
   description: 'Barry Jenkins and the Legacy Home Team help families buy and sell homes across Virginia Beach, Chesapeake, Norfolk, and all of Hampton Roads. Local expertise, proven results.',
 }
 
-const reviews = [
-  {
-    text: "Barry and his team made buying our first home in Virginia Beach an amazing experience. They were patient, knowledgeable, and fought hard to get us the best deal. We couldn't be happier.",
-    author: 'Jessica & Mark T.',
-    location: 'Virginia Beach, VA',
-  },
-  {
-    text: "Sold our Chesapeake home in 9 days at over asking price. The Legacy team's market knowledge and marketing strategy were second to none. Highly recommend.",
-    author: 'David R.',
-    location: 'Chesapeake, VA',
-  },
-  {
-    text: "From our first call to closing, Barry was responsive, honest, and truly had our best interests at heart. This is the team you want in Hampton Roads.",
-    author: 'Samantha L.',
-    location: 'Norfolk, VA',
-  },
-]
 
 
 export default async function HomePage() {
@@ -160,25 +144,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── REVIEWS ──────────────────────────────────────────────────── */}
-      <section style={{ background: 'var(--off-white)' }}>
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">Client Stories</span>
-            <h2>What Our Clients Say</h2>
-            <p>Don't take our word for it — hear from the families we've helped across Hampton Roads.</p>
-          </div>
-          <div className="reviews-grid">
-            {reviews.map(review => (
-              <div key={review.author} className="review-card">
-                <div className="review-stars">★★★★★</div>
-                <p className="review-text">"{review.text}"</p>
-                <div className="review-author">{review.author}</div>
-                <div className="review-platform">{review.location}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TestimonialsSection />
 
       {/* ── CONTACT ──────────────────────────────────────────────────── */}
       <section id="contact">
