@@ -205,6 +205,9 @@ section + section { border-top: 1px solid var(--border-light); }
 .area-card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.08) 55%, transparent 100%); z-index: 2; }
 .area-card-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 18px 22px; z-index: 3; }
 
+/* ── Community hub cards ── */
+.community-hub-card:hover { box-shadow: 0 0 0 2px rgba(37,99,235,0.2), 0 8px 28px rgba(37,99,235,0.12); border-color: var(--accent) !important; transform: translateY(-2px); }
+
 /* ── Testimonials columns responsive ── */
 /* ── Logo bar ── */
 .logo-bar-img { filter: grayscale(100%); opacity: 0.45; transition: filter 0.3s ease, opacity 0.3s ease; cursor: default; }

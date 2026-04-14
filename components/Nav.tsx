@@ -44,6 +44,7 @@ export default function Nav() {
               </button>
               <div className="nav-dropdown">
                 <div className="nav-dropdown-label">Hampton Roads Communities</div>
+                <Link href="/communities" style={{ fontWeight: 700, color: 'var(--accent)' }}>View All Communities →</Link>
                 {communities.map(c => (
                   <Link key={c.slug} href={`/${c.slug}`}>{c.name}</Link>
                 ))}
@@ -89,6 +90,9 @@ export default function Nav() {
           </button>
           {mobileCommOpen && (
             <div style={{ paddingLeft: 16, borderBottom: '1px solid var(--border-light)' }}>
+              <Link href="/communities" style={{ display: 'block', padding: '10px 0', color: 'var(--accent)', textDecoration: 'none', fontSize: 14, fontWeight: 700 }} onClick={() => { setMobileOpen(false); setMobileCommOpen(false) }}>
+                View All Communities →
+              </Link>
               {communities.map(c => (
                 <Link key={c.slug} href={`/${c.slug}`} style={{ display: 'block', padding: '10px 0', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14 }} onClick={() => { setMobileOpen(false); setMobileCommOpen(false) }}>
                   {c.name}
