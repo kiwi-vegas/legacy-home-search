@@ -104,33 +104,6 @@ export default async function HomePage() {
       {/* ── VIRGINIA BEACH LISTINGS ──────────────────────────────────── */}
       <VirginiaBeachListings />
 
-      {/* ── WHY LEGACY ───────────────────────────────────────────────── */}
-      <section style={{ background: 'var(--off-white)' }}>
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">Why Legacy Home Team</span>
-            <h2>Real Estate Done Right</h2>
-            <p>We've spent a decade earning the trust of Hampton Roads families. Here's what sets us apart.</p>
-          </div>
-          <div className="cards-grid">
-            {[
-              { icon: '🏡', title: 'Deep Local Knowledge', body: 'We live and work in Hampton Roads. From Virginia Beach to Chesapeake, we know the neighborhoods, schools, and market trends that matter to you.' },
-              { icon: '📊', title: 'Data-Driven Strategy', body: "Every pricing decision and offer strategy is backed by real market data — not guesswork. You'll always know exactly where you stand." },
-              { icon: '⚡', title: 'Fast, Responsive Service', body: 'In a competitive market, speed wins. We respond quickly, move decisively, and make sure you never miss an opportunity.' },
-              { icon: '🤝', title: 'Always In Your Corner', body: "We work exclusively for our clients — never the other side. Your goals drive every recommendation we make." },
-              { icon: '🔍', title: 'Access to Every Listing', body: "From MLS to off-market properties, we surface opportunities other agents miss. If it's for sale in Hampton Roads, we'll find it." },
-              { icon: '✅', title: 'Proven Track Record', body: '500+ closed transactions and a wall of 5-star reviews. Our results speak for themselves — and our clients keep coming back.' },
-            ].map(item => (
-              <div key={item.title} className="card">
-                <div className="card-icon">{item.icon}</div>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── AREAS WE SERVE ───────────────────────────────────────────── */}
       <section>
         <div className="container">
