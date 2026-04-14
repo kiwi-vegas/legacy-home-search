@@ -197,18 +197,13 @@ section + section { border-top: 1px solid var(--border-light); }
 .nav-dropdown a:hover { background: var(--light-gray); color: var(--text); }
 .nav-dropdown-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 8px 16px 4px; }
 
-/* ── Area cards (homepage hover map) ── */
-.area-card { position: relative; overflow: hidden; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; transition: box-shadow var(--transition), border-color var(--transition); height: 200px; }
-.area-card:hover { box-shadow: var(--shadow-lg); border-color: var(--accent); }
-.area-card-content { position: absolute; inset: 0; padding: 24px 28px; display: flex; flex-direction: column; justify-content: space-between; transition: opacity 0.25s ease; z-index: 2; }
-.area-card:hover .area-card-content { opacity: 0; }
-.area-card-map { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity 0.25s ease; }
-.area-card-map img { width: 100%; height: 100%; object-fit: cover; }
-.area-card:hover .area-card-map { opacity: 1; }
-.area-card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 60%); z-index: 3; opacity: 0; transition: opacity 0.25s ease; }
-.area-card:hover .area-card-overlay { opacity: 1; }
-.area-card-hover-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 24px; z-index: 4; opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease; transform: translateY(6px); }
-.area-card:hover .area-card-hover-label { opacity: 1; transform: translateY(0); }
+/* ── Area cards (always-on map) ── */
+.area-card { position: relative; overflow: hidden; background: var(--white); border: 2px solid transparent; border-radius: var(--radius-lg); cursor: pointer; transition: box-shadow 0.2s ease, border-color 0.2s ease; height: 200px; }
+.area-card:hover { box-shadow: 0 0 0 3px rgba(37,99,235,0.25), 0 8px 28px rgba(37,99,235,0.18); border-color: var(--accent); }
+.area-card-map { position: absolute; inset: 0; z-index: 1; }
+.area-card-map img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.area-card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.08) 55%, transparent 100%); z-index: 2; }
+.area-card-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 18px 22px; z-index: 3; }
 
 /* ── Breadcrumb ── */
 .breadcrumb { padding: 12px 0; border-bottom: 1px solid var(--border-light); margin-top: var(--nav-h); background: var(--white); }

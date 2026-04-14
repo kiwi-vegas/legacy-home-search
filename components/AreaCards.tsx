@@ -61,27 +61,18 @@ export default function AreaCards() {
         return (
           <Link key={area.slug} href={`/${area.slug}`} style={{ textDecoration: 'none' }}>
             <div className="area-card">
-              {/* Default content */}
-              <div className="area-card-content">
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)', marginBottom: 8 }}>{area.name}</div>
-                  <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{area.desc}</p>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>View community →</div>
-              </div>
-
-              {/* Map image (shown on hover) */}
+              {/* Map always visible */}
               {TOKEN && (
                 <div className="area-card-map">
                   <img src={mapUrl} alt={`${area.name} map`} loading="lazy" />
                 </div>
               )}
 
-              {/* Dark overlay (shown on hover) */}
+              {/* Gradient overlay always visible */}
               <div className="area-card-overlay" />
 
-              {/* Hover label */}
-              <div className="area-card-hover-label">
+              {/* Label always visible at bottom */}
+              <div className="area-card-label">
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 17, marginBottom: 4 }}>{area.name}</div>
                 <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>View community →</div>
               </div>
