@@ -4,6 +4,7 @@ import HeroSection from '@/components/HeroSection'
 import StatsBar from '@/components/StatsBar'
 import AreaCards from '@/components/AreaCards'
 import TestimonialsSection from '@/components/TestimonialsSection'
+import LogoBar from '@/components/LogoBar'
 import { client } from '@/sanity/client'
 
 export const metadata: Metadata = {
@@ -100,6 +101,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── AS FEATURED IN ───────────────────────────────────────────── */}
+      <LogoBar />
 
       {/* ── VIRGINIA BEACH LISTINGS ──────────────────────────────────── */}
       <VirginiaBeachListings />
