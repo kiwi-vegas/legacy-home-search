@@ -36,7 +36,7 @@ export default async function HomePage() {
   let heroPosterUrl = ''
   try {
     const vimeoRes = await fetch(
-      'https://vimeo.com/api/oembed.json?url=https://vimeo.com/599068943&width=1920',
+      'https://vimeo.com/api/oembed.json?url=https://vimeo.com/1183182969&width=1920',
       { next: { revalidate: 3600 } }
     )
     if (vimeoRes.ok) {
