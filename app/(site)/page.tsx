@@ -3,7 +3,7 @@ import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 import HeroSection from '@/components/HeroSection'
 import StatsBar from '@/components/StatsBar'
 import AreaCards from '@/components/AreaCards'
-import TestimonialsSection from '@/components/TestimonialsSection'
+import AnimatedTestimonialsSection from '@/components/AnimatedTestimonialsSection'
 import LogoBar from '@/components/LogoBar'
 import { client } from '@/sanity/client'
 
@@ -121,7 +121,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── REVIEWS ──────────────────────────────────────────────────── */}
-      <TestimonialsSection />
+      <AnimatedTestimonialsSection />
 
       {/* ── CONTACT ──────────────────────────────────────────────────── */}
       <section id="contact">

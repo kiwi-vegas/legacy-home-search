@@ -210,6 +210,8 @@ section + section { border-top: 1px solid var(--border-light); }
 .testimonials-col-lg { display: none; }
 @media (min-width: 768px) { .testimonials-col-md { display: block; } }
 @media (min-width: 1024px) { .testimonials-col-lg { display: block; } }
+.testimonials-grid { display: grid; grid-template-columns: 1fr; gap: 56px; width: 100%; }
+@media (min-width: 768px) { .testimonials-grid { grid-template-columns: 1fr 1fr; gap: 80px; } }
 
 /* ── Breadcrumb ── */
 .breadcrumb { padding: 12px 0; border-bottom: 1px solid var(--border-light); margin-top: var(--nav-h); background: var(--white); }
