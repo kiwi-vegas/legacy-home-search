@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 import HeroSection from '@/components/HeroSection'
 import StatsBar from '@/components/StatsBar'
-import AreaCards from '@/components/AreaCards'
+import HamptonRoadsMap from '@/components/HamptonRoadsMap'
 import TestimonialsSection from '@/components/TestimonialsSection'
 import LogoBar from '@/components/LogoBar'
 import { client } from '@/sanity/client'
@@ -133,7 +133,12 @@ export default async function HomePage() {
             <h2>Serving All of Hampton Roads</h2>
             <p>From oceanfront Virginia Beach to the quiet streets of Chesapeake — we know every corner of the region.</p>
           </div>
-          <AreaCards />
+          <div style={{ height: 520, borderRadius: 'var(--radius-xl)', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+            <HamptonRoadsMap />
+          </div>
+          <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
+            Hover a city to explore — click to view listings and market data.
+          </p>
         </div>
       </section>
 
