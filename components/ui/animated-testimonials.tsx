@@ -18,6 +18,19 @@ export interface AnimatedTestimonialsProps {
   autoRotateInterval?: number
 }
 
+// cubic-bezier as a typed 4-tuple so TypeScript accepts it
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
+}
+
 export function AnimatedTestimonials({
   testimonials,
   autoRotateInterval = 6000,
@@ -26,15 +39,6 @@ export function AnimatedTestimonials({
   const sectionRef = useRef(null)
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 })
   const controls = useAnimation()
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
-  }
-  const itemVariants = {
-    hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
-  }
 
   useEffect(() => {
     if (isInView) controls.start('visible')
@@ -118,7 +122,7 @@ export function AnimatedTestimonials({
           {/* ── Right: rotating cards ── */}
           <motion.div
             variants={itemVariants}
-            style={{ position: 'relative', minHeight: 400 }}
+            style={{ position: 'relative', minHeight: 420 }}
           >
             {testimonials.map((t, i) => (
               <motion.div
