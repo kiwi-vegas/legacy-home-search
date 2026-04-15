@@ -179,6 +179,20 @@ section + section { border-top: 1px solid var(--border-light); }
 .faq-item.open .faq-answer { display: block; }
 
 /* ── Responsive ── */
+/* ── Barry bio grid ── */
+.barry-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 80px; align-items: start; }
+.barry-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%); padding: 32px 24px 24px; }
+.barry-mobile-name { display: none; }
+
+/* ── Contact grid ── */
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+.contact-name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── Hero tabs horizontal scroll on small screens ── */
+.hero-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; margin-bottom: 40px; }
+.hero-tabs::-webkit-scrollbar { display: none; }
+.hero-tabs-inner { display: flex; gap: 0; width: max-content; }
+
 @media (max-width: 768px) {
   section { padding: 56px 0; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
@@ -187,6 +201,25 @@ section + section { border-top: 1px solid var(--border-light); }
   .nav-links { display: none; }
   .nav-hamburger { display: block !important; }
   .two-col { grid-template-columns: 1fr !important; gap: 40px !important; }
+
+  /* Barry bio */
+  .barry-grid { grid-template-columns: 1fr; gap: 20px; }
+  .barry-overlay { display: none !important; }
+  .barry-mobile-name { display: block; padding: 4px 0 8px; }
+  .btn-row { flex-wrap: wrap; }
+  .btn-row .btn-primary, .btn-row .btn-outline { flex: 1 1 auto; min-width: 0; justify-content: center; text-align: center; }
+
+  /* Contact section */
+  .contact-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  .contact-name-row { grid-template-columns: 1fr !important; }
+
+  /* Hero: stack search form vertically */
+  .hero-search-form { flex-direction: column !important; gap: 8px !important; }
+  .hero-search-form input { border-radius: 8px !important; }
+  .hero-search-form button { border-radius: 8px !important; width: 100%; }
+
+  /* Hero: full-width CTA buttons */
+  .hero-cta-btn { display: block !important; text-align: center; width: 100%; box-sizing: border-box; }
 }
 
 /* ── Nav dropdown ── */

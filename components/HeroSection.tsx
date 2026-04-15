@@ -61,30 +61,33 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
 
       <div className="container" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
 
-        {/* ── Tab switcher — anchored above the content ── */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 40, width: 'fit-content' }}>
-          {(['buy', 'sell', 'invest', 'buy-before-sell'] as const).map((t, i) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                padding: '11px 32px',
-                fontSize: 13,
-                fontWeight: 700,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                border: 'none',
-                cursor: 'pointer',
-                background: tab === t ? 'var(--accent)' : 'rgba(255,255,255,0.12)',
-                color: tab === t ? '#fff' : 'rgba(255,255,255,0.65)',
-                backdropFilter: 'blur(8px)',
-                transition: 'all 0.18s',
-                borderRadius: i === 0 ? '8px 0 0 8px' : i === 3 ? '0 8px 8px 0' : '0',
-              }}
-            >
-              {t === 'buy' ? 'Buy' : t === 'sell' ? 'Sell' : t === 'invest' ? 'Invest' : 'Buy-Before-Sell'}
-            </button>
-          ))}
+        {/* ── Tab switcher — scrollable on mobile ── */}
+        <div className="hero-tabs">
+          <div className="hero-tabs-inner">
+            {(['buy', 'sell', 'invest', 'buy-before-sell'] as const).map((t, i) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  padding: '11px 28px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: tab === t ? 'var(--accent)' : 'rgba(255,255,255,0.12)',
+                  color: tab === t ? '#fff' : 'rgba(255,255,255,0.65)',
+                  backdropFilter: 'blur(8px)',
+                  transition: 'all 0.18s',
+                  whiteSpace: 'nowrap',
+                  borderRadius: i === 0 ? '8px 0 0 8px' : i === 3 ? '0 8px 8px 0' : '0',
+                }}
+              >
+                {t === 'buy' ? 'Buy' : t === 'sell' ? 'Sell' : t === 'invest' ? 'Invest' : 'Buy-Before-Sell'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Tab content — fixed height so buttons never move ── */}
@@ -103,7 +106,7 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 36, maxWidth: 520, lineHeight: 1.7 }}>
               Let Barry Jenkins and the Legacy Home Team guide you through every step — from first search to closing day.
             </p>
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 0, maxWidth: 560 }}>
+            <form className="hero-search-form" onSubmit={handleSearch} style={{ display: 'flex', gap: 0, maxWidth: 560 }}>
               <input
                 type="text"
                 value={city}
@@ -154,7 +157,7 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
               href="https://listings.legacyhomesearch.com/seller"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary"
+              className="btn-primary hero-cta-btn"
               style={{ fontSize: 16, padding: '16px 36px' }}
             >
               Get Your Free Home Valuation Report Now →
@@ -175,7 +178,7 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 36, maxWidth: 520, lineHeight: 1.7 }}>
               From short-term rentals to long-term income properties, Barry and the Legacy Home Team know the Hampton Roads investment landscape inside and out.
             </p>
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 0, maxWidth: 560 }}>
+            <form className="hero-search-form" onSubmit={handleSearch} style={{ display: 'flex', gap: 0, maxWidth: 560 }}>
               <input
                 type="text"
                 value={city}
@@ -226,7 +229,7 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
             </div>
             <a
               href="mailto:barry@yourfriendlyagent.net"
-              className="btn-primary"
+              className="btn-primary hero-cta-btn"
               style={{ fontSize: 16, padding: '16px 36px' }}
             >
               Learn More →

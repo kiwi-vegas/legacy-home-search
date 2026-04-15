@@ -58,8 +58,8 @@ export default async function HomePage() {
       {/* ── MEET BARRY ───────────────────────────────────────────────── */}
       <section>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 80, alignItems: 'start' }}>
-            {/* Photo placeholder */}
+          <div className="barry-grid">
+            {/* Photo */}
             <div style={{
               aspectRatio: '4/5',
               background: 'var(--light-gray)',
@@ -72,14 +72,17 @@ export default async function HomePage() {
                 alt="Barry Jenkins - Legacy Home Team"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
               />
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)',
-                padding: '32px 24px 24px',
-              }}>
+              {/* Desktop overlay — hidden on mobile via CSS */}
+              <div className="barry-overlay">
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 20 }}>Barry Jenkins</div>
                 <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>Lead Agent · Legacy Home Team</div>
               </div>
+            </div>
+
+            {/* Mobile name label — only visible on mobile (below photo) */}
+            <div className="barry-mobile-name">
+              <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>Barry Jenkins</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>Lead Agent · Legacy Home Team</div>
             </div>
 
             <div>
@@ -90,7 +93,7 @@ export default async function HomePage() {
                   {para}
                 </p>
               ))}
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div className="btn-row" style={{ display: 'flex', gap: 12 }}>
                 <a href="tel:+17578164037" className="btn-primary">Call (757) 816-4037</a>
                 <a href="mailto:barry@yourfriendlyagent.net" className="btn-outline">Send an Email</a>
               </div>
@@ -148,7 +151,7 @@ export default async function HomePage() {
       {/* ── CONTACT ──────────────────────────────────────────────────── */}
       <section id="contact">
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'start' }}>
+          <div className="contact-grid">
             <div>
               <span className="section-label">Get In Touch</span>
               <h2 style={{ marginBottom: 20 }}>Ready to Make Your Move?</h2>
@@ -188,7 +191,7 @@ export default async function HomePage() {
             }}>
               <h3 style={{ marginBottom: 24 }}>Send Barry a Message</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="contact-name-row">
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label">First Name</label>
                     <input className="form-input" type="text" placeholder="Jane" />
