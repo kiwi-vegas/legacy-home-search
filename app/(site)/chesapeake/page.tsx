@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommunityFAQ from '@/components/CommunityFAQ'
 import CommunityMapWrapper from '@/components/CommunityMapWrapper'
+import CommunityHOA from '@/components/CommunityHOA'
+import CommunityComparisons from '@/components/CommunityComparisons'
+import CommunityNewConstruction from '@/components/CommunityNewConstruction'
 import { getLatestMarketReport } from '@/sanity/queries'
 
 export const metadata: Metadata = {
@@ -52,6 +55,83 @@ const faqs = [
   { q: 'How competitive is the Chesapeake real estate market?', a: 'Chesapeake is moderately competitive. Well-priced homes in Great Bridge and Grassfield can move in 2-3 weeks. The market is generally less frenzied than Virginia Beach, giving buyers a bit more time — but pricing right still matters for sellers.' },
   { q: 'Does Chesapeake have good access to nature and outdoors?', a: 'Yes — Chesapeake borders the Great Dismal Swamp (112,000+ acres), has multiple city parks, and is within easy reach of the Albemarle & Chesapeake Canal for boating. The Northwest River Park and Chesapeake Arboretum are popular local spots.' },
 ]
+
+const hoaData = {
+  intro: "Chesapeake's HOA landscape reflects its mix of older established neighborhoods and newer master-planned communities. Many traditional areas were built without HOAs, while newer subdivisions in Grassfield and Hickory carry modest community fees that fund shared amenities and common area maintenance.",
+  fees: [
+    { neighborhood: 'Great Bridge (historic areas)', monthly: 'None / Voluntary' },
+    { neighborhood: 'South Norfolk', monthly: 'None' },
+    { neighborhood: 'Greenbrier (established areas)', monthly: 'None / Minimal' },
+    { neighborhood: 'Deep Creek waterfront communities', monthly: '$30–$60/mo' },
+    { neighborhood: 'Western Branch', monthly: '$25–$75/mo', highlight: true },
+    { neighborhood: 'Hickory (newer construction)', monthly: '$35–$80/mo', highlight: true },
+    { neighborhood: 'Grassfield (newer subdivisions)', monthly: '$40–$90/mo', highlight: true },
+  ],
+  covers: [
+    'Common area landscaping and upkeep',
+    'Community pond and stormwater basin maintenance',
+    'Neighborhood entrance monuments and signage',
+    'Street lighting in shared community areas',
+    'Architectural review and covenant enforcement',
+    'Reserve fund contributions for long-term repairs',
+  ],
+  note: 'HOA fees vary by subdivision within each neighborhood. Some areas of Chesapeake have no HOA whatsoever. Always verify current fees directly with the management company or HOA board before purchasing any property.',
+}
+
+const nearbyData = {
+  subtitle: 'How Chesapeake compares to neighboring Hampton Roads communities.',
+  nearby: [
+    { name: 'Virginia Beach', slug: 'virginia-beach', startingPrice: 'From $280K', why: 'Atlantic beach access, resort amenities, and a highly diversified housing market ranging from oceanfront condos to large suburban estates with excellent schools.' },
+    { name: 'Suffolk', slug: 'suffolk', startingPrice: 'From $260K', why: "Adjacent city with similar suburban space and generally lower price points. Large lots, rural character, and master-planned communities for buyers who want more land." },
+    { name: 'Norfolk', slug: 'norfolk', startingPrice: 'From $185K', why: "Urban core of Hampton Roads — compact, walkable, and the most affordable homeownership entry point in the region with strong investment upside." },
+  ],
+}
+
+const newConstructionData = {
+  subtitle: 'Chesapeake is the most active new construction market in Hampton Roads — with multiple builders delivering product across Grassfield, Hickory, and Western Branch.',
+  builders: [
+    {
+      name: 'Ryan Homes',
+      communities: 'Grassfield · Hickory · Western Branch',
+      sqftRange: '1,800–3,600 sq ft',
+      startingPrice: 'From $370K',
+      desc: "Hampton Roads' most active production builder. Family-focused floor plans in Chesapeake's fastest-growing communities with quick-move-in inventory and flexible options.",
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Chesapeake&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Lennar',
+      communities: 'West Landing · Hickory',
+      sqftRange: '2,000–4,000 sq ft',
+      startingPrice: 'From $420K',
+      desc: "Everything's Included® model delivers smart home technology and premium finishes as standard. Active in Chesapeake's western growth areas with larger lot configurations.",
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Chesapeake&s[locations][0][state]=VA',
+    },
+    {
+      name: 'D.R. Horton',
+      communities: 'Western Branch Area',
+      sqftRange: '1,600–2,800 sq ft',
+      startingPrice: 'From $340K',
+      desc: "America's largest builder delivers entry-level and first move-up product in Western Branch. The Express Homes line offers the most accessible new construction price points in Chesapeake.",
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Chesapeake&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Stanley Martin Homes',
+      communities: 'Premium Chesapeake Communities',
+      sqftRange: '2,200–4,200 sq ft',
+      startingPrice: 'From $480K',
+      desc: 'Move-up and luxury product with flexible floor plans and full design center customization. Strong presence in Chesapeake\'s premium communities with excellent resale performance.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Chesapeake&s[locations][0][state]=VA',
+    },
+    {
+      name: 'HHHunt Homes',
+      communities: 'North & Central Chesapeake',
+      sqftRange: '1,800–3,200 sq ft',
+      startingPrice: 'From $390K',
+      desc: 'Regional builder known for quality construction and strong community amenity packages. Communities across Chesapeake with a reputation for delivering well-built, well-designed homes.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Chesapeake&s[locations][0][state]=VA',
+    },
+  ],
+}
 
 export default async function ChesapeakePage() {
   const latestReport = await getLatestMarketReport('chesapeake')
@@ -335,6 +415,15 @@ export default async function ChesapeakePage() {
           </div>
         </div>
       </section>
+
+      {/* HOA */}
+      <CommunityHOA city="Chesapeake" {...hoaData} />
+
+      {/* NEW CONSTRUCTION */}
+      <CommunityNewConstruction city="Chesapeake" {...newConstructionData} />
+
+      {/* COMPARISONS */}
+      <CommunityComparisons city="Chesapeake" {...nearbyData} />
 
       {/* MARKET TRENDS */}
       <section id="market">

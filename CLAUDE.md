@@ -23,7 +23,7 @@ CSS variables defined in `app/globals.css`:
 - `--off-white: #f8f7f4`
 - `--text: #1a1a1a`
 - Font: Inter (Google Fonts)
-- Map style: `mapbox://styles/mapbox/light-v11` (not dark-v11)
+- Maps: See `MAPS.md` for all Mapbox configuration (style, pitch, slots, city coordinates)
 
 ## Community Pages
 The `COMMUNITY_PAGES` array in `lib/assistant-tools.ts` is currently empty (`[]`). Add entries as community pages are built.
@@ -46,19 +46,20 @@ Monthly PDF-upload pipeline that turns Altos Research PDFs into full market repo
 ## AI Content Assistant
 Available at `/admin/assistant` (password-protected). Same architecture as chris-nevada-next. Update `COMMUNITY_PAGES` in `lib/assistant-tools.ts` as pages are added.
 
-## Current Status (March 2026)
-- Scaffold complete, all infrastructure in place
-- Placeholder homepage deployed ("Coming Soon")
-- No community pages yet — add as client provides content
-- No YLOPO integration yet — add when client provides YLOPO domain
+## Current Status (April 2026)
+- Full homepage live: hero with tab switcher, Barry bio, Altos market trends, interactive map, testimonials, contact
+- `/communities` landing page with interactive HamptonRoadsMap (all 6 cities) and card grid
+- Blog pipeline active — daily posts at `/blog`
+- Market reports pipeline active — PDF upload at `/admin/market-reports/upload`
+- All Mapbox maps updated to Standard style (3D buildings, POI, roads)
+- Domain: `legacyhometeamlpt.com` → Vercel (GoDaddy A record + CNAME configured)
+- Mobile-optimized: hero tabs, Barry photo layout, contact form, buttons
 
 ## What's Next
-- Get client details (contact info, branding, YLOPO domain if applicable)
-- Add real content to homepage
-- Build community/neighborhood pages
-- Add team member profiles
-- Configure all env vars in Vercel
-- Add community pages to `COMMUNITY_PAGES` in assistant-tools.ts
+- Build out 6 individual community pages (`/virginia-beach`, `/chesapeake`, etc.)
+- Add community pages to `COMMUNITY_PAGES` in `lib/assistant-tools.ts`
+- Add team member profiles at `/team`
+- YLOPO integration (when client provides domain)
 
 ## Environment Variables
 See `.env.local.example` for full list. All same as chris-nevada-next except:

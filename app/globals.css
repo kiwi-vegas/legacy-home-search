@@ -220,6 +220,12 @@ section + section { border-top: 1px solid var(--border-light); }
 
   /* Hero: full-width CTA buttons */
   .hero-cta-btn { display: block !important; text-align: center; width: 100%; box-sizing: border-box; }
+
+  /* HOA section */
+  .hoa-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+
+  /* Comparisons table — scroll on mobile */
+  #comparisons .container > div > div:last-of-type { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
 /* ── Nav dropdown ── */
@@ -240,6 +246,10 @@ section + section { border-top: 1px solid var(--border-light); }
 
 /* ── Community hub cards ── */
 .community-hub-card:hover { box-shadow: 0 0 0 2px rgba(37,99,235,0.2), 0 8px 28px rgba(37,99,235,0.12); border-color: var(--accent) !important; transform: translateY(-2px); }
+
+/* ── Community detail page — new sections ── */
+.hoa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.comparison-row:hover > div { background: rgba(255,255,255,0.04) !important; }
 
 /* ── Testimonials columns responsive ── */
 /* ── Logo bar ── */

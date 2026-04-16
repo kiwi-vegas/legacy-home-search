@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommunityFAQ from '@/components/CommunityFAQ'
 import CommunityMapWrapper from '@/components/CommunityMapWrapper'
+import CommunityHOA from '@/components/CommunityHOA'
+import CommunityComparisons from '@/components/CommunityComparisons'
+import CommunityNewConstruction from '@/components/CommunityNewConstruction'
 import { getLatestMarketReport } from '@/sanity/queries'
 
 export const metadata: Metadata = {
@@ -52,6 +55,73 @@ const faqs = [
   { q: 'What is the commute like from Suffolk?', a: 'Suffolk offers good highway access via Route 58, US-460, and I-664. Commutes to Norfolk run about 35 minutes, Chesapeake 25–30 minutes, and Hampton/Newport News via the Monitor-Merrimac Bridge-Tunnel about 40 minutes. Remote workers find Suffolk particularly appealing given its space and value advantages.' },
   { q: 'Is Suffolk a good place for boaters?', a: 'Yes — the Nansemond River system provides direct access to the James River and Hampton Roads harbor, making Suffolk a genuine boating community. Harbour View Marina, Constans Wharf, and numerous private docks along Bennetts Creek offer excellent boating access.' },
 ]
+
+const hoaData = {
+  intro: "Suffolk's large land area and mix of rural and master-planned communities means HOA presence varies significantly by location. Harbour View — one of the city's fastest-growing areas — carries the most active HOA structure. Rural and semi-rural areas in western Suffolk typically have no HOA at all.",
+  fees: [
+    { neighborhood: 'Rural western Suffolk / large lots', monthly: 'None' },
+    { neighborhood: 'Sleepy Hole area', monthly: '$20–$50/mo' },
+    { neighborhood: 'Saratoga / Camelot area', monthly: '$25–$60/mo' },
+    { neighborhood: 'North Suffolk (newer subdivisions)', monthly: '$40–$90/mo', highlight: true },
+    { neighborhood: 'Harbour View (master-planned)', monthly: '$75–$175/mo', highlight: true },
+  ],
+  covers: [
+    'Common area landscaping and grounds maintenance',
+    'Community pool and clubhouse access (Harbour View)',
+    'Waterfront amenity and marina area maintenance',
+    'Architectural standards review and enforcement',
+    'Neighborhood entrance and monument maintenance',
+    'Reserve fund contributions for capital improvements',
+  ],
+  note: "Suffolk has some of the region's most varied HOA structures — from highly-amenitized master-planned community fees to zero HOA on large rural parcels. Always confirm the specific HOA situation for any property before purchasing.",
+}
+
+const nearbyData = {
+  subtitle: 'How Suffolk compares to neighboring Hampton Roads communities.',
+  nearby: [
+    { name: 'Chesapeake', slug: 'chesapeake', startingPrice: 'From $270K', why: 'More established neighborhoods, top-rated public schools, and stronger suburban infrastructure with easier access to Hampton Roads employment centers.' },
+    { name: 'Virginia Beach', slug: 'virginia-beach', startingPrice: 'From $280K', why: 'Beach lifestyle, Atlantic coastline, and the highest concentration of military-friendly amenities, VA loan specialists, and resort-adjacent communities.' },
+    { name: 'Isle of Wight County', slug: undefined, startingPrice: 'From $250K', why: "Rural neighbor to the west with even larger lots, true country character, and a quieter lifestyle — popular with buyers who want land beyond what Suffolk offers." },
+  ],
+}
+
+const newConstructionData = {
+  subtitle: 'Suffolk has active new construction primarily in the Harbour View corridor and North Suffolk growth areas.',
+  builders: [
+    {
+      name: 'Ryan Homes',
+      communities: 'Harbour View · North Suffolk',
+      sqftRange: '1,700–3,200 sq ft',
+      startingPrice: 'From $350K',
+      desc: 'Highly active in Suffolk\'s fastest-growing corridors. Affordable family product with strong community amenities and quick-move-in availability in established master-planned communities.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Suffolk&s[locations][0][state]=VA',
+    },
+    {
+      name: 'HHHunt Homes',
+      communities: 'North Suffolk Communities',
+      sqftRange: '2,000–3,800 sq ft',
+      startingPrice: 'From $400K',
+      desc: 'Regional builder known for quality construction and community programming. Active in several North Suffolk master-planned developments with move-up product and comprehensive amenity packages.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Suffolk&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Mungo Homes',
+      communities: 'Harbour View · North Suffolk Corridor',
+      sqftRange: '1,800–3,500 sq ft',
+      startingPrice: 'From $330K',
+      desc: 'Value-oriented regional builder with strong floor plan variety. Among the most competitively priced new construction options in the Suffolk market with solid construction quality.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Suffolk&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Smith Douglas Homes',
+      communities: 'Suffolk / Harbour View Area',
+      sqftRange: '1,500–2,600 sq ft',
+      startingPrice: 'From $310K',
+      desc: 'Entry-level focused builder offering the most accessible new construction pricing in Suffolk. Customizable options and a streamlined buying process for first-time and first move-up buyers.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Suffolk&s[locations][0][state]=VA',
+    },
+  ],
+}
 
 export default async function SuffolkPage() {
   const latestReport = await getLatestMarketReport('suffolk')
@@ -332,6 +402,15 @@ export default async function SuffolkPage() {
           </div>
         </div>
       </section>
+
+      {/* HOA */}
+      <CommunityHOA city="Suffolk" {...hoaData} />
+
+      {/* NEW CONSTRUCTION */}
+      <CommunityNewConstruction city="Suffolk" {...newConstructionData} />
+
+      {/* COMPARISONS */}
+      <CommunityComparisons city="Suffolk" {...nearbyData} />
 
       {/* MARKET TRENDS */}
       <section id="market">

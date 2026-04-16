@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommunityFAQ from '@/components/CommunityFAQ'
 import CommunityMapWrapper from '@/components/CommunityMapWrapper'
+import CommunityHOA from '@/components/CommunityHOA'
+import CommunityComparisons from '@/components/CommunityComparisons'
+import CommunityNewConstruction from '@/components/CommunityNewConstruction'
 import { getLatestMarketReport } from '@/sanity/queries'
 
 export const metadata: Metadata = {
@@ -52,6 +55,60 @@ const faqs = [
   { q: 'How does Norfolk compare to Virginia Beach for homebuyers?', a: 'Norfolk is generally 15–25% more affordable than comparable Virginia Beach neighborhoods, more urban and walkable, and offers more character-rich historic homes. Virginia Beach has the Atlantic Ocean and quieter suburbs. Many buyers choose Norfolk for value and lifestyle, and Virginia Beach for school districts and beach access.' },
   { q: 'What is the Norfolk real estate market like?', a: 'Norfolk\'s market moves fairly quickly — with the average home spending about 25 days on market. Ghent and Larchmont can move in under 2 weeks when priced right. The military-driven demand keeps inventory relatively tight in desirable neighborhoods.' },
 ]
+
+const hoaData = {
+  intro: "Norfolk's HOA presence is minimal compared to suburban Hampton Roads cities. Most of Norfolk's character-rich single-family neighborhoods — including Ghent, Larchmont, and Colonial Place — were developed well before modern HOA structures became standard. Condominiums in downtown and the waterfront corridor are the primary exception.",
+  fees: [
+    { neighborhood: 'Ghent (fee-simple homes)', monthly: 'None' },
+    { neighborhood: 'Larchmont', monthly: 'None' },
+    { neighborhood: 'Colonial Place', monthly: 'None' },
+    { neighborhood: 'Talbot Park', monthly: 'None' },
+    { neighborhood: 'Ocean View (single-family)', monthly: 'None / Voluntary civic league' },
+    { neighborhood: 'ODU-Area Condominiums', monthly: '$150–$300/mo', highlight: true },
+    { neighborhood: 'Downtown Norfolk Condominiums', monthly: '$250–$500+/mo', highlight: true },
+  ],
+  covers: [
+    'Exterior building maintenance and repairs (condos)',
+    'Common area upkeep and landscaping',
+    'Building insurance (structure — condos)',
+    'Water / sewer utilities (in select condo associations)',
+    'Amenities: fitness center, rooftop access, pool (varies)',
+    'Trash and recycling service (select buildings)',
+  ],
+  note: "Norfolk's civic league associations are community organizations but are generally voluntary and do not carry legally-enforceable covenants. Condominium associations are the primary form of mandatory HOA in Norfolk. Always confirm association status and review bylaws before purchasing.",
+}
+
+const nearbyData = {
+  subtitle: 'How Norfolk compares to neighboring Hampton Roads communities.',
+  nearby: [
+    { name: 'Chesapeake', slug: 'chesapeake', startingPrice: 'From $270K', why: 'Top-rated schools, new construction options, and suburban space — the most family-oriented market in Hampton Roads with consistent home value appreciation.' },
+    { name: 'Virginia Beach', slug: 'virginia-beach', startingPrice: 'From $280K', why: 'Atlantic beach access, excellent public schools, and the widest variety of housing in the region from condos to oceanfront estates.' },
+    { name: 'Portsmouth', slug: undefined, startingPrice: 'From $180K', why: 'Adjacent waterfront city on the Elizabeth River with historic neighborhoods, an emerging arts district, and the most affordable entry points in the region.' },
+  ],
+}
+
+const newConstructionData = {
+  subtitle: "Norfolk is a fully built-out urban city — traditional new construction subdivisions are not available here. What exists is primarily infill development and select condo projects.",
+  builders: [
+    {
+      name: 'Urban Infill Townhomes',
+      communities: 'Various Norfolk Neighborhoods',
+      sqftRange: '1,400–2,200 sq ft',
+      startingPrice: 'From $350K',
+      desc: 'Several smaller regional developers build townhome infill projects throughout Norfolk — filling vacant lots in established neighborhoods and redevelopment zones near ODU and downtown.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Norfolk&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Downtown Condominiums',
+      communities: 'Waterside District · Downtown Corridor',
+      sqftRange: '700–2,000 sq ft',
+      startingPrice: 'From $250K',
+      desc: 'Occasional condo conversions and select new condo projects in the downtown and Ghent waterfront corridor. Urban lock-and-leave lifestyle steps from dining, entertainment, and the Elizabeth River.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Norfolk&s[locations][0][state]=VA',
+    },
+  ],
+  limitedNote: 'Norfolk is largely built out — traditional new construction subdivisions are not available. Buyers seeking brand-new single-family homes typically expand their search to Chesapeake or Virginia Beach, both within 20 minutes of downtown Norfolk.',
+}
 
 export default async function NorfolkPage() {
   const latestReport = await getLatestMarketReport('norfolk')
@@ -332,6 +389,15 @@ export default async function NorfolkPage() {
           </div>
         </div>
       </section>
+
+      {/* HOA */}
+      <CommunityHOA city="Norfolk" {...hoaData} />
+
+      {/* NEW CONSTRUCTION */}
+      <CommunityNewConstruction city="Norfolk" {...newConstructionData} />
+
+      {/* COMPARISONS */}
+      <CommunityComparisons city="Norfolk" {...nearbyData} />
 
       {/* MARKET TRENDS */}
       <section id="market">

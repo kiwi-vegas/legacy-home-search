@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommunityFAQ from '@/components/CommunityFAQ'
 import CommunityMapWrapper from '@/components/CommunityMapWrapper'
+import CommunityHOA from '@/components/CommunityHOA'
+import CommunityComparisons from '@/components/CommunityComparisons'
+import CommunityNewConstruction from '@/components/CommunityNewConstruction'
 import { getLatestMarketReport } from '@/sanity/queries'
 
 export const metadata: Metadata = {
@@ -52,6 +55,67 @@ const faqs = [
   { q: 'How does Hampton compare to Newport News for buyers?', a: 'Hampton and Newport News are closely linked Peninsula cities with similar price points. Hampton has better water access and beach character (Buckroe Beach, Fort Monroe). Newport News has more housing variety, the Port Warwick walkable community, and slightly larger neighborhoods. Both are excellent value markets.' },
   { q: 'Is Hampton a good rental market?', a: 'Yes — Langley AFB and NASA Langley create consistent rental demand that keeps vacancy rates low. Military families on orders frequently need rental housing, and proximity to these installations makes Hampton\'s rental market more resilient than many comparable cities.' },
 ]
+
+const hoaData = {
+  intro: "Hampton is a largely built-out, established city where most neighborhoods were developed before modern HOA structures became common. The majority of Hampton homes — from the waterfront cottages of Buckroe Beach to the suburban streets of Fox Hill — carry no HOA requirements. Newer townhome and condo developments are the exception.",
+  fees: [
+    { neighborhood: 'Fox Hill / Buckroe Beach (single-family)', monthly: 'None' },
+    { neighborhood: 'Phoebus / Downtown area', monthly: 'None' },
+    { neighborhood: 'Aberdeen Road / Wythe area', monthly: 'None' },
+    { neighborhood: 'Elizabeth Lakes community', monthly: '$25–$60/mo' },
+    { neighborhood: 'Newer townhome communities', monthly: '$80–$150/mo', highlight: true },
+    { neighborhood: 'Condominium developments', monthly: '$200–$400+/mo', highlight: true },
+  ],
+  covers: [
+    'Common area landscaping and grounds maintenance',
+    'Shared amenity maintenance (pool, clubhouse where applicable)',
+    'Exterior maintenance for attached homes (townhomes/condos)',
+    'Community entrance and signage upkeep',
+    'Reserve fund contributions for future capital repairs',
+    'Insurance on building structure (condo associations)',
+  ],
+  note: "Many Hampton neighborhoods have community civic organizations that are voluntary associations, not legally-enforceable HOAs. These civic leagues provide community identity but carry no mandatory fees or covenants. Always confirm HOA status before purchasing any Hampton property.",
+}
+
+const nearbyData = {
+  subtitle: 'How Hampton compares to neighboring Hampton Roads communities.',
+  nearby: [
+    { name: 'Newport News', slug: 'newport-news', startingPrice: 'From $220K', why: 'Immediate peninsula neighbor with diverse housing stock, similar military community, and some of the most competitively priced homes on the Peninsula.' },
+    { name: 'York County', slug: undefined, startingPrice: 'From $350K', why: 'Top-rated suburban schools, master-planned communities, and easy access to Colonial Williamsburg — a popular choice for families seeking highly-rated school zones.' },
+    { name: 'Norfolk', slug: 'norfolk', startingPrice: 'From $185K', why: "Just across the Hampton Roads Harbor — urban waterfront living with the region's most affordable homes and a dynamic arts and dining scene." },
+  ],
+}
+
+const newConstructionData = {
+  subtitle: "Hampton's largely built-out character means new construction is limited — primarily infill projects and select townhome communities.",
+  builders: [
+    {
+      name: 'Chesapeake Homes',
+      communities: 'Hampton Infill Communities',
+      sqftRange: '1,600–2,800 sq ft',
+      startingPrice: 'From $320K',
+      desc: 'Established Hampton Roads builder active in Hampton infill and small community projects. Known for quality construction and a personal buying experience on the Peninsula.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Hampton&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Ryan Homes',
+      communities: 'Northern Hampton / York County Border',
+      sqftRange: '1,500–2,400 sq ft',
+      startingPrice: 'From $310K',
+      desc: 'Occasional Ryan Homes communities in Hampton\'s available land areas — most active near the York County boundary. Consistent production builder quality with quick-move-in options.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Hampton&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Townhome Developers',
+      communities: 'Coliseum Area · Hampton Roads Center',
+      sqftRange: '1,200–1,800 sq ft',
+      startingPrice: 'From $260K',
+      desc: 'Several regional developers build townhome communities in Hampton — particularly near the Hampton Roads Center and Coliseum area. Lock-and-leave lifestyle at an accessible price point.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Hampton&s[locations][0][state]=VA',
+    },
+  ],
+  limitedNote: "New construction in Hampton is limited compared to Chesapeake or Suffolk due to the city's established, built-out character. Families seeking brand-new single-family homes often expand their search to York County or Newport News.",
+}
 
 export default async function HamptonPage() {
   const latestReport = await getLatestMarketReport('hampton')
@@ -332,6 +396,15 @@ export default async function HamptonPage() {
           </div>
         </div>
       </section>
+
+      {/* HOA */}
+      <CommunityHOA city="Hampton" {...hoaData} />
+
+      {/* NEW CONSTRUCTION */}
+      <CommunityNewConstruction city="Hampton" {...newConstructionData} />
+
+      {/* COMPARISONS */}
+      <CommunityComparisons city="Hampton" {...nearbyData} />
 
       {/* MARKET TRENDS */}
       <section id="market">

@@ -29,12 +29,11 @@ export default function CommunityMap({ center, zoom, boundary, name, subtitle, i
 
       map = new mapboxgl.Map({
         container: containerRef.current!,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: 'mapbox://styles/mapbox/standard',
         center,
         zoom,
+        pitch: 45,
         attributionControl: false,
-        pitchWithRotate: false,
-        dragRotate: false,
       })
 
       mapRef.current = map
@@ -56,6 +55,7 @@ export default function CommunityMap({ center, zoom, boundary, name, subtitle, i
           id: `${id}-fill`,
           type: 'fill',
           source: `${id}-boundary`,
+          slot: 'middle',
           paint: { 'fill-color': '#2563eb', 'fill-opacity': 0.08 },
         })
 
@@ -63,6 +63,7 @@ export default function CommunityMap({ center, zoom, boundary, name, subtitle, i
           id: `${id}-outline`,
           type: 'line',
           source: `${id}-boundary`,
+          slot: 'top',
           paint: { 'line-color': '#2563eb', 'line-width': 2, 'line-opacity': 0.7 },
         })
 

@@ -103,6 +103,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── ALTOS MARKET TRENDS ─────────────────────────────────────── */}
+      {/* Temporarily hidden — uncomment to restore
       <section style={{ background: 'var(--off-white)' }}>
         <div className="container">
           <div className="section-header">
@@ -121,6 +122,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      */}
 
       {/* ── AS FEATURED IN ───────────────────────────────────────────── */}
       <LogoBar />

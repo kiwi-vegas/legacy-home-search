@@ -95,12 +95,11 @@ export default function HamptonRoadsMap() {
 
       map = new mapboxgl.Map({
         container: containerRef.current!,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: 'mapbox://styles/mapbox/standard',
         center: [-76.35, 36.87],
         zoom: 9,
+        pitch: 30,
         attributionControl: false,
-        pitchWithRotate: false,
-        dragRotate: false,
       })
 
       mapRef.current = map
@@ -126,6 +125,7 @@ export default function HamptonRoadsMap() {
             id: `${city.id}-fill`,
             type: 'fill',
             source: `${city.id}-source`,
+            slot: 'middle',
             paint: {
               'fill-color': '#2563eb',
               'fill-opacity': 0.06,
@@ -136,6 +136,7 @@ export default function HamptonRoadsMap() {
             id: `${city.id}-outline`,
             type: 'line',
             source: `${city.id}-source`,
+            slot: 'top',
             paint: {
               'line-color': '#2563eb',
               'line-width': 1.5,

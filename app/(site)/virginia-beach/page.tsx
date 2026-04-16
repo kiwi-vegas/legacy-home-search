@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommunityFAQ from '@/components/CommunityFAQ'
 import CommunityMapWrapper from '@/components/CommunityMapWrapper'
+import CommunityHOA from '@/components/CommunityHOA'
+import CommunityComparisons from '@/components/CommunityComparisons'
+import CommunityNewConstruction from '@/components/CommunityNewConstruction'
 import { getLatestMarketReport } from '@/sanity/queries'
 
 export const metadata: Metadata = {
@@ -52,6 +55,68 @@ const faqs = [
   { q: 'How competitive is the Virginia Beach market?', a: 'Moderately competitive. Well-priced homes in desirable neighborhoods (especially near the beach or in top school zones) tend to move within 2–4 weeks. Barry\'s team helps buyers move fast when needed.' },
   { q: 'How long does it take to sell a home in Virginia Beach?', a: 'The average days on market in VB is around 28 days. Homes priced correctly and properly marketed often sell faster — sometimes in under two weeks in peak season (spring/summer).' },
 ]
+
+const hoaData = {
+  intro: 'Virginia Beach has a mixed HOA landscape. Most single-family neighborhoods built before the 1990s — including much of Kempsville, North End, and older Great Neck — carry no HOA at all. Newer subdivisions and oceanfront condominiums are the primary exceptions, where fees cover shared amenities and building maintenance.',
+  fees: [
+    { neighborhood: 'Most Established Neighborhoods', monthly: 'None' },
+    { neighborhood: 'Princess Anne / Courthouse (newer builds)', monthly: '$40–$120/mo' },
+    { neighborhood: 'Red Mill / Strawbridge', monthly: '$20–$65/mo' },
+    { neighborhood: 'Waterfront Communities (Great Neck area)', monthly: '$30–$100/mo', highlight: true },
+    { neighborhood: 'Sandbridge (single-family homes)', monthly: 'None typically' },
+    { neighborhood: 'Oceanfront / Resort Condominiums', monthly: '$300–$600+/mo', highlight: true },
+  ],
+  covers: [
+    'Common area landscaping and upkeep',
+    'Community pool access and maintenance (where available)',
+    'Neighborhood entrance monuments and signage',
+    'Architectural review and covenant enforcement',
+    'Reserve fund contributions for major repairs',
+    'Street lighting in shared areas',
+  ],
+  note: 'HOA fees vary by community and are subject to change. Verify current fees with the HOA management company before purchase. Condominium associations typically include additional exterior maintenance and insurance coverage.',
+  badge: 'Gated Options in Great Neck & Princess Anne',
+}
+
+const nearbyData = {
+  subtitle: 'How Virginia Beach compares to neighboring Hampton Roads communities.',
+  nearby: [
+    { name: 'Chesapeake', slug: 'chesapeake', startingPrice: 'From $270K', why: 'Top-ranked schools and suburban space at a lower price point. The strongest new construction market in Hampton Roads with communities like Grassfield and Hickory.' },
+    { name: 'Norfolk', slug: 'norfolk', startingPrice: 'From $185K', why: "Hampton Roads' most affordable urban market. Walkable neighborhoods, waterfront character, and strong investment fundamentals in a compact, dynamic city." },
+    { name: 'Suffolk', slug: 'suffolk', startingPrice: 'From $260K', why: 'Maximum land and privacy at the region\'s best value. Ideal for buyers who want acreage, rural character, and a quieter pace of life.' },
+  ],
+}
+
+const newConstructionData = {
+  subtitle: 'Active builders serving Virginia Beach — primarily in the Princess Anne and Courthouse growth corridor.',
+  builders: [
+    {
+      name: 'Ryan Homes',
+      communities: 'Princess Anne Courthouse · Sajo Farm',
+      sqftRange: '1,600–3,000 sq ft',
+      startingPrice: 'From $440K',
+      desc: "Hampton Roads' most active production builder. Entry to move-up product in the Princess Anne Courthouse corridor with family-focused floor plans and quick-move-in options.",
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Virginia+Beach&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Stanley Martin Homes',
+      communities: 'Sajo Farm · Princess Anne Area',
+      sqftRange: '2,000–3,800 sq ft',
+      startingPrice: 'From $520K',
+      desc: 'Contemporary floor plans with flex spaces, open concepts, and premium kitchen packages. Design center customization and move-up product with strong resale history.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Virginia+Beach&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Smith Douglas Homes',
+      communities: 'South Virginia Beach Communities',
+      sqftRange: '1,500–2,500 sq ft',
+      startingPrice: 'From $390K',
+      desc: 'Value-focused production builder with customizable options and accessible price points. Active in the southern Virginia Beach growth areas near the Chesapeake border.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Virginia+Beach&s[locations][0][state]=VA',
+    },
+  ],
+  limitedNote: 'Virginia Beach is largely built out compared to Chesapeake and Suffolk. New construction options are primarily concentrated in the Princess Anne Courthouse corridor. Buyers open to new construction often expand their search to Chesapeake.',
+}
 
 export default async function VirginiaBeachPage() {
   const latestReport = await getLatestMarketReport('virginia-beach')
@@ -336,6 +401,15 @@ export default async function VirginiaBeachPage() {
           </div>
         </div>
       </section>
+
+      {/* HOA */}
+      <CommunityHOA city="Virginia Beach" {...hoaData} />
+
+      {/* NEW CONSTRUCTION */}
+      <CommunityNewConstruction city="Virginia Beach" {...newConstructionData} />
+
+      {/* COMPARISONS */}
+      <CommunityComparisons city="Virginia Beach" {...nearbyData} />
 
       {/* MARKET TRENDS */}
       <section id="market">

@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommunityFAQ from '@/components/CommunityFAQ'
 import CommunityMapWrapper from '@/components/CommunityMapWrapper'
+import CommunityHOA from '@/components/CommunityHOA'
+import CommunityComparisons from '@/components/CommunityComparisons'
+import CommunityNewConstruction from '@/components/CommunityNewConstruction'
 import { getLatestMarketReport } from '@/sanity/queries'
 
 export const metadata: Metadata = {
@@ -52,6 +55,74 @@ const faqs = [
   { q: 'What is Hilton Village like?', a: 'Hilton Village is a National Historic Landmark built in 1918 — one of America\'s first planned communities. The English cottage-style homes on tree-lined streets are architecturally unique in Hampton Roads. The village commercial strip has independent shops and cafes. It has strong community identity and consistently holds its value well.' },
   { q: 'Are schools good in Newport News?', a: 'Newport News Public Schools is a diverse urban school system with a range of outcomes by school. It has strong magnet program options and some highly regarded individual campuses. Christopher Newport University provides higher education options right in the city. Families focused primarily on K-12 school rankings sometimes prefer Williamsburg or York County nearby.' },
 ]
+
+const hoaData = {
+  intro: "Newport News has a mixed HOA landscape. Older established neighborhoods in Denbigh, Lee Hall, and Hidenwood often have no HOA at all, while newer planned communities like Kiln Creek and Port Warwick carry moderate fees for shared amenities. Townhome communities throughout the city generally have association fees covering exterior maintenance.",
+  fees: [
+    { neighborhood: 'Denbigh area (established neighborhoods)', monthly: 'None / Minimal' },
+    { neighborhood: 'Lee Hall area', monthly: 'None typically' },
+    { neighborhood: 'Hidenwood', monthly: 'None' },
+    { neighborhood: 'Kiln Creek (varies by section)', monthly: '$50–$120/mo', highlight: true },
+    { neighborhood: 'Townhome communities generally', monthly: '$80–$200/mo', highlight: true },
+    { neighborhood: 'Port Warwick townhomes', monthly: '$150–$250/mo', highlight: true },
+  ],
+  covers: [
+    'Common area landscaping and pond maintenance',
+    'Community clubhouse and pool access (Kiln Creek)',
+    'Trail and open space maintenance',
+    'Architectural review and community standards',
+    'Exterior maintenance for attached homes (townhomes)',
+    'Reserve fund contributions for major capital projects',
+  ],
+  note: "HOA fees in Newport News vary significantly between communities. Some sections within master-planned communities like Kiln Creek have different fee structures depending on amenity access. Always verify fees directly with the management company before purchasing.",
+}
+
+const nearbyData = {
+  subtitle: 'How Newport News compares to neighboring Peninsula communities.',
+  nearby: [
+    { name: 'Hampton', slug: 'hampton', startingPrice: 'From $200K', why: 'Adjacent city on the lower Peninsula with waterfront access, Langley Air Force Base, and a strong military community — very similar lifestyle at comparable price points.' },
+    { name: 'York County', slug: undefined, startingPrice: 'From $350K', why: 'Williamsburg-area suburban living with top-ranked school systems, master-planned communities, and Colonial Williamsburg access — popular with families prioritizing schools.' },
+    { name: 'James City County', slug: undefined, startingPrice: 'From $380K', why: 'Williamsburg region with excellent schools, resort amenities at Ford\'s Colony and Kingsmill, and a growing master-planned community market near I-64.' },
+  ],
+}
+
+const newConstructionData = {
+  subtitle: 'Newport News has moderate new construction activity — primarily in Kiln Creek and the Denbigh growth corridor.',
+  builders: [
+    {
+      name: 'Ryan Homes',
+      communities: 'Kiln Creek · Denbigh Corridor',
+      sqftRange: '1,600–3,000 sq ft',
+      startingPrice: 'From $330K',
+      desc: 'Active in several Newport News communities with family-focused product. Kiln Creek remains one of the Peninsula\'s most recognized planned communities with ongoing new construction phases.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Newport+News&s[locations][0][state]=VA',
+    },
+    {
+      name: 'HHHunt Homes',
+      communities: 'Newport News Communities',
+      sqftRange: '1,800–3,200 sq ft',
+      startingPrice: 'From $360K',
+      desc: 'Regional builder with a consistent Peninsula presence. Known for quality construction, strong community programming, and move-up product built for growing families.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Newport+News&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Main Street Homes',
+      communities: 'Select Newport News Locations',
+      sqftRange: '2,000–4,000 sq ft',
+      startingPrice: 'From $420K',
+      desc: 'Virginia-based builder known for design flexibility and premium finishes. Serves move-up and custom buyers on the Peninsula with a more personalized building experience than national production builders.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Newport+News&s[locations][0][state]=VA',
+    },
+    {
+      name: 'Chesapeake Homes',
+      communities: 'Newport News Infill & Communities',
+      sqftRange: '1,500–2,600 sq ft',
+      startingPrice: 'From $290K',
+      desc: 'Established Hampton Roads builder with entry-level through move-up product across Newport News communities. Known for quality and value with a local team that knows the Peninsula well.',
+      searchUrl: 'https://search.buyingva.com/search?s[locations][0][city]=Newport+News&s[locations][0][state]=VA',
+    },
+  ],
+}
 
 export default async function NewportNewsPage() {
   const latestReport = await getLatestMarketReport('newport-news')
@@ -332,6 +403,15 @@ export default async function NewportNewsPage() {
           </div>
         </div>
       </section>
+
+      {/* HOA */}
+      <CommunityHOA city="Newport News" {...hoaData} />
+
+      {/* NEW CONSTRUCTION */}
+      <CommunityNewConstruction city="Newport News" {...newConstructionData} />
+
+      {/* COMPARISONS */}
+      <CommunityComparisons city="Newport News" {...nearbyData} />
 
       {/* MARKET TRENDS */}
       <section id="market">
