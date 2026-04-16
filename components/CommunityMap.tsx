@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
+import CompassRose from './CompassRose'
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 
@@ -99,6 +100,10 @@ export default function CommunityMap({ center, zoom, boundary, name, subtitle, i
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', borderRadius: 'inherit' }} />
+
+      {/* Compass — offset below the zoom controls */}
+      <CompassRose top={76} />
+
       <div style={{
         position: 'absolute',
         bottom: '40px',

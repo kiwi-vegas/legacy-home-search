@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import CompassRose from './CompassRose'
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 
@@ -205,6 +206,9 @@ export default function HamptonRoadsMap() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', borderRadius: 'inherit' }} />
+
+      {/* Compass */}
+      <CompassRose top={16} />
 
       {/* Hover info panel */}
       <div style={{
