@@ -5,6 +5,7 @@ import StatsBar from '@/components/StatsBar'
 import HamptonRoadsMap from '@/components/HamptonRoadsMap'
 import TestimonialsSection from '@/components/TestimonialsSection'
 import LogoBar from '@/components/LogoBar'
+import ContactForm from '@/components/ContactForm'
 import { client } from '@/sanity/client'
 
 export const metadata: Metadata = {
@@ -185,51 +186,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div style={{
-              background: 'var(--off-white)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '36px 32px',
-            }}>
-              <h3 style={{ marginBottom: 24 }}>Send Barry a Message</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div className="contact-name-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">First Name</label>
-                    <input className="form-input" type="text" placeholder="Jane" />
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Last Name</label>
-                    <input className="form-input" type="text" placeholder="Smith" />
-                  </div>
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Email</label>
-                  <input className="form-input" type="email" placeholder="jane@example.com" />
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Phone</label>
-                  <input className="form-input" type="tel" placeholder="(757) 555-0000" />
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">I'm looking to…</label>
-                  <select className="form-input" style={{ cursor: 'pointer' }}>
-                    <option>Buy a home</option>
-                    <option>Sell my home</option>
-                    <option>Buy and sell</option>
-                    <option>Get a home valuation</option>
-                    <option>Just exploring</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Message</label>
-                  <textarea className="form-input" rows={4} placeholder="Tell Barry a bit about what you're looking for…" style={{ resize: 'vertical' }} />
-                </div>
-                <a href="mailto:barry@yourfriendlyagent.net" className="btn-primary" style={{ justifyContent: 'center' }}>
-                  Send Message
-                </a>
-              </div>
-            </div>
+            <ContactForm />
           </div>
         </div>
       </section>
