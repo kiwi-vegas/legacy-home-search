@@ -158,27 +158,28 @@ IMAGE STRUCTURE:
 
 ${layer1}
 
-TEXT (small corner label — NOT a headline):
-In the upper-left corner only, include two lines of small text sitting close together:
-- Line 1: "${community}" in a tasteful script or serif font. This text should be the same visual weight as a newspaper dateline or magazine location tag — readable but NOT attention-grabbing. It should look like someone wrote a small caption on a photograph, not a billboard. Height of this text: roughly 5% of the total image height.
-- Line 2: A 3–4 word phrase from the article title in a clean sans-serif, slightly smaller than line 1.
-Both lines together should occupy a small upper-left block — no wider than 30% of the image width, no taller than 12% of the image height. The rest of the image — the other 70% of width and 88% of height — contains NO text at all.
+TEXT PLACEMENT — BOTTOM of the image only:
+The top 75% of the image contains ZERO text — it is entirely the landmark scene with open sky and architecture.
+In the bottom 25% of the image, place a semi-transparent dark gradient bar that fades from transparent at the top to a dark overlay at the very bottom edge. Over this dark bar, render two lines of text flush to the bottom-left:
+- Line 1: "${community}" in an elegant serif or script font, gold or cream colored. This text should be modest in size — like a caption on a travel magazine photo. Height: approximately 7% of the total image height.
+- Line 2: A 3–4 word hook phrase from the article title in a clean white sans-serif, slightly smaller than line 1.
+Both lines sit in the lower-left quarter of the image. The top three-quarters of the image is pure scene — a viewer cropping just the top half would see only the landmark with no text at all.
 
-ACCENT GRAPHICS (tiny and optional):
+ACCENT GRAPHICS (small, bottom corners only):
 ${ctx.graphicElements}
-These must be small, subtle accents only — each no larger than 8% of image height. Place them in corners or edges so they never cover the landmark or main scene. If they would overlap or clutter the scene, omit them entirely.
+Place any graphic accents (arrows, checkmarks, dollar signs) in the bottom-right corner only. Each element no larger than 10% of image height. If they clutter the composition, omit them.
 
 ─────────────────────────────────────
 CRITICAL RULES — these override everything else:
-1. The landmark, architecture, or coastal scene is the HERO. A viewer's eye should go to the scene first, not the text.
-2. Text must look like a small label on a photograph — never a poster, banner, or YouTube thumbnail headline.
-3. If the text looks large, cut it in half again.
-4. Beautiful photography > everything else.
+1. TOP 75% OF THE IMAGE = LANDMARK ONLY. No text, no graphics in the upper portion.
+2. Text lives at the bottom, like a TV chyron or caption bar — subtle and grounded.
+3. The scene is what sells this image. A viewer should gasp at the location before they read a word.
+4. Cinematic photography quality — this should look like a professional travel or real estate magazine cover.
 
-FORMAT: Wide 16:9, cinematic golden-hour lighting, rich saturated colors, photorealistic.
+FORMAT: Wide 16:9, golden-hour or blue-hour lighting, rich saturated colors, photorealistic.
 NO faces close-up, no for-sale signs, no logos, no generic stock imagery.
 
-Write the Gemini image generation prompt now — 5–8 sentences describing the scene and the small text placement. Return ONLY the prompt, no labels or preamble.`,
+Write the Gemini image generation prompt now — 5–8 sentences describing the scene first, then the bottom-bar text placement. Return ONLY the prompt, no labels or preamble.`,
         },
       ],
     })

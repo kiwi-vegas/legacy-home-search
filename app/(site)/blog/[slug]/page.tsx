@@ -88,7 +88,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             fill
             priority
             sizes="100vw"
-            style={{ objectFit: 'cover', objectPosition: 'top' }}
+            style={{ objectFit: 'cover', objectPosition: 'center 30%' }}
           />
           <div className="blog-post-hero-overlay" />
         </div>
