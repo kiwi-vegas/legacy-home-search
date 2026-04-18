@@ -46,7 +46,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound()
 
   const imgUrl = post.coverImage
-    ? builder.image(post.coverImage).width(1200).height(630).fit('crop').url()
+    ? builder.image(post.coverImage).width(1920).url()
     : null
 
   const pubDate = post.publishedAt
@@ -72,7 +72,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             fill
             priority
             sizes="100vw"
-            style={{ objectFit: 'cover' }}
+            style={{ objectFit: 'cover', objectPosition: 'top' }}
           />
           <div className="blog-post-hero-overlay" />
         </div>
