@@ -131,7 +131,7 @@ export default function AgentTestimonials() {
         <div className="container">
           <div className="section-header">
             <span className="section-label">Client Reviews</span>
-            <h2>What Our Clients Say</h2>
+            <h2>What My Clients Say</h2>
             <p>Real stories from real Hampton Roads homebuyers and sellers.</p>
           </div>
           <div style={{
