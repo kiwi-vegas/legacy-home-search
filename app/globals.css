@@ -275,6 +275,7 @@ section + section { border-top: 1px solid var(--border-light); }
 .nav-dropdown a { display: block; padding: 9px 16px; border-radius: var(--radius); color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500; transition: all var(--transition); }
 .nav-dropdown a:hover { background: var(--light-gray); color: var(--text); }
 .nav-dropdown-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 8px 16px 4px; }
+.nav-dropdown--wide { min-width: 320px; }
 
 /* ── Area cards (always-on map) ── */
 .area-card { position: relative; overflow: hidden; background: var(--white); border: 2px solid transparent; border-radius: var(--radius-lg); cursor: pointer; transition: box-shadow 0.2s ease, border-color 0.2s ease; height: 200px; }
