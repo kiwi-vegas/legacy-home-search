@@ -159,22 +159,22 @@ THE IMAGE STRUCTURE (3 layers — describe all 3):
 
 ${layer1}
 
-LAYER 2 — TEXT OVERLAY (REQUIRED — this is non-negotiable):
-The image MUST include two pieces of text rendered directly onto the scene:
-1. COMMUNITY NAME: The word "${community}" in large, bold, elegant script or serif lettering — placed prominently in the upper portion of the image, as if painted across the sky. Gold, cream, or white color with a subtle glow or drop shadow so it reads clearly over any background. Large enough to be read at a glance.
-2. SHORT HOOK TEXT: A 3-5 word condensed phrase from the article title that captures the core idea. NOT the full title — a punchy fragment. Example: if the title is "Why Hampton Roads Home Values Are Rising Fast", the hook text would be "Home Values Are Rising". Place this below the community name in a clean bold sans-serif, slightly smaller. Make it feel like an editorial graphic or news chyron.
+LAYER 2 — TEXT OVERLAY (keep it tasteful and compact — no more than 20% of the image height total):
+The image includes two small but legible text elements as subtle overlays — NOT large headlines that dominate the frame:
+1. COMMUNITY NAME: The word "${community}" in elegant script or serif lettering — placed in the upper-left or upper-right corner area as a tasteful label, NOT a giant banner. Gold, cream, or white with a subtle drop shadow. It should feel like a geographic caption, not a poster headline. Size: roughly 8–10% of the image height.
+2. SHORT HOOK TEXT: A 3-5 word condensed phrase from the article title. Place it just below the community name in a clean bold sans-serif, slightly smaller than the community name. Keep both text elements together in one corner — they should occupy no more than the top 20% of the image and left/right third of the frame so the background scene remains the dominant visual.
 
-LAYER 3 — GRAPHIC ELEMENTS (REQUIRED — bring energy and meaning):
+LAYER 3 — GRAPHIC ELEMENTS (subtle, small, and integrated):
 ${ctx.graphicElements}
-All graphic elements must be rendered as part of the scene — not as post-production overlays. They should look illustrated or semi-realistic, integrated into the image naturally. Use blue (#3762E3), bright blue, or white for graphic elements. They should feel bold, confident, and professional — not clipart.
+IMPORTANT: Keep graphic elements small and tasteful — they should accent the scene, not overpower it. Maximum size of any single graphic element is about 10–12% of image height. They must feel like part of the scene, not floating clipart. The background scene should always be the dominant visual — graphic elements are secondary.
 
 ─────────────────────────────────────
 FORMAT:
 - Wide 16:9 composition, cinematic and vibrant
 - Saturated, warm colors — golden hour light, vivid sky
-- Rule of thirds: scene anchored in lower half, text and graphics in upper/sky area
-- Photorealistic background, illustrated graphic elements layered on top
-- High contrast so text reads clearly
+- The background scene fills the ENTIRE frame — text and graphics are small overlays in one corner, not covering the center or majority of the image
+- Photorealistic background with subtle illustrated accents
+- The viewer should see mostly the scene — the text and graphics are supporting elements only
 
 HARD PROHIBITIONS:
 - NO faces — people only at distance, silhouette, or from behind
