@@ -32,7 +32,7 @@ export default function Nav() {
 
           <div className="nav-links">
             <Link href="/#contact" className="nav-link">Buy</Link>
-            <Link href="/#contact" className="nav-link">Sell</Link>
+            <a href="https://listings.legacyhomesearch.com/seller" className="nav-link" target="_blank" rel="noopener noreferrer">Sell</a>
 
             {/* Communities dropdown */}
             <div className="nav-dropdown-wrap">
@@ -78,7 +78,7 @@ export default function Nav() {
           boxShadow: 'var(--shadow)',
         }}>
           <Link href="/#contact" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Buy</Link>
-          <Link href="/#contact" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Sell</Link>
+          <a href="https://listings.legacyhomesearch.com/seller" target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Sell</a>
           <button
             onClick={() => setMobileCommOpen(!mobileCommOpen)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '12px 0', color: 'var(--text-secondary)', background: 'none', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit' }}
