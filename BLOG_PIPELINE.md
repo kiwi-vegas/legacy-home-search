@@ -12,7 +12,146 @@ Both appear together in the `/blog` listing, merged and sorted by date. A catego
 **Market:** Virginia Beach, Chesapeake, Norfolk, Suffolk, Hampton, Newport News (Hampton Roads, VA)
 **Blog page title:** Hampton Roads Real Estate Blog
 **Sanity project ID:** `2nr7n3lm`
-**Production URL:** `https://legacy-home-search.vercel.app`
+**Production URL:** `https://legacyhometeamlpt.com`
+
+---
+
+## Admin Pages
+
+All admin pages are secret-gated via `?secret=ADMIN_SECRET`. Never share these URLs publicly.
+
+| Page | URL | Purpose |
+|---|---|---|
+| Blog Picker | `/admin/blog-picker/[date]?secret=…` | Operator selects which researched articles to publish |
+| Blog Dashboard | `/admin/blog-dashboard?secret=…` | Effectiveness dashboard — post stats, category breakdown, GA4 KPIs |
+| Thumbnail Review | `/admin/thumbnail-review?secret=…` | Generate/upload/approve hero thumbnails for posts missing cover images |
+
+---
+
+## Blog Effectiveness Dashboard
+
+**URL:** `/admin/blog-dashboard?secret=ADMIN_SECRET`
+
+A single-page dashboard showing the health and performance of the blog content operation. Split into two data sources:
+
+### Sanity Data (live, always populated)
+- **Total posts published** — running count of all blog posts in Sanity
+- **Posting frequency** — calculated posts/week based on publish history
+- **Category breakdown** — count per category (Market Update, Buying Tips, Selling Tips, etc.)
+- **Full post table** — every post with title, category, publish date, and days since published
+
+### GA4 Traffic KPIs (populated once GA4 accumulates data)
+GA4 measurement ID is injected site-wide. The dashboard displays these metric cards:
+- Organic sessions (last 30 days)
+- Total blog pageviews (last 30 days)
+- Avg. time on page
+- Top 5 posts by pageviews
+
+Until enough data exists, metric cards show `—`. View live traffic at **analytics.google.com** (property `NEXT_PUBLIC_GA_MEASUREMENT_ID`).
+
+**To add live GA4 API data:** Create a Google service account, grant it Viewer access to the GA4 property, and add `GA4_PROPERTY_ID` + `GA4_SERVICE_ACCOUNT_JSON` env vars. Then update the dashboard to call the GA4 Data API.
+
+### Industry Benchmark Table
+The dashboard includes a static benchmark reference table comparing the operation against industry standards:
+
+| Metric | Industry Avg | Good | Excellent |
+|---|---|---|---|
+| Posts/week | 1–2 | 3–4 | 5+ |
+| Avg. time on page | 1:30 | 2:30 | 4:00+ |
+| Organic sessions (30d) | 500 | 2,000 | 5,000+ |
+| Email CTR | 2% | 5% | 10%+ |
+
+---
+
+## Thumbnail Review & Management
+
+**URL:** `/admin/thumbnail-review?secret=ADMIN_SECRET`
+
+A card-based UI showing every blog post that is **missing a cover image**. Each card supports:
+
+### Per-card actions
+
+**Generate AI Thumbnail**
+1. Click **Generate Thumbnail** — calls `POST /api/blog/generate-thumbnail`
+2. Gemini generates a 16:9 image using the 3-layer thumbnail psychology (see Image Generation Pipeline below)
+3. Thumbnail preview appears on the card (~30–60 seconds)
+4. Click **✓ Approve & Apply** — saves to Sanity and goes live immediately
+5. Click **✕ Reject** — shows feedback textarea
+   - Type feedback (e.g., "More blue tones, Chesapeake waterfront, no arrow graphics")
+   - Click **Regenerate with Feedback** (or ⌘↵) — feedback is injected into the image prompt
+   - Repeat until satisfied, then Approve & Apply
+
+**Upload Your Own Image**
+1. Click **Upload Your Own** (from idle state) — opens file picker
+2. Select any image file — uploads directly to Sanity CDN via `POST /api/blog/upload-thumbnail`
+3. Your image appears as the preview
+4. Approve & Apply to set it live, or click **↑ Replace with your own** to swap it again
+
+### Batch generation
+The **Generate All N Missing** button at the top runs AI generation for all idle cards sequentially (one at a time to avoid API rate limits). Each card transitions through generating → review states as it completes.
+
+### How feedback is injected
+The `feedback` text is appended to the `whyItMatters` field of the `ScoredArticle` passed to Gemini's prompt builder:
+```
+REVISION FEEDBACK: {feedback}. Please adjust the image concept to address this specific feedback.
+```
+This ensures Gemini incorporates the specific feedback without overriding the category/community context.
+
+---
+
+## GA4 Tracking
+
+GA4 is loaded globally in `app/layout.tsx` via Next.js `<Script>` tags with `strategy="afterInteractive"`.
+
+```tsx
+{process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+  <>
+    <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+    <Script id="ga4-init" strategy="afterInteractive">
+      {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+        gtag('js',new Date());gtag('config','${GA_ID}');`}
+    </Script>
+  </>
+)}
+```
+
+Setting `NEXT_PUBLIC_GA_MEASUREMENT_ID` in `.env.local` (and in Vercel environment variables) activates tracking. Leaving it unset disables GA entirely — no tracking on localhost.
+
+**To set up GA4 for a new client:**
+1. Create a GA4 property at analytics.google.com
+2. Copy the Measurement ID (format: `G-XXXXXXXXXX`)
+3. Add `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX` to Vercel environment variables
+4. Redeploy — tracking is live immediately
+
+---
+
+## Community Listings on Blog Posts
+
+Every blog post automatically shows a **live MLS listings section** at the bottom of the page, below the post body and CTA, powered by YLOPO's results widget.
+
+### Community detection
+`detectCommunities(title, slug)` in `app/(site)/blog/[slug]/page.tsx` scans the post title and slug for community keywords:
+
+| Keyword match | Widget shown |
+|---|---|
+| "virginia beach" or "virginia-beach" | Virginia Beach listings |
+| "chesapeake" | Chesapeake listings |
+| "norfolk" | Norfolk listings |
+| "hampton" (but NOT "hampton roads") | Hampton listings |
+| "newport news" or "newport-news" | Newport News listings |
+| "suffolk" | Suffolk listings |
+| No community detected | Hampton Roads-wide (all 6 cities) |
+
+"Hampton Roads" (space or hyphen) is stripped from the text before the Hampton check to prevent false positives on general market posts.
+
+### Single community
+Shows: `View {City} Homes For Sale` heading + 12 MLS listings + `View All {City} Homes →` button.
+
+### Multiple communities (comparison posts)
+Shows tabbed interface — one tab per detected community. All widget divs remain in the DOM (hidden via `display: none`); only the active tab's widget is visible. This prevents YLOPO from needing to reinitialize on tab switch.
+
+### YLOPO initialization on blog posts
+`YlopoInit.tsx` triggers a `window.location.reload()` on soft navigation to reinitialize YLOPO's script. The blog INDEX page (`/blog`) is excluded from this reload (no widgets there). Individual post pages (`/blog/[slug]`) are NOT excluded and do trigger the reload, ensuring widgets initialize correctly when navigating from the blog listing.
 
 ---
 
@@ -40,6 +179,13 @@ Operator opens email
                       ├─ Images uploaded to Sanity CDN
                       ├─ Posts published to Sanity CMS
                       └─ Live at /blog within 60 seconds (ISR revalidation)
+
+After publishing (optional)
+  └─ /admin/thumbnail-review?secret=ADMIN_SECRET
+       ├─ Review AI-generated thumbnails for each post
+       ├─ Reject with feedback → regenerate
+       ├─ Or upload your own image
+       └─ Approve & Apply → live immediately
 ```
 
 ---
@@ -136,12 +282,12 @@ Curated landmark photos are stored in `public/community-photos/[city-slug]/` and
 ### Folder structure
 ```
 public/community-photos/
-  virginia-beach/     ← 4 photos (any JPG/JPEG/PNG/WEBP, any filename)
-  chesapeake/         ← 5 photos
-  norfolk/            ← 5 photos
-  suffolk/            ← 5 photos
-  hampton/            ← 5 photos
-  newport-news/       ← 5 photos
+  virginia-beach/     ← photos (any JPG/JPEG/PNG/WEBP, any filename)
+  chesapeake/         ← 5 cinematic photos
+  norfolk/            ← 5 cinematic photos
+  suffolk/            ← 5 cinematic photos
+  hampton/            ← 5 cinematic photos
+  newport-news/       ← 5 cinematic photos
 ```
 
 ### How to add or replace photos
@@ -187,6 +333,20 @@ Filter tabs appear at the top of the grid. Only tabs with at least one published
 - Excerpt: first 120 chars of `marketSummary`
 - Meta row: `reportPeriod` + `medianListPrice` (in blue)
 - Link: `/market-reports/{slug}`
+
+---
+
+## Blog Post Page (`/blog/[slug]`)
+
+### Hero image
+The hero image at the top of each post uses:
+- `objectFit: 'cover'` — fills the container
+- `objectPosition: 'top'` — anchors the top of the image so community name text and graphic elements (which sit in the upper portion) are always fully visible
+- `max-height: 48vh` — prevents the image from dominating the viewport on large screens; always stays at or below half the screen height
+- Sanity delivers the image at full width (`width(1920)`) without a height crop
+
+### Community listings widget
+`BlogCommunityListings` component renders below the post body. See **Community Listings on Blog Posts** section above.
 
 ---
 
@@ -257,12 +417,14 @@ Post structure:
 | `RESEND_API_KEY` | All email delivery (digest, market report ready, monthly reminder) |
 | `FROM_EMAIL` | Sender address |
 | `OPERATOR_EMAIL` | Blog digest recipient |
-| `BARRY_EMAIL` | `barry@yourfriendlyagent.net` — monthly Altos upload reminder |
-| `ADMIN_SECRET` | Auth for blog picker, publish API, and market report admin pages |
+| `BARRY_EMAIL` | Agent email — monthly Altos upload reminder |
+| `ADMIN_SECRET` | Auth for all admin pages and API routes |
 | `ADMIN_PIN` | Short memorable password for the `/upload` gateway (falls back to `ADMIN_SECRET`) |
 | `CRON_SECRET` | Auth for Vercel cron jobs |
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` | `2nr7n3lm` |
-| `NEXT_PUBLIC_APP_URL` | `https://legacy-home-search.vercel.app` |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Sanity project ID |
+| `NEXT_PUBLIC_SANITY_DATASET` | `production` |
+| `NEXT_PUBLIC_APP_URL` | Production URL |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | GA4 Measurement ID (format: `G-XXXXXXXXXX`) — activates tracking site-wide and in dashboard |
 | `UNSPLASH_ACCESS_KEY` | Optional — Unsplash fallback images |
 
 **IMPORTANT:** Always use `printf` (not `echo`) when setting env vars via Vercel CLI — `echo` adds a trailing newline that corrupts the value and causes Unauthorized errors:
@@ -276,7 +438,7 @@ printf 'your-value' | npx vercel env add VAR_NAME production
 
 ### Trigger research manually (POST):
 ```bash
-curl -X POST https://legacy-home-search.vercel.app/api/cron/research \
+curl -X POST https://your-domain.com/api/cron/research \
   -H "Content-Type: application/json" \
   -d '{"secret": "YOUR_ADMIN_SECRET"}'
 ```
@@ -292,14 +454,12 @@ npx tsx --env-file=.env.local scripts/test-publish.ts
 ```
 Edit `scripts/test-publish.ts` to set the article URL, title, category, and `whyItMatters` before running.
 
----
-
-## Blog Post Hero Image Display
-
-The hero image at the top of each blog post (`app/(site)/blog/[slug]/page.tsx`) uses:
-- `objectFit: 'cover'` — fills the 420px hero container
-- `objectPosition: 'top'` — **anchors the top of the image** so community name text and graphic elements (which sit in the upper portion) are always fully visible. The bottom of the scene is clipped by the container, which is fine.
-- Sanity delivers the image at full width (`width(1920)`) without a height crop — preserves the full 16:9 ratio before display.
+### Test thumbnail generation for a post:
+```bash
+curl -X POST https://your-domain.com/api/blog/generate-thumbnail \
+  -H "Content-Type: application/json" \
+  -d '{"postId":"SANITY_DOC_ID","title":"Post Title","category":"market-update","excerpt":"...","slug":"post-slug","secret":"YOUR_ADMIN_SECRET"}'
+```
 
 ---
 
@@ -321,6 +481,23 @@ The hero image at the top of each blog post (`app/(site)/blog/[slug]/page.tsx`) 
 | `app/api/blog/publish/route.ts` | Blog publish endpoint (1–5 articles) |
 | `app/admin/blog-picker/[date]/page.tsx` | Operator article selection UI |
 | `app/(site)/blog/page.tsx` | Blog listing — merges posts + market reports, category filter tabs |
+| `app/(site)/blog/[slug]/page.tsx` | Individual post page — hero, body, community listings widget |
+
+### Admin & Dashboard
+| File | Purpose |
+|---|---|
+| `app/admin/blog-dashboard/page.tsx` | Effectiveness dashboard — Sanity post stats + GA4 KPI cards |
+| `app/admin/thumbnail-review/page.tsx` | Card UI to generate, upload, approve/reject thumbnails per post |
+| `app/api/blog/dashboard-data/route.ts` | Returns all posts with category counts and recent activity from Sanity |
+| `app/api/blog/generate-thumbnail/route.ts` | Calls `fetchAndUploadCoverImage()` with optional feedback; returns `{assetRef, previewUrl}` |
+| `app/api/blog/upload-thumbnail/route.ts` | Accepts `multipart/form-data` image upload; stores in Sanity CDN; returns `{assetRef, previewUrl}` |
+| `app/api/blog/apply-thumbnail/route.ts` | Patches `coverImage` on a Sanity blog post document |
+
+### Community Listings
+| File | Purpose |
+|---|---|
+| `components/BlogCommunityListings.tsx` | YLOPO widget section rendered at bottom of every blog post; handles single/tabbed/fallback states |
+| `components/YlopoInit.tsx` | Triggers page reload on soft navigation to reinitialize YLOPO — excludes `/blog` index but allows `/blog/[slug]` |
 
 ### Market Reports Pipeline
 | File | Purpose |
@@ -331,10 +508,10 @@ The hero image at the top of each blog post (`app/(site)/blog/[slug]/page.tsx`) 
 | `app/api/market-reports/recent/route.ts` | Returns last 10 reports for admin display |
 | `app/(site)/market-reports/page.tsx` | Public market reports listing |
 | `app/(site)/market-reports/[slug]/page.tsx` | Individual report page |
-| `app/api/cron/market-reports/route.ts` | 1st of month: sends Barry upload reminder + missing-reports safety check |
+| `app/api/cron/market-reports/route.ts` | 1st of month: sends agent upload reminder + missing-reports safety check |
 
 ### Cron Schedule (`vercel.json`)
 | Schedule | Route | What it does |
 |---|---|---|
 | `0 13 * * *` (6 AM PT daily) | `/api/cron/research` | Daily blog research + digest email |
-| `0 14 1 * *` (7 AM PT, 1st of month) | `/api/cron/market-reports` | Sends Barry the monthly Altos upload reminder; checks for missing reports |
+| `0 14 1 * *` (7 AM PT, 1st of month) | `/api/cron/market-reports` | Sends monthly Altos upload reminder; checks for missing reports |
