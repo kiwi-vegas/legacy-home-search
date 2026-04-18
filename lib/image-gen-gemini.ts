@@ -146,7 +146,7 @@ ${CLIENT_CONFIG.visualAnchors}`
       messages: [
         {
           role: 'user',
-          content: `You are a creative director producing cinematic real estate photography for blog posts. The output is a PHOTOGRAPH FIRST — beautiful, landmark-rich, and immersive. Any text or graphics are small secondary accents, like a magazine's location caption. The landmark and scene must be clearly visible and take up at least 80% of the visual attention.
+          content: `You are a creative director making eye-catching blog thumbnail images for a real estate brand. Your images combine a cinematic photorealistic background with bold text overlays and graphic elements — like high-performing YouTube thumbnails and real estate marketing graphics.
 
 ARTICLE:
 Title: "${article.title}"
@@ -158,29 +158,30 @@ IMAGE STRUCTURE:
 
 ${layer1}
 
-TEXT — upper-left corner, bold and legible:
-In the upper-left corner of the image, starting about 5% from the left edge and 6% from the top, place:
-- Line 1: "${community}" in a bold, elegant gold script or serif font. This should be clearly readable — confident and sharp, like a premium travel brand logo stamped on a photograph. Height: approximately 10–12% of the image height. It should feel authoritative but not like a billboard headline.
-- Line 2: A 3–5 word hook phrase from the article title in bold white sans-serif, immediately below line 1. Slightly smaller than line 1 — around 7–8% of image height. Add a very subtle dark semi-transparent background pill or drop shadow behind this line only so it pops against any background.
-- ONE small inline graphic (a checkmark, upward arrow, or small icon relevant to the category) placed immediately after the last word of line 2 — same height as the line 2 text, inline like punctuation.
+LAYER 2 — TEXT OVERLAY (REQUIRED — this is non-negotiable):
+The image MUST include two pieces of text rendered directly onto the scene:
+1. COMMUNITY NAME: The word "${community}" in large, bold, elegant script or serif lettering — placed prominently in the upper portion of the image, as if painted across the sky. Gold, cream, or white color with a subtle glow or drop shadow so it reads clearly over any background. Large enough to be read at a glance.
+2. SHORT HOOK TEXT: A 3-5 word condensed phrase from the article title that captures the core idea. NOT the full title — a punchy fragment. Example: if the title is "Why Hampton Roads Home Values Are Rising Fast", the hook text would be "Home Values Are Rising". Place this below the community name in a clean bold sans-serif, slightly smaller. Make it feel like an editorial graphic or news chyron.
 
-The entire text block should fit within the upper-left 40% of image width and upper 25% of image height. The right 60% of the image and the lower 75% contains ZERO text — pure landmark and scene.
-
-CATEGORY GRAPHIC HINT:
+LAYER 3 — GRAPHIC ELEMENTS (REQUIRED — bring energy and meaning):
 ${ctx.graphicElements}
-Use only one small inline icon next to line 2. Nothing else floating in the image.
+All graphic elements must be rendered as part of the scene — not as post-production overlays. They should look illustrated or semi-realistic, integrated into the image naturally. Use blue (#3762E3), bright blue, or white for graphic elements. They should feel bold, confident, and professional — not clipart.
 
 ─────────────────────────────────────
-CRITICAL RULES — these override everything else:
-1. TOP 75% OF THE IMAGE = LANDMARK ONLY. No text, no graphics in the upper portion.
-2. Text lives at the bottom, like a TV chyron or caption bar — subtle and grounded.
-3. The scene is what sells this image. A viewer should gasp at the location before they read a word.
-4. Cinematic photography quality — this should look like a professional travel or real estate magazine cover.
+FORMAT:
+- Wide 16:9 composition, cinematic and vibrant
+- Saturated, warm colors — golden hour light, vivid sky
+- Rule of thirds: scene anchored in lower half, text and graphics in upper/sky area
+- Photorealistic background, illustrated graphic elements layered on top
+- High contrast so text reads clearly
 
-FORMAT: Wide 16:9, golden-hour or blue-hour lighting, rich saturated colors, photorealistic.
-NO faces close-up, no for-sale signs, no logos, no generic stock imagery.
+HARD PROHIBITIONS:
+- NO faces — people only at distance, silhouette, or from behind
+- NO for-sale signs, keys, moving trucks, handshakes
+- NO logos, brand names, or company signage
+- NOTHING generic or stock-photo looking
 
-Write the Gemini image generation prompt now — 5–8 sentences describing the scene first, then the bottom-bar text placement. Return ONLY the prompt, no labels or preamble.`,
+Write the final Gemini image prompt now. 6-9 rich sentences describing all three layers. Return ONLY the prompt — no labels, no preamble.`,
         },
       ],
     })
