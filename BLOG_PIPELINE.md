@@ -21,7 +21,7 @@ Both appear together in the `/blog` listing, merged and sorted by date. A catego
 ```
 6:00 AM PT (Vercel Cron)
   └─ /api/cron/research
-       ├─ Tavily searches 8 rotating queries (Hampton Roads focused)
+       ├─ Tavily searches 8 queries (3 pinned Virginia Beach + 5 rotating)
        ├─ Claude Opus scores & categorizes top 10 articles
        ├─ Stores results in Upstash Redis (48hr TTL)
        └─ Sends digest email to operator
@@ -46,7 +46,7 @@ Operator opens email
 
 ## Market & Research Priorities
 
-**ALL articles must be about Virginia, Virginia Beach, Hampton Roads, or directly relevant Virginia law/policy.**
+**ALL articles must be about Virginia Beach, Chesapeake, Norfolk, Suffolk, Hampton Roads, or directly relevant Virginia law/policy.**
 Articles about Las Vegas, California, Texas, Florida, or any other non-Virginia market are scored 1 and dropped.
 
 Claude gives extra weight to these high-value topics:
@@ -95,10 +95,16 @@ Every hero image is built using **3-step thumbnail psychology**:
 2. **Title Value Hunt** — After stopping, the reader scans the headline. The image makes it feel MORE urgent and relevant.
 3. **Visual Validation** — The reader returns to the image to confirm the article is worth reading.
 
-**Step 1 — Claude builds the prompt**
-Claude Sonnet analyzes the article's title, `whyItMatters`, and category, then writes a cinematic image prompt using Hampton Roads visual anchors and a desire loop for the article's category. Returns ONLY the prompt, 5–8 sentences.
+**Step 1 — Pick community background photo (if available)**
+`getRandomCommunityPhoto()` in `lib/image-gen-gemini.ts` checks `public/community-photos/[city-slug]/` for any image files (JPG, JPEG, PNG, WEBP). If photos exist for that community, one is selected at random and passed to Gemini as the background. If no photos exist, Gemini generates the background from scratch.
 
-**Hampton Roads visual anchors:**
+**Step 2 — Claude builds the 3-layer prompt**
+Claude Sonnet analyzes the article's title, `whyItMatters`, and category, then writes a prompt covering:
+- **Layer 1** — Background scene: if a real photo was picked, instructs Gemini to enhance it with cinematic color grading (golden hour warmth, deeper sky, vibrancy) without altering the scene. If no photo, instructs Gemini to generate a Hampton Roads scene from the visual anchors below.
+- **Layer 2** — Text overlay (required): community name in large script/serif lettering in the upper portion; 3–5 word hook text below it in bold sans-serif
+- **Layer 3** — Graphic elements (required): category-specific icons — arrows, dollar signs, charts for market-update; checkmarks/stars for buying-tips; etc.
+
+**Hampton Roads visual anchors (used when no background photo is provided):**
 - Virginia Beach oceanfront at golden hour — warmth, lifestyle, aspiration
 - Chesapeake Bay with tidal marshes — depth, permanence, natural wealth
 - Norfolk waterfront skyline at dusk — economic momentum, urban energy
@@ -107,18 +113,49 @@ Claude Sonnet analyzes the article's title, `whyItMatters`, and category, then w
 - Naval vessels in the distance — military community, Hampton Roads identity
 - Aerial neighborhoods — scale, growth, investment opportunity
 
-**Step 2 — Gemini generates the image** — `gemini-3-pro-image-preview`, 16:9, base64 PNG inline
+**Step 3 — Gemini generates the image**
+`gemini-3-pro-image-preview`, 16:9. When a background photo is provided, it is passed as an inline image alongside the prompt so Gemini uses it as the photographic base and composites text/graphics on top. Output: base64 PNG.
 
-**Step 3 — Upload to Sanity CDN** — stored as `google-ai-cover-{timestamp}.png`
+**Step 4 — Upload to Sanity CDN** — stored as `google-ai-cover-{timestamp}.png`
 
 ### Fallback Chain (if Gemini fails)
 
-4. **Imagen 4.0** (`imagen-4.0-generate-001`) — same prompt, 16:9
-5. **Gemini 2.5 Flash Image** (`gemini-2.5-flash-image`)
-6. **DALL-E 3** (requires `OPENAI_API_KEY`) — 1792×1024 HD
-7. **OG image** scraped from the source article URL
-8. **Unsplash API** (requires `UNSPLASH_ACCESS_KEY`) — category-matched query
-9. **Fallback image pool** — pre-curated Unsplash URLs per category, deterministic pick by article URL hash
+5. **Imagen 4.0** (`imagen-4.0-generate-001`) — text prompt only (no image input), 16:9
+6. **Gemini 2.5 Flash Image** (`gemini-2.5-flash-image`) — same multimodal input as primary
+7. **DALL-E 3** (requires `OPENAI_API_KEY`) — 1792×1024 HD
+8. **OG image** scraped from the source article URL
+9. **Unsplash API** (requires `UNSPLASH_ACCESS_KEY`) — category-matched query
+10. **Fallback image pool** — pre-curated Unsplash URLs per category, deterministic pick by article URL hash
+
+---
+
+## Community Photo Pools
+
+Curated landmark photos are stored in `public/community-photos/[city-slug]/` and used as the background layer for thumbnails. This ensures each community has a distinctive, real-world look instead of AI-generated scenes that can look similar across cities.
+
+### Folder structure
+```
+public/community-photos/
+  virginia-beach/     ← 4 photos (any JPG/JPEG/PNG/WEBP, any filename)
+  chesapeake/         ← 5 photos
+  norfolk/            ← 5 photos
+  suffolk/            ← 5 photos
+  hampton/            ← 5 photos
+  newport-news/       ← 5 photos
+```
+
+### How to add or replace photos
+1. Drop any JPG, JPEG, PNG, or WEBP file into the community's folder — no fixed naming required
+2. Push to main and Vercel redeploys automatically
+3. The pipeline picks a random file from the folder at generation time
+
+### Photo preparation guidelines
+- **Crop**: 16:9 landscape, 1920×1080 minimum (2560×1440 ideal)
+- **Composition**: Scene anchored in lower 60–70% of frame — leave upper area (sky, open space) clear for text overlay
+- **Lighting**: Golden hour or blue hour preferred — warm, vibrant, not flat/overcast
+- **Color**: Bump warmth/temperature slightly, increase vibrance (not full saturation)
+- **Upper area**: If busy, apply a graduated filter to darken the top 30–40% so text reads clearly over it
+- **Vignette**: Gentle darkened edges help focus the eye inward
 
 ---
 
@@ -158,7 +195,22 @@ Filter tabs appear at the top of the grid. Only tabs with at least one published
 - **Volume**: Research fetches up to 30 articles per day, scores top 10 for display
 - **Flexibility**: Operator can select 1–5 articles per day
 - **No repeats**: Articles skipped twice are permanently filtered (Redis `article_shown_counts`)
-- **Rotation**: 8 queries per day, rotating through 25 topic queries so all buckets get covered
+- **Query structure**: 3 Virginia Beach queries are **pinned and run every single day** — guaranteed local content. 5 additional slots rotate through 22 broader Hampton Roads/law/military/development queries for variety.
+
+### Pinned Daily Queries (Virginia Beach — always run)
+```
+'Virginia Beach real estate market news 2026'
+'Virginia Beach home prices sales market update 2026'
+'Virginia Beach housing market trends buyers sellers 2026'
+```
+
+### Rotating Query Pool (5 slots/day cycle through these)
+- Hampton Roads housing market trends / investment / rental returns
+- Chesapeake / Norfolk real estate market
+- Virginia homeowner/HOA/property tax/zoning law changes
+- Hampton Roads major development, port expansion, corporate relocation
+- Military relocation / PCS / Naval Station housing
+- Virginia Beach new construction, oceanfront/waterfront, neighborhoods, condos, schools, first-time buyers
 
 ---
 
@@ -231,8 +283,23 @@ curl -X POST https://legacy-home-search.vercel.app/api/cron/research \
 
 ### Access article list for a date:
 ```
-GET /api/articles/2026-03-24?secret=YOUR_ADMIN_SECRET
+GET /api/articles/2026-04-18?secret=YOUR_ADMIN_SECRET
 ```
+
+### Publish a specific article directly (bypasses Redis pipeline — useful for one-off tests):
+```bash
+npx tsx --env-file=.env.local scripts/test-publish.ts
+```
+Edit `scripts/test-publish.ts` to set the article URL, title, category, and `whyItMatters` before running.
+
+---
+
+## Blog Post Hero Image Display
+
+The hero image at the top of each blog post (`app/(site)/blog/[slug]/page.tsx`) uses:
+- `objectFit: 'cover'` — fills the 420px hero container
+- `objectPosition: 'top'` — **anchors the top of the image** so community name text and graphic elements (which sit in the upper portion) are always fully visible. The bottom of the scene is clipped by the container, which is fine.
+- Sanity delivers the image at full width (`width(1920)`) without a height crop — preserves the full 16:9 ratio before display.
 
 ---
 
