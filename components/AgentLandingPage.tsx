@@ -2,6 +2,7 @@ import HamptonRoadsMap from '@/components/HamptonRoadsMap'
 import AgentHeroSearchBar from '@/components/AgentHeroSearchBar'
 import AgentCommunityListings from '@/components/AgentCommunityListings'
 import AgentContactForm from '@/components/AgentContactForm'
+import AgentTestimonials from '@/components/AgentTestimonials'
 
 interface AgentLandingPageProps {
   name: string          // "Tanya Thompson"
@@ -229,6 +230,9 @@ export default function AgentLandingPage({
           </p>
         </div>
       </section>
+
+      {/* ── CLIENT TESTIMONIALS ──────────────────────────────────────── */}
+      <AgentTestimonials />
 
       {/* ── CONTACT ──────────────────────────────────────────────────── */}
       <section id="contact">
