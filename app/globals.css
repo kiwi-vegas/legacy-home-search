@@ -218,6 +218,12 @@ section + section { border-top: 1px solid var(--border-light); }
   .hero-search-form input { border-radius: 8px !important; }
   .hero-search-form button { border-radius: 8px !important; width: 100%; }
 
+  /* Agent hero grid: collapse to single column, search content first */
+  .agent-hero-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
+  .agent-hero-grid > *:first-child { order: 2; flex-direction: row !important; align-items: flex-start; gap: 16px !important; }
+  .agent-hero-grid > *:first-child > *:first-child { width: 80px !important; aspect-ratio: 1/1 !important; flex-shrink: 0; border-radius: 50% !important; }
+  .agent-hero-grid > *:last-child { order: 1; }
+
   /* Hero: full-width CTA buttons */
   .hero-cta-btn { display: block !important; text-align: center; width: 100%; box-sizing: border-box; }
 
