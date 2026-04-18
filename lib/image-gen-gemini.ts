@@ -158,16 +158,17 @@ IMAGE STRUCTURE:
 
 ${layer1}
 
-TEXT PLACEMENT — BOTTOM of the image only:
-The top 75% of the image contains ZERO text — it is entirely the landmark scene with open sky and architecture.
-In the bottom 25% of the image, place a semi-transparent dark gradient bar that fades from transparent at the top to a dark overlay at the very bottom edge. Over this dark bar, render two lines of text flush to the bottom-left:
-- Line 1: "${community}" in an elegant serif or script font, gold or cream colored. This text should be modest in size — like a caption on a travel magazine photo. Height: approximately 7% of the total image height.
-- Line 2: A 3–4 word hook phrase from the article title in a clean white sans-serif, slightly smaller than line 1.
-Both lines sit in the lower-left quarter of the image. The top three-quarters of the image is pure scene — a viewer cropping just the top half would see only the landmark with no text at all.
+TEXT + GRAPHIC CLUSTER — upper-left corner, tightly grouped:
+In the upper-left corner, place a compact cluster containing:
+- Line 1: "${community}" in an elegant serif or script font, gold or cream. Height: ~6% of image height. Feels like a tasteful location label.
+- Line 2: A 3–4 word hook phrase in clean white sans-serif, slightly smaller than line 1, immediately below.
+- ONE small graphic accent (a compact upward arrow, checkmark, or relevant icon from the category below) placed directly to the right of line 2, or immediately after the last word — like an inline icon next to the subtitle. The icon must be the same height as line 2 text, no larger. It should feel like it belongs in the text cluster, not floating separately.
 
-ACCENT GRAPHICS (small, bottom corners only):
+The entire text + icon cluster occupies a tight rectangle: no wider than 35% of image width, no taller than 14% of image height. Everything else in the image — the remaining 86% of height and 65% of width — is pure scene with no text or graphics whatsoever.
+
+CATEGORY GRAPHIC HINT:
 ${ctx.graphicElements}
-Place any graphic accents (arrows, checkmarks, dollar signs) in the bottom-right corner only. Each element no larger than 10% of image height. If they clutter the composition, omit them.
+Use only ONE of these ideas, as a tiny inline icon next to the subtitle text. No standalone floating graphics anywhere else.
 
 ─────────────────────────────────────
 CRITICAL RULES — these override everything else:

@@ -134,7 +134,7 @@ section + section { border-top: 1px solid var(--border-light); }
 
 /* ── Blog post ── */
 .blog-post { padding-top: var(--nav-h); }
-.blog-post-hero { position: relative; width: 100%; aspect-ratio: 16/9; max-height: 48vh; overflow: hidden; background: var(--light-gray); }
+.blog-post-hero { position: relative; width: 100%; aspect-ratio: 16/9; max-height: 360px; overflow: hidden; background: var(--light-gray); }
 .blog-post-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3)); }
 .blog-post-header { max-width: 720px; margin: 0 auto; padding: 48px 0 32px; }
 .blog-post-title { font-size: clamp(1.5rem, 3vw, 2.5rem); color: var(--text); margin: 16px 0 12px; }
