@@ -158,17 +158,17 @@ IMAGE STRUCTURE:
 
 ${layer1}
 
-TEXT + GRAPHIC CLUSTER — upper-left corner, tightly grouped:
-In the upper-left corner, place a compact cluster containing:
-- Line 1: "${community}" in an elegant serif or script font, gold or cream. Height: ~6% of image height. Feels like a tasteful location label.
-- Line 2: A 3–4 word hook phrase in clean white sans-serif, slightly smaller than line 1, immediately below.
-- ONE small graphic accent (a compact upward arrow, checkmark, or relevant icon from the category below) placed directly to the right of line 2, or immediately after the last word — like an inline icon next to the subtitle. The icon must be the same height as line 2 text, no larger. It should feel like it belongs in the text cluster, not floating separately.
+TEXT — upper-left corner, bold and legible:
+In the upper-left corner of the image, starting about 5% from the left edge and 6% from the top, place:
+- Line 1: "${community}" in a bold, elegant gold script or serif font. This should be clearly readable — confident and sharp, like a premium travel brand logo stamped on a photograph. Height: approximately 10–12% of the image height. It should feel authoritative but not like a billboard headline.
+- Line 2: A 3–5 word hook phrase from the article title in bold white sans-serif, immediately below line 1. Slightly smaller than line 1 — around 7–8% of image height. Add a very subtle dark semi-transparent background pill or drop shadow behind this line only so it pops against any background.
+- ONE small inline graphic (a checkmark, upward arrow, or small icon relevant to the category) placed immediately after the last word of line 2 — same height as the line 2 text, inline like punctuation.
 
-The entire text + icon cluster occupies a tight rectangle: no wider than 35% of image width, no taller than 14% of image height. Everything else in the image — the remaining 86% of height and 65% of width — is pure scene with no text or graphics whatsoever.
+The entire text block should fit within the upper-left 40% of image width and upper 25% of image height. The right 60% of the image and the lower 75% contains ZERO text — pure landmark and scene.
 
 CATEGORY GRAPHIC HINT:
 ${ctx.graphicElements}
-Use only ONE of these ideas, as a tiny inline icon next to the subtitle text. No standalone floating graphics anywhere else.
+Use only one small inline icon next to line 2. Nothing else floating in the image.
 
 ─────────────────────────────────────
 CRITICAL RULES — these override everything else:
