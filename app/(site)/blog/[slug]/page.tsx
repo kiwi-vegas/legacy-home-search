@@ -5,6 +5,7 @@ import imageUrlBuilder from '@sanity/image-url'
 import { createClient } from '@sanity/client'
 import { getBlogPost, getBlogPosts } from '@/sanity/queries'
 import PortableText from '@/components/PortableText'
+import BlogCommunityListings, { type CommunityKey } from '@/components/BlogCommunityListings'
 
 const CATEGORY_LABELS: Record<string, string> = {
   'market-update': 'Market Update',
@@ -40,6 +41,20 @@ export async function generateMetadata(
   }
 }
 
+function detectCommunities(title: string, slug: string): CommunityKey[] {
+  const text = `${title} ${slug}`.toLowerCase()
+  // Strip "Hampton Roads" (spaced or hyphenated) so "hampton" alone isn't a false-positive
+  const textNoHR = text.replace(/hampton[\s-]+roads?/gi, '')
+  const found: CommunityKey[] = []
+  if (text.includes('virginia beach') || text.includes('virginia-beach')) found.push('virginia-beach')
+  if (text.includes('chesapeake')) found.push('chesapeake')
+  if (text.includes('norfolk')) found.push('norfolk')
+  if (textNoHR.includes('hampton')) found.push('hampton')
+  if (text.includes('newport news') || text.includes('newport-news')) found.push('newport-news')
+  if (text.includes('suffolk')) found.push('suffolk')
+  return found
+}
+
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const post = await getBlogPost(slug)
@@ -59,6 +74,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     : ''
 
   const category = CATEGORY_LABELS[post.category] ?? post.category
+  const communities = detectCommunities(post.title, post.slug)
 
   return (
     <article className="blog-post">
@@ -98,6 +114,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
         )}
 
+      </div>
+
+      {/* ── COMMUNITY LISTINGS ──────────────────────────────────────── */}
+      <BlogCommunityListings communities={communities} />
+
+      <div className="container">
         {/* ── BACK LINK ───────────────────────────────────────────────── */}
         <div className="blog-post-footer">
           <a href="/blog" className="btn-outline">← Back to Blog</a>

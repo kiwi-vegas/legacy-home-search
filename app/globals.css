@@ -1,3 +1,7 @@
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Design Tokens ── */
 :root {
   --white: #ffffff;
@@ -153,6 +157,36 @@ section + section { border-top: 1px solid var(--border-light); }
 .ylopo-wrap { min-height: 400px; }
 .ylopo-note { font-size: 12px; color: var(--text-muted); margin-top: 16px; }
 .listings-actions { display: flex; justify-content: center; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+
+/* ── Blog post community listings section ── */
+.blog-listings-section {
+  background: var(--off-white);
+  border-top: 1px solid var(--border);
+  padding: 64px 24px 72px;
+  margin-top: 48px;
+}
+.blog-listings-inner { max-width: 860px; margin: 0 auto; }
+.blog-listings-header { margin-bottom: 32px; }
+.blog-listings-eyebrow {
+  display: inline-block;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 10px;
+}
+.blog-listings-title { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+.blog-listings-sub { font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.7; }
+.blog-listings-tabs {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px;
+}
+.blog-listings-tab {
+  padding: 9px 20px; border-radius: 99px; border: 1.5px solid var(--border);
+  background: #fff; color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  font-family: var(--font-sans);
+}
+.blog-listings-tab.active {
+  background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700;
+}
+.blog-listings-cta { display: flex; justify-content: center; margin-top: 28px; }
 
 /* ── Forms ── */
 .form-group { margin-bottom: 20px; }
