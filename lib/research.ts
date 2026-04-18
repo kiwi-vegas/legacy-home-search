@@ -2,54 +2,59 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { RawArticle, ScoredArticle, ArticleCategory } from './types'
 import { getSkippedUrls } from './store'
 
-const SEARCH_QUERIES = [
-  // Property values & investment — buyer/owner impact
-  'Virginia Beach real estate market news 2025',
+// These 3 queries run EVERY day — guarantees Virginia Beach content in every digest
+const PINNED_QUERIES = [
+  'Virginia Beach real estate market news 2026',
+  'Virginia Beach home prices sales market update 2026',
+  'Virginia Beach housing market trends buyers sellers 2026',
+]
+
+// These rotate — 5 slots per day cycle through the full pool
+const ROTATING_QUERIES = [
+  // Hampton Roads market
   'Hampton Roads housing market trends buyers sellers',
-  'Virginia Beach home prices forecast appreciation 2025',
   'Hampton Roads investment property rental market returns',
-  'Virginia Beach real estate market update values',
-  'Chesapeake Norfolk Virginia real estate market 2025',
+  'Chesapeake Norfolk Virginia real estate market 2026',
 
   // Law & policy changes affecting homeowners
-  'Virginia homeowner law changes 2025 property rights',
-  'Virginia property tax changes homeowners exemptions 2025',
-  'Virginia HOA law regulations changes 2025',
-  'Hampton Roads zoning development law 2025',
-  'Virginia real estate legislation buyers sellers 2025',
+  'Virginia homeowner law changes 2026 property rights',
+  'Virginia property tax changes homeowners exemptions 2026',
+  'Virginia HOA law regulations changes 2026',
+  'Hampton Roads zoning development law 2026',
+  'Virginia real estate legislation buyers sellers 2026',
 
   // Major development projects & economic growth signals
-  'Hampton Roads major development projects jobs economy 2025',
+  'Hampton Roads major development projects jobs economy 2026',
   'Virginia Beach new construction development billion dollar',
   'Hampton Roads military base expansion economy housing demand',
-  'Norfolk Newport News port development economic growth 2025',
+  'Norfolk Newport News port development economic growth 2026',
   'Virginia Beach Chesapeake new community development',
-  'Hampton Roads corporate relocation jobs economy 2025',
+  'Hampton Roads corporate relocation jobs economy 2026',
 
   // Military & relocation (key Hampton Roads driver)
   'Military relocation Hampton Roads Virginia Beach homes',
-  'PCS military move Hampton Roads housing 2025',
+  'PCS military move Hampton Roads housing 2026',
   'Norfolk Naval Station housing military families Virginia Beach',
 
   // Lifestyle & community
-  'Virginia Beach oceanfront waterfront homes market 2025',
-  'Suffolk Virginia homes community growth 2025',
-  'Virginia Beach neighborhoods schools homes 2025',
-  'Hampton Roads first time home buyer programs 2025',
-  'Virginia Beach condo townhouse market trends 2025',
+  'Virginia Beach oceanfront waterfront homes market 2026',
+  'Suffolk Virginia homes community growth 2026',
+  'Virginia Beach neighborhoods schools homes 2026',
+  'Hampton Roads first time home buyer programs 2026',
+  'Virginia Beach condo townhouse market trends 2026',
 ]
 
-// Pick 8 queries per day, rotating through the full list so all topics get covered
+// 3 pinned Virginia Beach queries run daily + 5 rotating for variety
 function getQueriesForToday(): string[] {
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
   )
-  const start = (dayOfYear * 8) % SEARCH_QUERIES.length
-  const queries: string[] = []
-  for (let i = 0; i < 8; i++) {
-    queries.push(SEARCH_QUERIES[(start + i) % SEARCH_QUERIES.length])
+  const start = (dayOfYear * 5) % ROTATING_QUERIES.length
+  const rotating: string[] = []
+  for (let i = 0; i < 5; i++) {
+    rotating.push(ROTATING_QUERIES[(start + i) % ROTATING_QUERIES.length])
   }
-  return queries
+  return [...PINNED_QUERIES, ...rotating]
 }
 
 export async function fetchAndScoreArticles(): Promise<ScoredArticle[]> {
@@ -57,7 +62,7 @@ export async function fetchAndScoreArticles(): Promise<ScoredArticle[]> {
   const tavilyApiKey = process.env.TAVILY_API_KEY
   if (!tavilyApiKey) throw new Error('TAVILY_API_KEY is not set')
 
-  // Run all 6 Tavily searches
+  // Run all 8 Tavily searches (3 pinned + 5 rotating)
   const rawArticles: RawArticle[] = []
   const seenUrls = new Set<string>()
 

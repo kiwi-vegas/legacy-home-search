@@ -13,6 +13,8 @@
  *   Sanity CDN → uploaded and referenced
  */
 
+import fs from 'fs'
+import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenAI, Modality } from '@google/genai'
 import { getSanityWriteClient } from './sanity-write'
@@ -64,6 +66,29 @@ const categoryContext: Record<string, { scene: string; graphicElements: string }
   },
 }
 
+// ─── COMMUNITY PHOTO POOLS ───────────────────────────────────────────────────
+// Drop any JPG/JPEG/PNG files into public/community-photos/[city-slug]/
+// The pipeline picks one at random — no fixed naming convention required.
+
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp'])
+
+function getRandomCommunityPhoto(community: string): Buffer | null {
+  try {
+    const slug = community.toLowerCase().replace(/\s+/g, '-')
+    const dir = path.join(process.cwd(), 'public', 'community-photos', slug)
+    if (!fs.existsSync(dir)) return null
+    const files = fs.readdirSync(dir).filter(f => IMAGE_EXTENSIONS.has(path.extname(f).toLowerCase()))
+    if (!files.length) return null
+    const chosen = files[Math.floor(Math.random() * files.length)]
+    const buf = fs.readFileSync(path.join(dir, chosen))
+    console.log(`[image-gen] Using curated photo: community-photos/${slug}/${chosen}`)
+    return buf
+  } catch (err) {
+    console.warn(`[image-gen] Could not load community photo for "${community}":`, err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 // ─── COMMUNITY DETECTION ─────────────────────────────────────────────────────
 
 function detectCommunity(title: string): string {
@@ -78,13 +103,16 @@ export async function generateAndUploadCoverImageGemini(
   article: ScoredArticle
 ): Promise<{ _type: 'reference'; _ref: string } | null> {
   try {
-    const imagePrompt = await buildImagePrompt(article)
+    const community = detectCommunity(article.title)
+    const backgroundPhoto = getRandomCommunityPhoto(community)
+
+    const imagePrompt = await buildImagePrompt(article, !!backgroundPhoto)
     if (!imagePrompt) return null
 
     console.log(`[image-gen] Prompt built. Calling Gemini 3 Pro Image Preview...`)
     console.log(`[image-gen] Prompt preview: ${imagePrompt.slice(0, 120)}...`)
 
-    const imageBuffer = await generateWithGemini(imagePrompt)
+    const imageBuffer = await generateWithGemini(imagePrompt, backgroundPhoto)
     if (!imageBuffer) return null
 
     return await uploadToSanity(imageBuffer)
@@ -96,13 +124,21 @@ export async function generateAndUploadCoverImageGemini(
 
 // ─── Step 1: Claude writes the 3-layer image prompt ─────────────────────────
 
-async function buildImagePrompt(article: ScoredArticle): Promise<string | null> {
+async function buildImagePrompt(article: ScoredArticle, hasBackgroundPhoto: boolean): Promise<string | null> {
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const community = detectCommunity(article.title)
     const ctx = categoryContext[article.category] ?? categoryContext['news']
 
-    console.log(`[image-gen] Building prompt for community: "${community}", category: "${article.category}"`)
+    console.log(`[image-gen] Building prompt for community: "${community}", category: "${article.category}", photo: ${hasBackgroundPhoto}`)
+
+    const layer1 = hasBackgroundPhoto
+      ? `LAYER 1 — BACKGROUND PHOTO ENHANCEMENT (a real photo of ${community} has been provided):
+A curated photograph of ${community} is the background — do NOT replace or reimagine the scene. Instead describe how to enhance it with warm cinematic color grading: deepen the sky, shift the light toward golden hour warmth, add subtle vibrancy to make the scene feel alive and aspirational. The photo's landmark, architecture, or scenery should remain clearly identifiable. Keep the lower 60% of the frame as-is; the upper area (sky, open space) is where the text will sit.`
+      : `LAYER 1 — CINEMATIC BACKGROUND SCENE:
+${ctx.scene}
+Use these visual anchors naturally:
+${CLIENT_CONFIG.visualAnchors}`
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -121,10 +157,7 @@ Community: ${community}
 ─────────────────────────────────────
 THE IMAGE STRUCTURE (3 layers — describe all 3):
 
-LAYER 1 — CINEMATIC BACKGROUND SCENE:
-${ctx.scene}
-Use these visual anchors naturally:
-${CLIENT_CONFIG.visualAnchors}
+${layer1}
 
 LAYER 2 — TEXT OVERLAY (REQUIRED — this is non-negotiable):
 The image MUST include two pieces of text rendered directly onto the scene:
@@ -164,18 +197,26 @@ Write the final Gemini image prompt now. 6-9 rich sentences describing all three
 
 // ─── Step 2: Gemini generates the image ──────────────────────────────────────
 // Primary: gemini-3-pro-image-preview (from claude-thumbnails skill — best quality + 16:9)
-// Fallback 1: Imagen 4.0
+// Fallback 1: Imagen 4.0 (text-only — no image input)
 // Fallback 2: Gemini 2.5 Flash Image
 
-async function generateWithGemini(prompt: string): Promise<Buffer | null> {
+async function generateWithGemini(prompt: string, backgroundPhoto: Buffer | null): Promise<Buffer | null> {
   const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY })
+
+  // Build multimodal parts: photo (if available) + text prompt
+  const userParts: any[] = backgroundPhoto
+    ? [
+        { inlineData: { data: backgroundPhoto.toString('base64'), mimeType: 'image/jpeg' } },
+        { text: `Use this photo as the photographic background. ${prompt}` },
+      ]
+    : [{ text: prompt }]
 
   // Primary: gemini-3-pro-image-preview — same model as claude-thumbnails skill
   try {
-    console.log('[image-gen] Calling gemini-3-pro-image-preview...')
+    console.log(`[image-gen] Calling gemini-3-pro-image-preview${backgroundPhoto ? ' (with background photo)' : ''}...`)
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
-      contents: prompt,
+      contents: [{ role: 'user', parts: userParts }],
       config: {
         responseModalities: [Modality.TEXT, Modality.IMAGE],
         imageConfig: { aspectRatio: '16:9' },
@@ -194,7 +235,7 @@ async function generateWithGemini(prompt: string): Promise<Buffer | null> {
     console.error('[image-gen] gemini-3-pro-image-preview error:', err instanceof Error ? err.message : err)
   }
 
-  // Fallback 1: Imagen 4.0
+  // Fallback 1: Imagen 4.0 (text-only — image input not supported)
   try {
     console.log('[image-gen] Falling back to Imagen 4.0...')
     const response = await ai.models.generateImages({
@@ -217,7 +258,7 @@ async function generateWithGemini(prompt: string): Promise<Buffer | null> {
     console.log('[image-gen] Falling back to Gemini 2.5 Flash Image...')
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: prompt,
+      contents: [{ role: 'user', parts: userParts }],
       config: { responseModalities: [Modality.IMAGE] },
     })
     const parts = response.candidates?.[0]?.content?.parts ?? []
