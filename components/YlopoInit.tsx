@@ -12,7 +12,7 @@ export default function YlopoInit() {
       isHardLoad = false
       return
     }
-    if (pathname.startsWith('/blog')) return
+    if (pathname === '/blog') return
     window.location.reload()
   }, [pathname])
 
