@@ -11,14 +11,10 @@ const communities = [
   { name: 'Newport News', slug: 'newport-news' },
 ]
 
-interface RecentPost { title: string; slug: string; category: string }
-
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileCommOpen, setMobileCommOpen] = useState(false)
-  const [mobileBlogOpen, setMobileBlogOpen] = useState(false)
-  const [recentPosts, setRecentPosts] = useState<RecentPost[]>([])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -26,12 +22,6 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => {
-    fetch('/api/blog/recent-posts')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.posts) setRecentPosts(d.posts) })
-      .catch(() => {})
-  }, [])
 
   return (
     <>
@@ -64,28 +54,7 @@ export default function Nav() {
 
             <Link href="/team" className="nav-link">Our Team</Link>
 
-            {/* Blog dropdown */}
-            <div className="nav-dropdown-wrap">
-              <button className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                Blog
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5, marginTop: 1 }}>
-                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <div className="nav-dropdown nav-dropdown--wide">
-                <div className="nav-dropdown-label">Latest Posts</div>
-                {recentPosts.map(p => (
-                  <Link key={p.slug} href={`/blog/${p.slug}`} style={{ whiteSpace: 'normal', lineHeight: 1.4 }}>
-                    {p.title}
-                  </Link>
-                ))}
-                <div style={{ borderTop: '1px solid var(--border-light)', marginTop: 6, paddingTop: 6 }}>
-                  <Link href="/blog" style={{ fontWeight: 700, color: 'var(--accent)' }}>
-                    View All Posts →
-                  </Link>
-                </div>
-              </div>
-            </div>
+            <Link href="/blog" className="nav-link">Blog</Link>
             <a href="tel:+17578164037" className="nav-link" style={{ fontWeight: 600 }}>(757) 816-4037</a>
             <Link href="/#contact" className="nav-link nav-cta">Contact Us</Link>
           </div>
@@ -135,28 +104,7 @@ export default function Nav() {
           )}
           <Link href="/team" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Our Team</Link>
 
-          {/* Mobile Blog dropdown */}
-          <button
-            onClick={() => setMobileBlogOpen(!mobileBlogOpen)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '12px 0', color: 'var(--text-secondary)', background: 'none', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit' }}
-          >
-            Blog
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5, transform: mobileBlogOpen ? 'rotate(180deg)' : 'none', transition: '0.18s' }}>
-              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          {mobileBlogOpen && (
-            <div style={{ paddingLeft: 16, borderBottom: '1px solid var(--border-light)' }}>
-              {recentPosts.map(p => (
-                <Link key={p.slug} href={`/blog/${p.slug}`} style={{ display: 'block', padding: '10px 0', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, lineHeight: 1.4 }} onClick={() => { setMobileOpen(false); setMobileBlogOpen(false) }}>
-                  {p.title}
-                </Link>
-              ))}
-              <Link href="/blog" style={{ display: 'block', padding: '10px 0', color: 'var(--accent)', textDecoration: 'none', fontSize: 14, fontWeight: 700 }} onClick={() => { setMobileOpen(false); setMobileBlogOpen(false) }}>
-                View All Posts →
-              </Link>
-            </div>
-          )}
+          <Link href="/blog" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Blog</Link>
           <Link href="/#contact" style={{ display: 'block', padding: '12px 0', color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>Contact Us</Link>
         </div>
       )}
