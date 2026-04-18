@@ -8,6 +8,15 @@ const DEFAULT_STATS = [
   { num: 5, suffix: '★', label: 'Average Rating' },
 ]
 
+// Parse a formatted stat string like "25+", "$300M+", "5★" into parts
+function parseStatValue(value: string): { prefix: string; num: number; suffix: string } | null {
+  const match = value.trim().match(/^([^\d]*)(\d+(?:\.\d+)?)(.*)$/)
+  if (!match) return null
+  const num = parseFloat(match[2])
+  if (isNaN(num)) return null
+  return { prefix: match[1], num, suffix: match[3] }
+}
+
 function CountUp({ target, prefix = '', suffix = '', duration = 1800 }: {
   target: number
   prefix?: string
@@ -51,25 +60,32 @@ function CountUp({ target, prefix = '', suffix = '', duration = 1800 }: {
 }
 
 export default function StatsBar({ cmsStats }: { cmsStats?: Array<{ value: string; label: string }> }) {
-  // If CMS has stats, render them as static text (value is already formatted e.g. "12+", "$350M+")
-  if (cmsStats && cmsStats.length > 0) {
+  const stats = cmsStats && cmsStats.length > 0 ? cmsStats : null
+
+  if (stats) {
     return (
       <div className="stats-bar">
         <div className="container">
           <div className="stats-grid">
-            {cmsStats.map((s) => (
-              <div key={s.label} className="stat-item">
-                <div className="stat-num">{s.value}</div>
-                <div className="stat-lbl">{s.label}</div>
-              </div>
-            ))}
+            {stats.map((s) => {
+              const parsed = parseStatValue(s.value)
+              return (
+                <div key={s.label} className="stat-item">
+                  {parsed ? (
+                    <CountUp target={parsed.num} prefix={parsed.prefix} suffix={parsed.suffix} />
+                  ) : (
+                    <div className="stat-num">{s.value}</div>
+                  )}
+                  <div className="stat-lbl">{s.label}</div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
     )
   }
 
-  // Fallback: hardcoded defaults with CountUp animation
   return (
     <div className="stats-bar">
       <div className="container">
