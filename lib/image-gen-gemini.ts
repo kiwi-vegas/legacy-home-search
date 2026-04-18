@@ -146,43 +146,39 @@ ${CLIENT_CONFIG.visualAnchors}`
       messages: [
         {
           role: 'user',
-          content: `You are a creative director making eye-catching blog thumbnail images for a real estate brand. Your images combine a cinematic photorealistic background with bold text overlays and graphic elements — like high-performing YouTube thumbnails and real estate marketing graphics.
+          content: `You are a creative director producing cinematic real estate photography for blog posts. The output is a PHOTOGRAPH FIRST — beautiful, landmark-rich, and immersive. Any text or graphics are small secondary accents, like a magazine's location caption. The landmark and scene must be clearly visible and take up at least 80% of the visual attention.
 
 ARTICLE:
 Title: "${article.title}"
-Angle: ${article.whyItMatters}
 Category: ${article.category}
 Community: ${community}
 
 ─────────────────────────────────────
-THE IMAGE STRUCTURE (3 layers — describe all 3):
+IMAGE STRUCTURE:
 
 ${layer1}
 
-LAYER 2 — TEXT OVERLAY (keep it tasteful and compact — no more than 20% of the image height total):
-The image includes two small but legible text elements as subtle overlays — NOT large headlines that dominate the frame:
-1. COMMUNITY NAME: The word "${community}" in elegant script or serif lettering — placed in the upper-left or upper-right corner area as a tasteful label, NOT a giant banner. Gold, cream, or white with a subtle drop shadow. It should feel like a geographic caption, not a poster headline. Size: roughly 8–10% of the image height.
-2. SHORT HOOK TEXT: A 3-5 word condensed phrase from the article title. Place it just below the community name in a clean bold sans-serif, slightly smaller than the community name. Keep both text elements together in one corner — they should occupy no more than the top 20% of the image and left/right third of the frame so the background scene remains the dominant visual.
+TEXT (small corner label — NOT a headline):
+In the upper-left corner only, include two lines of small text sitting close together:
+- Line 1: "${community}" in a tasteful script or serif font. This text should be the same visual weight as a newspaper dateline or magazine location tag — readable but NOT attention-grabbing. It should look like someone wrote a small caption on a photograph, not a billboard. Height of this text: roughly 5% of the total image height.
+- Line 2: A 3–4 word phrase from the article title in a clean sans-serif, slightly smaller than line 1.
+Both lines together should occupy a small upper-left block — no wider than 30% of the image width, no taller than 12% of the image height. The rest of the image — the other 70% of width and 88% of height — contains NO text at all.
 
-LAYER 3 — GRAPHIC ELEMENTS (subtle, small, and integrated):
+ACCENT GRAPHICS (tiny and optional):
 ${ctx.graphicElements}
-IMPORTANT: Keep graphic elements small and tasteful — they should accent the scene, not overpower it. Maximum size of any single graphic element is about 10–12% of image height. They must feel like part of the scene, not floating clipart. The background scene should always be the dominant visual — graphic elements are secondary.
+These must be small, subtle accents only — each no larger than 8% of image height. Place them in corners or edges so they never cover the landmark or main scene. If they would overlap or clutter the scene, omit them entirely.
 
 ─────────────────────────────────────
-FORMAT:
-- Wide 16:9 composition, cinematic and vibrant
-- Saturated, warm colors — golden hour light, vivid sky
-- The background scene fills the ENTIRE frame — text and graphics are small overlays in one corner, not covering the center or majority of the image
-- Photorealistic background with subtle illustrated accents
-- The viewer should see mostly the scene — the text and graphics are supporting elements only
+CRITICAL RULES — these override everything else:
+1. The landmark, architecture, or coastal scene is the HERO. A viewer's eye should go to the scene first, not the text.
+2. Text must look like a small label on a photograph — never a poster, banner, or YouTube thumbnail headline.
+3. If the text looks large, cut it in half again.
+4. Beautiful photography > everything else.
 
-HARD PROHIBITIONS:
-- NO faces — people only at distance, silhouette, or from behind
-- NO for-sale signs, keys, moving trucks, handshakes
-- NO logos, brand names, or company signage
-- NOTHING generic or stock-photo looking
+FORMAT: Wide 16:9, cinematic golden-hour lighting, rich saturated colors, photorealistic.
+NO faces close-up, no for-sale signs, no logos, no generic stock imagery.
 
-Write the final Gemini image prompt now. 6-9 rich sentences describing all three layers. Return ONLY the prompt — no labels, no preamble.`,
+Write the Gemini image generation prompt now — 5–8 sentences describing the scene and the small text placement. Return ONLY the prompt, no labels or preamble.`,
         },
       ],
     })
