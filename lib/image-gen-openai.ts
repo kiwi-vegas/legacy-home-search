@@ -127,22 +127,31 @@ async function buildPromptWithGPT4o(
   try {
     const moodDesc = MOOD_DESCRIPTIONS[mood]
 
-    const textInstruction = `You are a YouTube thumbnail designer writing a prompt for gpt-image-1 images.edit().
+    const textInstruction = `You are a professional YouTube thumbnail designer — the kind who makes thumbnails for MrBeast, Mark Rober, and top viral channels. You need to write a prompt for gpt-image-1 images.edit() that produces a HIGH-IMPACT, click-stopping thumbnail.
 
-The base image (Image 1, attached) is a photo of Barry Jenkins, a REALTOR® — a man with blonde-reddish hair, white round glasses, a short beard, and a navy three-piece suit with a blue tie. He is standing with hands in pockets, smiling.
+BASE IMAGE (Image 1, attached): Barry Jenkins, a REALTOR® — blonde-reddish hair, white round glasses, short beard, navy three-piece suit, blue tie, hands in pockets, smiling. He must remain 100% UNCHANGED — same face, expression, glasses, beard, hair, suit, pose. Do NOT alter the person even slightly.
 
-Your prompt must instruct gpt-image-1 to do THREE things:
+Write a prompt that instructs gpt-image-1 to make ALL of the following changes:
 
-1. KEEP THE PERSON IN IMAGE 1 COMPLETELY UNCHANGED. His face, eyes, expression, smile, glasses, beard, hair color, suit, tie, pocket square, pose, and body position must be 100% identical to the source photo. Do NOT alter the person in any way — not his expression, not his pose, not a single facial feature. He must look exactly like himself.
+─── TEXT (most important — make it MASSIVE) ───
+Break "${article.title}" into 2–4 short punchy lines. Each line of text must be HUGE — at least 15–20% of the total image height per line. Use a heavy bold condensed font (Impact-style). Apply these stacked effects: bright YELLOW fill on some lines, pure WHITE fill on others (alternate for contrast), THICK BLACK stroke outline (6–8px), and a hard dark drop shadow offset diagonally. Key words (numbers, adjectives like "SHOCKING" or "RECORD") should be even larger than surrounding lines. Position the entire text block on the LEFT half of the image — filling it top to bottom.
 
-2. REPLACE the background (the office with city windows) with: ${bgPhoto
-      ? `the scene visible in Image 2 (attached — the community background photo). Describe that specific scene in vivid detail in the prompt: the landscape, sky, time of day, lighting, colors, any recognizable landmarks or features you see.`
-      : `a photorealistic ${community}, Virginia scene — waterfront boardwalk, coastal neighborhood, or local landmark at golden hour, with warm light and an authentic Hampton Roads feel.`
-    } The background atmosphere should feel: ${moodDesc}.
+─── BARRY'S PLACEMENT ───
+Barry stays on the RIGHT side. Crop him from approximately chest/waist upward so his face and upper body fill the right half vertically — he should feel CLOSE and LARGE in the frame. Add a subtle rim light or edge glow around him so he pops off the background.
 
-3. ADD bold MrBeast-style text overlay on the LEFT half of the frame (the person stays on the RIGHT). The text is the article headline broken into 2–3 short punchy lines. Use bright yellow and white lettering with a thick dark drop-shadow outline. Headline: "${article.title}". Make the text large, readable, and high-contrast.
+─── BACKGROUND ───
+${bgPhoto
+  ? `Replace the office background with the scene from Image 2 (describe it in vivid detail — the specific landscape, colors, time of day, sky, landmarks you can see in the photo). `
+  : `Replace the office background with a dramatic ${community}, Virginia scene — waterfront, boardwalk, or landmark at golden hour. `
+}Make it atmospheric: slightly darken the edges and the area behind the text so the text is always readable. Add subtle bokeh blur or light rays behind Barry for depth. The overall mood should feel: ${moodDesc}.
 
-Write the complete images.edit() prompt now. One paragraph, no headers, no labels. Lead with the instruction to keep the person unchanged.`
+─── GRAPHIC ACCENTS (include at least one) ───
+Choose whichever fits: a bold colored stripe or semi-transparent box behind part of the text; a large arrow graphic pointing toward the headline; a chunky badge or label (e.g. "2026" or "MUST READ"); or a bright neon edge highlight around Barry.
+
+─── OVERALL FEEL ───
+The result must look like a professional designed it in Photoshop specifically to go viral on YouTube — not a stock photo, not a corporate design. Every element should compete for attention. Maximum visual energy.
+
+Write the complete images.edit() prompt now. 4–6 sentences, specific and detailed. Lead with the instruction to keep Barry unchanged.`
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [
       {

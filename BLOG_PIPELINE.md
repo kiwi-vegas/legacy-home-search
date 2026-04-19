@@ -65,37 +65,9 @@ The dashboard includes a static benchmark reference table comparing the operatio
 
 ## Thumbnail Review & Management
 
+See **[THUMBNAIL.md](./THUMBNAIL.md)** for the full thumbnail pipeline — design goals, prompt strategy, mood system, community photos, admin workflow, and iteration history.
+
 **URL:** `/admin/thumbnail-review?secret=ADMIN_SECRET`
-
-A card-based UI showing every blog post that is **missing a cover image**. Each card supports:
-
-### Per-card actions
-
-**Generate AI Thumbnail**
-1. Click **Generate Thumbnail** — calls `POST /api/blog/generate-thumbnail`
-2. Gemini generates a 16:9 image using the 3-layer thumbnail psychology (see Image Generation Pipeline below)
-3. Thumbnail preview appears on the card (~30–60 seconds)
-4. Click **✓ Approve & Apply** — saves to Sanity and goes live immediately
-5. Click **✕ Reject** — shows feedback textarea
-   - Type feedback (e.g., "More blue tones, Chesapeake waterfront, no arrow graphics")
-   - Click **Regenerate with Feedback** (or ⌘↵) — feedback is injected into the image prompt
-   - Repeat until satisfied, then Approve & Apply
-
-**Upload Your Own Image**
-1. Click **Upload Your Own** (from idle state) — opens file picker
-2. Select any image file — uploads directly to Sanity CDN via `POST /api/blog/upload-thumbnail`
-3. Your image appears as the preview
-4. Approve & Apply to set it live, or click **↑ Replace with your own** to swap it again
-
-### Batch generation
-The **Generate All N Missing** button at the top runs AI generation for all idle cards sequentially (one at a time to avoid API rate limits). Each card transitions through generating → review states as it completes.
-
-### How feedback is injected
-The `feedback` text is appended to the `whyItMatters` field of the `ScoredArticle` passed to Gemini's prompt builder:
-```
-REVISION FEEDBACK: {feedback}. Please adjust the image concept to address this specific feedback.
-```
-This ensures Gemini incorporates the specific feedback without overriding the category/community context.
 
 ---
 
@@ -233,75 +205,14 @@ Claude gives extra weight to these high-value topics:
 
 ## Image Generation Pipeline
 
-### Primary: Gemini 3 Pro Image Preview (requires `GOOGLE_API_KEY`)
+See **[THUMBNAIL.md](./THUMBNAIL.md)** for the full pipeline — Barry Jenkins thumbnail system, GPT-4o prompt strategy, community photos, and fallback chain.
 
-Every hero image is built using **3-step thumbnail psychology**:
-
-1. **Visual Stun Gun** — The image stops the scroll. Would someone slow their thumb for this?
-2. **Title Value Hunt** — After stopping, the reader scans the headline. The image makes it feel MORE urgent and relevant.
-3. **Visual Validation** — The reader returns to the image to confirm the article is worth reading.
-
-**Step 1 — Pick community background photo (if available)**
-`getRandomCommunityPhoto()` in `lib/image-gen-gemini.ts` checks `public/community-photos/[city-slug]/` for any image files (JPG, JPEG, PNG, WEBP). If photos exist for that community, one is selected at random and passed to Gemini as the background. If no photos exist, Gemini generates the background from scratch.
-
-**Step 2 — Claude builds the 3-layer prompt**
-Claude Sonnet analyzes the article's title, `whyItMatters`, and category, then writes a prompt covering:
-- **Layer 1** — Background scene: if a real photo was picked, instructs Gemini to enhance it with cinematic color grading (golden hour warmth, deeper sky, vibrancy) without altering the scene. If no photo, instructs Gemini to generate a Hampton Roads scene from the visual anchors below.
-- **Layer 2** — Text overlay (required): community name in large script/serif lettering in the upper portion; 3–5 word hook text below it in bold sans-serif
-- **Layer 3** — Graphic elements (required): category-specific icons — arrows, dollar signs, charts for market-update; checkmarks/stars for buying-tips; etc.
-
-**Hampton Roads visual anchors (used when no background photo is provided):**
-- Virginia Beach oceanfront at golden hour — warmth, lifestyle, aspiration
-- Chesapeake Bay with tidal marshes — depth, permanence, natural wealth
-- Norfolk waterfront skyline at dusk — economic momentum, urban energy
-- Colonial or craftsman homes on tree-lined streets — community, stability, roots
-- Port of Virginia cranes — economic scale, growth, jobs
-- Naval vessels in the distance — military community, Hampton Roads identity
-- Aerial neighborhoods — scale, growth, investment opportunity
-
-**Step 3 — Gemini generates the image**
-`gemini-3-pro-image-preview`, 16:9. When a background photo is provided, it is passed as an inline image alongside the prompt so Gemini uses it as the photographic base and composites text/graphics on top. Output: base64 PNG.
-
-**Step 4 — Upload to Sanity CDN** — stored as `google-ai-cover-{timestamp}.png`
-
-### Fallback Chain (if Gemini fails)
-
-5. **Imagen 4.0** (`imagen-4.0-generate-001`) — text prompt only (no image input), 16:9
-6. **Gemini 2.5 Flash Image** (`gemini-2.5-flash-image`) — same multimodal input as primary
-7. **DALL-E 3** (requires `OPENAI_API_KEY`) — 1792×1024 HD
-8. **OG image** scraped from the source article URL
-9. **Unsplash API** (requires `UNSPLASH_ACCESS_KEY`) — category-matched query
-10. **Fallback image pool** — pre-curated Unsplash URLs per category, deterministic pick by article URL hash
-
----
-
-## Community Photo Pools
-
-Curated landmark photos are stored in `public/community-photos/[city-slug]/` and used as the background layer for thumbnails. This ensures each community has a distinctive, real-world look instead of AI-generated scenes that can look similar across cities.
-
-### Folder structure
-```
-public/community-photos/
-  virginia-beach/     ← photos (any JPG/JPEG/PNG/WEBP, any filename)
-  chesapeake/         ← 5 cinematic photos
-  norfolk/            ← 5 cinematic photos
-  suffolk/            ← 5 cinematic photos
-  hampton/            ← 5 cinematic photos
-  newport-news/       ← 5 cinematic photos
-```
-
-### How to add or replace photos
-1. Drop any JPG, JPEG, PNG, or WEBP file into the community's folder — no fixed naming required
-2. Push to main and Vercel redeploys automatically
-3. The pipeline picks a random file from the folder at generation time
-
-### Photo preparation guidelines
-- **Crop**: 16:9 landscape, 1920×1080 minimum (2560×1440 ideal)
-- **Composition**: Scene anchored in lower 60–70% of frame — leave upper area (sky, open space) clear for text overlay
-- **Lighting**: Golden hour or blue hour preferred — warm, vibrant, not flat/overcast
-- **Color**: Bump warmth/temperature slightly, increase vibrance (not full saturation)
-- **Upper area**: If busy, apply a graduated filter to darken the top 30–40% so text reads clearly over it
-- **Vignette**: Gentle darkened edges help focus the eye inward
+### Fallback chain summary
+1. **OpenAI gpt-image-1** via `images.edit()` — Barry's photo as base, GPT-4o writes the design prompt (primary)
+2. **Gemini** — community background scenes (fallback)
+3. **OG image** scraped from article URL
+4. **Unsplash API** (requires `UNSPLASH_ACCESS_KEY`)
+5. **Fallback image pool** — pre-curated Unsplash URLs, deterministic pick by article URL hash
 
 ---
 
