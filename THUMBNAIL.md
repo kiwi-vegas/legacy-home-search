@@ -22,30 +22,62 @@ Look at the best YouTube thumbnails:
 
 ---
 
+## The Non-Negotiable Rule
+
+**AI never generates background images. Ever.**
+
+Every thumbnail background must come from a real photo in `public/community-photos/`. If no photo is available, the pipeline returns null and no thumbnail is generated. The pipeline will never substitute an AI-generated scene.
+
+The ONLY thing AI does is add text and graphic elements on top of the real photo.
+
+---
+
 ## Pipeline
 
 ```
 Article title + category
   └─ detectCommunity()    → Virginia Beach / Chesapeake / Norfolk / Suffolk / Hampton / Newport News
   └─ detectMood()         → shocked / exciting-positive / investment / negative / selling / buying / community / neutral
-  └─ getBarryPhoto()      → public/Barry-AI.jpg (ALWAYS — this is non-negotiable)
-  └─ getRandomCommunityPhoto(community) → public/community-photos/[slug]/ (picks random file)
 
-GPT-4o vision (buildPromptWithGPT4o)
-  └─ Sees: Barry's photo + community bg photo + article headline + mood
-  └─ Writes: images.edit() prompt specifying exact visual design treatment
-  └─ Key instruction: KEEP Barry 100% unchanged, only edit background + add text/graphics
+STEP 1 — Load community background photo (REQUIRED)
+  └─ getRequiredCommunityPhoto(community)
+       └─ Looks in public/community-photos/[city-slug]/
+       └─ Falls back to Virginia Beach folder if specific city has no photos
+       └─ Returns null (abort) if NO photos found anywhere — NEVER generates AI background
 
-gpt-image-1 images.edit()
-  └─ Barry's photo is the BASE — his face is real, always
-  └─ Edits background, adds massive text overlays, adds graphic accents
-  └─ Size: 1536×1024 (16:9)
-  └─ Fallback: images.generate() text-only if edit fails
+STEP 2 — Resize to thumbnail canvas
+  └─ sharp → resize community photo to 1536×1024 (cover, center crop)
 
-Sanity CDN
-  └─ Uploaded as openai-cover-{timestamp}.png
-  └─ Returned as Sanity image reference
+STEP 3 — GPT-4o writes the text+graphics prompt
+  └─ Sees: the real community photo (resized) + article headline + mood
+  └─ Writes: an images.edit() prompt that says:
+       "Do not alter the background. Add massive text LEFT side only. Add graphic accent."
+  └─ AI is instructed to ONLY touch the left side text area — right side is reserved for Barry
+
+STEP 4 — gpt-image-1 images.edit()
+  └─ Input: the real community photo (resized)
+  └─ Output: same photo with YouTube-style text and graphic elements added to the LEFT side
+  └─ Background scene is preserved as-is
+
+STEP 5 — sharp.composite() — Barry's exact pixels on the right side
+  └─ Loads public/Barry-AI-transparent.png (Barry with background removed)
+  └─ Resizes to 710×1024 (cover, top-crop) — zooms to chest/face, crops feet
+  └─ Composites on the RIGHT side at pixel level — zero AI involvement with his face
+  └─ Barry's face is 100% original pixels from Barry-AI.jpg
+
+STEP 6 — Upload to Sanity CDN
+  └─ Saved as openai-cover-{timestamp}.png
+  └─ Returns Sanity image reference
 ```
+
+### What AI touches vs. what it never touches
+
+| Element | Who handles it | AI involvement |
+|---|---|---|
+| Community background | `sharp` (our photo) | ❌ Never |
+| Barry's face/body | `sharp` (our transparent PNG) | ❌ Never |
+| Headline text + effects | `gpt-image-1 images.edit()` | ✅ AI only |
+| Graphic accents | `gpt-image-1 images.edit()` | ✅ AI only |
 
 ---
 
