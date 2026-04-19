@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { fetchAndUploadCoverImage } from '@/lib/images'
 import type { ArticleCategory, ScoredArticle } from '@/lib/types'
 
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(request: Request) {
   try {
