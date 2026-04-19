@@ -11,8 +11,6 @@ const UNSPLASH_CATEGORY_QUERIES: Record<ArticleCategory, string> = {
   news: 'city skyline real estate',
 }
 
-// Fallback image pools — multiple options per category so same-category posts
-// never share an image. Selection is deterministic based on article URL.
 const FALLBACK_IMAGE_POOLS: Record<ArticleCategory, string[]> = {
   'market-update': [
     'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=80',
@@ -58,8 +56,6 @@ const FALLBACK_IMAGE_POOLS: Record<ArticleCategory, string[]> = {
   ],
 }
 
-// Pick a fallback deterministically by hashing the article URL — same article
-// always gets the same image, but different articles get different ones.
 function pickFallback(category: ArticleCategory, articleUrl: string): string {
   const pool = FALLBACK_IMAGE_POOLS[category]
   let hash = 0
@@ -115,8 +111,6 @@ async function uploadImageToSanity(
     if (!res.ok) return null
 
     const contentType = res.headers.get('content-type') ?? 'image/jpeg'
-
-    // Reject non-image content types (e.g. HTML redirect pages)
     if (!contentType.startsWith('image/')) return null
 
     const buffer = Buffer.from(await res.arrayBuffer())
@@ -127,8 +121,6 @@ async function uploadImageToSanity(
       contentType,
     })
 
-    // Sanity encodes dimensions in the asset _id: image-{hash}-{W}x{H}-{ext}
-    // Reject tracking pixels and tiny images (< 200px on either dimension)
     const dimMatch = asset._id.match(/-(\d+)x(\d+)-/)
     if (dimMatch) {
       const w = parseInt(dimMatch[1], 10)
@@ -146,29 +138,33 @@ export async function fetchAndUploadCoverImage(
   articleUrl: string,
   category: ArticleCategory,
   article?: import('./types').ScoredArticle
-): Promise<{ _type: 'reference'; _ref: string } | null> {
-  // 1. OpenAI gpt-image-1 (primary — Barry Jenkins in every thumbnail)
+): Promise<{
+  coverImage: { _type: 'reference'; _ref: string } | null
+  heroBannerImage: { _type: 'reference'; _ref: string } | null
+}> {
+  // 1. OpenAI gpt-image-1 (primary — generates both cover and hero banner)
   if (article && process.env.OPENAI_API_KEY) {
-    console.log(`[images] Generating Barry thumbnail via OpenAI for: "${article.title.slice(0, 60)}"`)
-    const { generateAndUploadCoverImageOpenAI } = await import('./image-gen-openai')
-    const ref = await generateAndUploadCoverImageOpenAI(article)
-    if (ref) {
-      console.log(`[images] OpenAI image generated and uploaded: ${ref._ref}`)
-      return ref
+    console.log(`[images] Generating Barry thumbnail + hero banner via OpenAI for: "${article.title.slice(0, 60)}"`)
+    const { generateAndUploadBothImages } = await import('./image-gen-openai')
+    const { coverImage, heroBannerImage } = await generateAndUploadBothImages(article)
+    if (coverImage !== null || heroBannerImage !== null) {
+      console.log(`[images] OpenAI images generated — cover: ${coverImage?._ref ?? 'null'}, banner: ${heroBannerImage?._ref ?? 'null'}`)
+      return { coverImage, heroBannerImage }
     }
-    console.warn('[images] OpenAI image generation failed — trying Gemini fallback')
+    console.warn('[images] OpenAI image generation failed entirely — trying Gemini fallback')
   } else if (!process.env.OPENAI_API_KEY) {
     console.warn('[images] OPENAI_API_KEY not set — skipping OpenAI image generation')
   }
 
-  // 2. Google Gemini (fallback)
+  // For all non-OpenAI paths, heroBannerImage stays null
+  // 2. Google Gemini (fallback — cover only)
   if (article && process.env.GOOGLE_API_KEY) {
     console.log(`[images] Trying Gemini fallback for: "${article.title.slice(0, 60)}"`)
     const { generateAndUploadCoverImageGemini } = await import('./image-gen-gemini')
     const ref = await generateAndUploadCoverImageGemini(article)
     if (ref) {
       console.log(`[images] Gemini image generated and uploaded: ${ref._ref}`)
-      return ref
+      return { coverImage: ref, heroBannerImage: null }
     }
     console.warn('[images] Gemini failed — falling back to OG image')
   }
@@ -178,20 +174,20 @@ export async function fetchAndUploadCoverImage(
   const ogUrl = await fetchOgImage(articleUrl)
   if (ogUrl) {
     const ref = await uploadImageToSanity(ogUrl)
-    if (ref) return ref
+    if (ref) return { coverImage: ref, heroBannerImage: null }
   }
 
   // 4. Unsplash API (if key is set)
   const unsplashUrl = await fetchUnsplashImage(category)
   if (unsplashUrl) {
     const ref = await uploadImageToSanity(unsplashUrl)
-    if (ref) return ref
+    if (ref) return { coverImage: ref, heroBannerImage: null }
   }
 
-  // 5. Fallback pool — deterministic pick based on article URL (always unique across same-day posts)
+  // 5. Fallback pool — deterministic pick based on article URL
   const fallbackUrl = pickFallback(category, articleUrl)
   const ref = await uploadImageToSanity(fallbackUrl)
-  if (ref) return ref
+  if (ref) return { coverImage: ref, heroBannerImage: null }
 
-  return null
+  return { coverImage: null, heroBannerImage: null }
 }

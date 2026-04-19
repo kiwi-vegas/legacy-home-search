@@ -1,25 +1,26 @@
 /**
- * Barry Jenkins Thumbnail Generator — Responses API + Sharp Compositing Pipeline
+ * Barry Jenkins Thumbnail Generator — Sharp Compositing Pipeline
  *
  * Pipeline:
  *   1. Load community photo from public/community-photos/[slug]/  (REQUIRED)
  *      → If no photo found, return null — never generate an AI background
  *   2. sharp → resize community photo to 1536×1024
- *   3. GPT-4o vision → writes a thumbnail design prompt
+ *   3. GPT-4o vision → writes a tight images.edit() prompt
  *      (sees the real community photo + headline + mood)
- *   4. Responses API (openai.responses.create) → generates thumbnail
- *      community photo is passed as input_image reference — the output
- *      looks like the community scene with text overlays on the left.
- *      Barry is NOT an input here (avoids generating a different person).
- *   5. sharp.composite() → Barry's transparent PNG stamped on the right side.
+ *      → Instructs AI to ONLY add text to the LEFT half — never touch the background or right side
+ *   4. images.edit() → adds YouTube-style text overlays to the LEFT half ONLY
+ *      → Background is preserved as-is (edit mode, not generation mode)
+ *      → Right half is explicitly off-limits
+ *   5. sharp.composite() → Barry's transparent PNG stamped pixel-exact on the right side
  *      Barry's face is 100% original pixels — zero AI manipulation.
  *   6. Sanity CDN → uploaded and referenced
  *
- * This matches exactly what the user does manually in ChatGPT:
- *   upload community photo + ask for thumbnail → Responses API uses it as scene reference
- *   Barry is composited separately so his face is always pixel-exact.
+ * Why images.edit() and NOT the Responses API:
+ *   The Responses API treats the community photo as a STYLE REFERENCE and generates
+ *   a new background that "looks like" the scene. images.edit() treats it as a CANVAS
+ *   and modifies only what the prompt requests — preserving the real landmark photo.
  *
- * Fallback (if Responses API returns no image):
+ * Fallback (if images.edit() fails):
  *   → images.generate() text-only using the same prompt
  */
 
@@ -50,9 +51,13 @@ const FALLBACK_COMMUNITY = 'Virginia Beach'
 
 function detectCommunity(title: string): string {
   const lower = title.toLowerCase()
+  // Strip "hampton roads" before checking "hampton" to avoid false positives
+  const stripped = lower.replace(/hampton roads/g, '')
   for (const c of COMMUNITIES) {
-    if (lower.includes(c.toLowerCase())) return c
+    if (stripped.includes(c.toLowerCase())) return c
   }
+  // If "hampton roads" was in the title (a regional/general post), use Hampton Roads folder
+  if (lower.includes('hampton roads')) return 'Hampton Roads'
   return FALLBACK_COMMUNITY
 }
 
@@ -101,15 +106,15 @@ type ThumbnailMood =
   | 'community'
   | 'neutral'
 
-const MOOD_DESCRIPTIONS: Record<ThumbnailMood, string> = {
-  'shocked':           'urgent, jaw-dropping — red/yellow text, intense dramatic feel',
-  'exciting-positive': 'celebratory, high-energy — bold yellow text, bright vibrant feel',
-  'investment':        'confident, premium — white/gold text, cinematic warmth',
-  'negative':          'serious, cautionary — white/blue text, slightly cooler tones',
-  'selling':           'action-oriented, motivating — bold green/white text',
-  'buying':            'welcoming, optimistic — warm blue/white text',
-  'community':         'warm, local pride — orange/white, inviting neighborhood feel',
-  'neutral':           'clean, professional — bold white + yellow, strong contrast',
+const MOOD_STYLES: Record<ThumbnailMood, { textColors: string; accent: string; atmosphere: string }> = {
+  'shocked':           { textColors: 'bright RED on line 1, bright YELLOW on line 2', accent: 'bold red badge or "BREAKING" banner', atmosphere: 'darken the background slightly for urgency' },
+  'exciting-positive': { textColors: 'bright YELLOW on line 1, pure WHITE on line 2', accent: 'upward arrow or gold star burst', atmosphere: 'warm golden glow behind the text area' },
+  'investment':        { textColors: 'pure WHITE on line 1, bright GOLD (#FFD700) on line 2', accent: 'premium gold banner or dollar badge', atmosphere: 'subtle cinematic warm vignette' },
+  'negative':          { textColors: 'pure WHITE on line 1, light BLUE on line 2', accent: 'downward arrow or cautionary stripe', atmosphere: 'slightly cooler/darker tone over background' },
+  'selling':           { textColors: 'bright GREEN on line 1, pure WHITE on line 2', accent: 'bold green stripe behind text', atmosphere: 'slight warm overlay' },
+  'buying':            { textColors: 'pure WHITE on line 1, sky BLUE on line 2', accent: 'blue banner or house icon badge', atmosphere: 'clean bright feel, minimal darkening' },
+  'community':         { textColors: 'warm ORANGE on line 1, pure WHITE on line 2', accent: 'location pin or neighborhood badge', atmosphere: 'warm inviting glow, minimal darkening' },
+  'neutral':           { textColors: 'bright YELLOW on line 1, pure WHITE on line 2', accent: 'bold horizontal stripe behind text block', atmosphere: 'subtle dark vignette behind text only' },
 }
 
 function detectMood(title: string, category: string): ThumbnailMood {
@@ -135,10 +140,10 @@ async function resizeCommunityPhoto(buffer: Buffer): Promise<Buffer> {
     .toBuffer()
 }
 
-// ─── STEP 3: GPT-4o writes the thumbnail design prompt ───────────────────────
-// GPT-4o sees the real community photo and writes a Responses API prompt.
-// The prompt asks the model to use the community photo as the scene reference
-// and generate text overlays on the left — leaving the right side for Barry.
+// ─── STEP 3: GPT-4o writes the images.edit() prompt ─────────────────────────
+// GPT-4o sees the real community photo and writes a tight, focused prompt.
+// The prompt tells images.edit() EXACTLY what to add and EXACTLY what NOT to touch.
+// Key: we ask for text ONLY — no background changes, no people, no right side touches.
 
 async function buildPromptWithGPT4o(
   openai: OpenAI,
@@ -148,26 +153,36 @@ async function buildPromptWithGPT4o(
   communityPhoto: Buffer
 ): Promise<string | null> {
   try {
-    const moodDesc = MOOD_DESCRIPTIONS[mood]
+    const style = MOOD_STYLES[mood]
 
-    const textInstruction = `You are a professional YouTube thumbnail designer. The attached image is a real photo of ${community}, Virginia. It will be used as the background scene reference for a YouTube thumbnail (1536×1024px).
+    const instruction = `You are a YouTube thumbnail text designer. The attached image is the EXACT background photo that will be used as-is for a real estate blog thumbnail (1536×1024px). Your job is to write a prompt for an image editing AI (images.edit) that adds text overlays ONLY — nothing else changes.
 
-Write a single prompt for gpt-image-1 to generate a complete thumbnail that:
+STRICT ZONE RULES:
+- LEFT HALF ONLY (pixels 0–768 wide): This is where all text and graphic accents go.
+- RIGHT HALF (pixels 769–1536): COMPLETELY OFF-LIMITS. No text, no graphics, no alterations of any kind. A person will be composited here separately.
+- TOP 55% ONLY (top 563px tall): All elements must fit within this band. Nothing below this line will be visible in the published hero image.
+- DO NOT ALTER THE BACKGROUND — not the colors, not the scene, not the lighting. The photo stays exactly as-is.
+- DO NOT ADD ANY PEOPLE, faces, silhouettes, or figures.
 
-1. USES THE COMMUNITY PHOTO (Image 1) as the visual reference for the background scene. The generated background should look like this specific community — match the location, colors, sky, atmosphere, and any recognizable landmarks or features visible in the photo.
+TEXT REQUIREMENTS (non-negotiable):
+- Break the headline into 2 lines MAX (3 lines absolute maximum if unavoidable)
+- Each line: ~100–120px tall (roughly 10–12% of image height) — this must look MASSIVE
+- Font style: bold, condensed, Impact or Bebas Neue style — NO thin or script fonts
+- Line 1 color: ${style.textColors.split(',')[0].trim()}
+- Line 2 color: ${style.textColors.split(',')[1]?.trim() ?? 'pure WHITE'}
+- Text stroke: thick BLACK outline, 6–8px, on every letter
+- Drop shadow: hard black, 4–5px offset, no blur
+- Anchor position: TOP-LEFT corner of the left half — text starts near the top
 
-2. ADDS BOLD TEXT on the LEFT half of the image only. Break the headline into 2–3 short punchy word-chunks MAXIMUM. Each line should be 9–12% of the image height (about 90–120px tall). Use a heavy condensed display font (Impact / Bebas Neue style). Apply layered effects: bright YELLOW fill on main lines, pure WHITE fill on secondary lines, THICK BLACK stroke outline (6–8px), hard offset drop shadow. Add a dark semi-transparent overlay behind the text area so it reads clearly over the background.
+GRAPHIC ACCENT (required — exactly one):
+- ${style.accent}
+- Must be in the LEFT half, within the top 55% of the image height
+- ${style.atmosphere}
 
-3. KEEPS THE RIGHT HALF CLEAN — a real person (Barry Jenkins, a REALTOR®) will be composited onto the right side separately. Design the right side as clean background only — no text, no graphics, just the community scene continuing naturally.
+Article headline to display: "${article.title}"
+Community: ${community}, Virginia
 
-4. ADDS ONE graphic accent near the text — a bold badge, colored banner, or arrow — within the top 50% of the image.
-
-IMPORTANT SIZING CONSTRAINT: All text and graphics must stay within the TOP 55% of the image (top 563px). The thumbnail is displayed cropped at the top in the blog hero — nothing below that line will be visible.
-
-Article headline: "${article.title}"
-Mood/energy: ${moodDesc}
-
-Write the complete gpt-image-1 prompt now. One focused paragraph, no headers.`
+Now write the complete images.edit() prompt. Be specific and direct. One paragraph, no headers, no bullet points.`
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [
       {
@@ -177,17 +192,17 @@ Write the complete gpt-image-1 prompt now. One focused paragraph, no headers.`
           detail: 'high',
         },
       },
-      { type: 'text', text: textInstruction },
+      { type: 'text', text: instruction },
     ]
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      max_tokens: 700,
+      max_tokens: 600,
       messages: [{ role: 'user', content }],
     })
 
     const prompt = completion.choices[0]?.message?.content?.trim() ?? null
-    if (prompt) console.log(`[image-gen-openai] GPT-4o prompt: ${prompt.slice(0, 150)}...`)
+    if (prompt) console.log(`[image-gen-openai] GPT-4o prompt (first 200 chars): ${prompt.slice(0, 200)}...`)
     return prompt
   } catch (err) {
     console.error('[image-gen-openai] GPT-4o prompt error:', err instanceof Error ? err.message : err)
@@ -195,46 +210,42 @@ Write the complete gpt-image-1 prompt now. One focused paragraph, no headers.`
   }
 }
 
-// ─── STEP 4: Responses API — generate thumbnail using community photo as reference
-// This matches what ChatGPT does when you upload a background photo:
-// the community photo is passed as input_image and the model generates a
-// fresh composition that looks like that community scene.
-// Barry is NOT passed here — he's composited afterward via sharp.
+// ─── STEP 4: images.edit() — add text to community photo canvas ───────────────
+// images.edit() modifies the existing photo rather than generating a new scene.
+// This is the correct API for preserving the real community background.
 
-async function generateWithResponsesAPI(
+async function generateWithImagesEdit(
   openai: OpenAI,
   communityPhotoBuffer: Buffer,
   prompt: string
 ): Promise<Buffer | null> {
   try {
-    console.log('[image-gen-openai] Calling gpt-image-1 via Responses API (community photo as scene reference)...')
+    console.log('[image-gen-openai] Calling gpt-image-1 via images.edit() (preserves real community photo)...')
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await (openai as any).responses.create({
+    // images.edit() requires a PNG, so convert if needed
+    const sharp = (await import('sharp')).default
+    const pngBuffer = await sharp(communityPhotoBuffer).png().toBuffer()
+
+    const { toFile } = await import('openai')
+    const imageFile = await toFile(pngBuffer, 'community-background.png', { type: 'image/png' })
+
+    const response = await openai.images.edit({
       model: 'gpt-image-1',
-      input: [{
-        role: 'user',
-        content: [
-          {
-            type: 'input_image',
-            image_url: `data:image/jpeg;base64,${communityPhotoBuffer.toString('base64')}`,
-          },
-          { type: 'input_text', text: prompt },
-        ],
-      }],
+      image: imageFile,
+      prompt: `IMPORTANT: Do NOT alter the background scene in any way. Do NOT change colors, lighting, or composition. Do NOT add any people or figures. Only add the following text and graphic elements to the LEFT HALF of the image within the top 55% of the frame:\n\n${prompt}`,
+      n: 1,
+      size: '1536x1024',
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const item of (response?.output ?? []) as any[]) {
-      if (item?.type === 'image_generation_call' && item?.result) {
-        const buf = Buffer.from(item.result as string, 'base64')
-        console.log(`[image-gen-openai] Responses API SUCCESS — ${Math.round(buf.length / 1024)}KB`)
-        return buf
-      }
+    const b64 = response.data?.[0]?.b64_json
+    if (b64) {
+      const buf = Buffer.from(b64, 'base64')
+      console.log(`[image-gen-openai] images.edit() SUCCESS — ${Math.round(buf.length / 1024)}KB`)
+      return buf
     }
-    console.warn('[image-gen-openai] Responses API returned no image — falling back to text-only generate')
+    console.warn('[image-gen-openai] images.edit() returned no image — falling back to images.generate()')
   } catch (err) {
-    console.error('[image-gen-openai] Responses API error:', err instanceof Error ? err.message : err)
+    console.error('[image-gen-openai] images.edit() error:', err instanceof Error ? err.message : err)
   }
   return null
 }
@@ -332,14 +343,14 @@ export async function generateAndUploadCoverImageOpenAI(
     // Resize to thumbnail canvas
     const communityCanvas = await resizeCommunityPhoto(photoResult.buffer)
 
-    // GPT-4o writes the thumbnail design prompt (sees the actual community photo)
+    // GPT-4o writes the tight images.edit() prompt (sees the actual community photo)
     const thumbnailPrompt = await buildPromptWithGPT4o(
       openai, article, photoResult.community, mood, communityCanvas
     )
     if (!thumbnailPrompt) return null
 
-    // Responses API: community photo as scene reference → generates community-matching background + text
-    const generated = await generateWithResponsesAPI(openai, communityCanvas, thumbnailPrompt)
+    // images.edit(): preserves real community photo, adds text to left half only
+    const generated = await generateWithImagesEdit(openai, communityCanvas, thumbnailPrompt)
       ?? await generateTextOnly(openai, thumbnailPrompt)
     if (!generated) return null
 
@@ -360,4 +371,204 @@ export async function generateAndUploadCoverImageOpenAI(
     console.error('[image-gen-openai] Uncaught error:', err instanceof Error ? err.message : err)
     return null
   }
+}
+
+// ─── HERO BANNER: GPT-4o PROMPT BUILDER ──────────────────────────────────────
+// Canvas: 1920×480 (4:1 ratio — very wide, short)
+// LEFT 60% (0–1152px): text zone. RIGHT 40% (1152–1920px): off-limits (Barry composited separately).
+
+async function generateHeroBannerPrompt(
+  openai: OpenAI,
+  article: ScoredArticle,
+  community: string,
+  mood: ThumbnailMood,
+  communityPhoto: Buffer
+): Promise<string | null> {
+  try {
+    const style = MOOD_STYLES[mood]
+
+    const instruction = `You are a YouTube banner text designer. The attached image is the EXACT background photo that will be used as-is for a real estate blog hero banner (1920×480px — very wide and short, 4:1 aspect ratio). Your job is to write a prompt for an image editing AI (images.edit) that adds text overlays ONLY — nothing else changes.
+
+STRICT ZONE RULES:
+- LEFT 60% ONLY (pixels 0–1152 wide): This is where all text and graphic accents go.
+- RIGHT 40% (pixels 1152–1920): COMPLETELY OFF-LIMITS. No text, no graphics, no alterations of any kind. A person (Barry) will be composited here separately.
+- TOP 80% ONLY (top 384px tall of the 480px height): All elements must fit within this band. Nothing below this line.
+- DO NOT ALTER THE BACKGROUND — not the colors, not the scene, not the lighting. The photo stays exactly as-is.
+- DO NOT ADD ANY PEOPLE, faces, silhouettes, or figures.
+
+TEXT REQUIREMENTS (non-negotiable):
+- Break the headline into 2 lines MAX (this is a short banner — keep it tight)
+- Each line: ~60–70px tall (roughly 13–15% of 480px image height) — text must be SMALL relative to this short banner
+- Font style: bold, condensed, Impact or Bebas Neue style — NO thin or script fonts
+- Line 1 color: ${style.textColors.split(',')[0].trim()}
+- Line 2 color: ${style.textColors.split(',')[1]?.trim() ?? 'pure WHITE'}
+- Text stroke: thick BLACK outline, 6–8px, on every letter
+- Drop shadow: hard black, 4–5px offset, no blur
+- Anchor position: TOP-LEFT corner of the left 60% — text starts near the top-left
+- Text must remain within the top 80% of the banner height (top 384px)
+
+GRAPHIC ACCENT (required — exactly one):
+- ${style.accent}
+- Must be in the LEFT 60%, within the top 80% of the banner height
+- ${style.atmosphere}
+
+Article headline to display: "${article.title}"
+Community: ${community}, Virginia
+
+Now write the complete images.edit() prompt. Be specific and direct. One paragraph, no headers, no bullet points.`
+
+    const content: OpenAI.Chat.ChatCompletionContentPart[] = [
+      {
+        type: 'image_url',
+        image_url: {
+          url: `data:image/jpeg;base64,${communityPhoto.toString('base64')}`,
+          detail: 'high',
+        },
+      },
+      { type: 'text', text: instruction },
+    ]
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      max_tokens: 600,
+      messages: [{ role: 'user', content }],
+    })
+
+    const prompt = completion.choices[0]?.message?.content?.trim() ?? null
+    if (prompt) console.log(`[image-gen-openai] GPT-4o hero banner prompt (first 200 chars): ${prompt.slice(0, 200)}...`)
+    return prompt
+  } catch (err) {
+    console.error('[image-gen-openai] GPT-4o hero banner prompt error:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+// ─── HERO BANNER EXPORT ───────────────────────────────────────────────────────
+
+export async function generateAndUploadHeroBannerOpenAI(
+  article: ScoredArticle
+): Promise<{ _type: 'reference'; _ref: string } | null> {
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const sharp = (await import('sharp')).default
+
+    const community = detectCommunity(article.title)
+    const mood = detectMood(article.title, article.category)
+
+    console.log(`[image-gen-openai] [hero-banner] Article: "${article.title.slice(0, 60)}"`)
+    console.log(`[image-gen-openai] [hero-banner] Community: ${community} | Mood: ${mood}`)
+
+    // Community photo is REQUIRED
+    const photoResult = getRequiredCommunityPhoto(community)
+    if (!photoResult) return null
+
+    // Step 1: Resize community photo to 1920×480 banner canvas
+    const bannerCanvas = await sharp(photoResult.buffer)
+      .resize(1920, 480, { fit: 'cover', position: 'center' })
+      .jpeg({ quality: 95 })
+      .toBuffer()
+
+    // Step 2: GPT-4o writes the tight images.edit() prompt (sees actual community photo)
+    const bannerPrompt = await generateHeroBannerPrompt(
+      openai, article, photoResult.community, mood, bannerCanvas
+    )
+    if (!bannerPrompt) return null
+
+    // Step 3: images.edit() — gpt-image-1 supports 1536x1024 (closest wide format).
+    // We generate at 1536×1024, then sharp-crop to 1920×480 after:
+    //   - resize to 1920 wide (maintaining aspect ratio)
+    //   - crop to 480 tall from the top
+    const pngBannerCanvas = await sharp(bannerCanvas).png().toBuffer()
+
+    const { toFile } = await import('openai')
+    const imageFile = await toFile(pngBannerCanvas, 'hero-banner-background.png', { type: 'image/png' })
+
+    let generatedRaw: Buffer | null = null
+    try {
+      console.log('[image-gen-openai] [hero-banner] Calling gpt-image-1 via images.edit() at 1536×1024...')
+      const response = await openai.images.edit({
+        model: 'gpt-image-1',
+        image: imageFile,
+        prompt: `IMPORTANT: Do NOT alter the background scene in any way. Do NOT change colors, lighting, or composition. Do NOT add any people or figures. Only add the following text and graphic elements to the LEFT 60% of the image within the top 80% of the frame:\n\n${bannerPrompt}`,
+        n: 1,
+        size: '1536x1024',
+      })
+      const b64 = response.data?.[0]?.b64_json
+      if (b64) {
+        generatedRaw = Buffer.from(b64, 'base64')
+        console.log(`[image-gen-openai] [hero-banner] images.edit() SUCCESS — ${Math.round(generatedRaw.length / 1024)}KB`)
+      }
+    } catch (err) {
+      console.error('[image-gen-openai] [hero-banner] images.edit() error:', err instanceof Error ? err.message : err)
+    }
+
+    if (!generatedRaw) return null
+
+    // Step 4: Crop 1536×1024 output → 1920×480
+    // Resize to 1920px wide (aspect ~1.5x), then extract top 480px
+    const cropped = await sharp(generatedRaw)
+      .resize(1920, undefined, { fit: 'outside' })  // resize to at least 1920 wide
+      .extract({ left: 0, top: 0, width: 1920, height: 480 })
+      .png()
+      .toBuffer()
+
+    console.log(`[image-gen-openai] [hero-banner] Cropped to 1920×480 — ${Math.round(cropped.length / 1024)}KB`)
+
+    // Step 5: Composite Barry on the RIGHT side of the banner
+    // Barry: 480×480px (square, matching banner height), left offset = 1920 - 480 = 1440px
+    const barryTransparent = getBarryTransparent()
+    let finalBuffer: Buffer
+
+    if (barryTransparent) {
+      const BARRY_W = 480
+      const BARRY_H = 480
+      const LEFT_OFFSET = 1920 - BARRY_W // 1440px
+
+      const barryResized = await sharp(barryTransparent)
+        .resize(BARRY_W, BARRY_H, { fit: 'cover', position: 'top' })
+        .toBuffer()
+
+      finalBuffer = await sharp(cropped)
+        .composite([{ input: barryResized, top: 0, left: LEFT_OFFSET, blend: 'over' }])
+        .png()
+        .toBuffer()
+
+      console.log(`[image-gen-openai] [hero-banner] Barry composited — final size ${Math.round(finalBuffer.length / 1024)}KB`)
+    } else {
+      console.warn('[image-gen-openai] [hero-banner] Barry-AI-transparent.png not found — skipping composite')
+      finalBuffer = cropped
+    }
+
+    // Step 6: Upload to Sanity
+    try {
+      const client = getSanityWriteClient()
+      const asset = await client.assets.upload('image', finalBuffer, {
+        filename: `openai-hero-banner-${Date.now()}.png`,
+        contentType: 'image/png',
+      })
+      console.log(`[image-gen-openai] [hero-banner] Uploaded to Sanity: ${asset._id}`)
+      return { _type: 'reference', _ref: asset._id }
+    } catch (err) {
+      console.error('[image-gen-openai] [hero-banner] Sanity upload error:', err instanceof Error ? err.message : err)
+      return null
+    }
+  } catch (err) {
+    console.error('[image-gen-openai] [hero-banner] Uncaught error:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+// ─── COMBINED DUAL-IMAGE TYPE + EXPORT ───────────────────────────────────────
+
+export type DualImageRefs = {
+  coverImage: { _type: 'reference'; _ref: string } | null
+  heroBannerImage: { _type: 'reference'; _ref: string } | null
+}
+
+export async function generateAndUploadBothImages(article: ScoredArticle): Promise<DualImageRefs> {
+  const [coverImage, heroBannerImage] = await Promise.all([
+    generateAndUploadCoverImageOpenAI(article),
+    generateAndUploadHeroBannerOpenAI(article),
+  ])
+  return { coverImage, heroBannerImage }
 }

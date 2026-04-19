@@ -33,24 +33,24 @@ export async function POST(request: Request) {
       whyItMatters: angle,
     }
 
-    const ref = await fetchAndUploadCoverImage(
+    const { coverImage } = await fetchAndUploadCoverImage(
       article.url,
       category as ArticleCategory,
       article
     )
 
-    if (!ref) {
+    if (!coverImage) {
       return NextResponse.json({ error: 'Image generation failed' }, { status: 500 })
     }
 
     // Convert asset ref to CDN preview URL
-    // ref._ref format: 'image-{sha1}-{width}x{height}-{format}'
-    const filename = ref._ref.replace(/^image-/, '').replace(/-([a-z]+)$/, '.$1')
+    // coverImage._ref format: 'image-{sha1}-{width}x{height}-{format}'
+    const filename = coverImage._ref.replace(/^image-/, '').replace(/-([a-z]+)$/, '.$1')
     const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? '2nr7n3lm'
     const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? 'production'
     const previewUrl = `https://cdn.sanity.io/images/${projectId}/${dataset}/${filename}?w=800`
 
-    return NextResponse.json({ assetRef: ref._ref, previewUrl })
+    return NextResponse.json({ assetRef: coverImage._ref, previewUrl })
   } catch (err) {
     console.error('[generate-thumbnail]', err)
     return NextResponse.json(

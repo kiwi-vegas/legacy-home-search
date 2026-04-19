@@ -48,6 +48,14 @@ export default {
       title: 'Cover Image',
       type: 'image',
       options: { hotspot: true },
+      description: 'YouTube-style thumbnail (1536×1024) — Barry on right, text on left',
+    },
+    {
+      name: 'heroBannerImage',
+      title: 'Hero Banner Image',
+      type: 'image',
+      options: { hotspot: true },
+      description: 'Wide 4:1 banner (1920×480) shown at the top of the blog post page',
     },
     {
       name: 'body',

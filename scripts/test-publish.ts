@@ -26,16 +26,17 @@ async function main() {
   console.log(`[test] Category: ${article.category} | Score: ${article.relevanceScore}`)
   console.log(`[test] Generating blog post + thumbnail...\n`)
 
-  const [draft, coverImageRef] = await Promise.all([
+  const [draft, { coverImage, heroBannerImage }] = await Promise.all([
     writePost(article),
     fetchAndUploadCoverImage(article.url, article.category, article),
   ])
 
   console.log(`\n[test] Blog post written: "${draft.title}"`)
   console.log(`[test] Slug: /blog/${draft.slug}`)
-  console.log(`[test] Cover image: ${coverImageRef ? 'generated ✓' : 'fallback used'}`)
+  console.log(`[test] Cover image: ${coverImage ? 'generated ✓' : 'fallback used'}`)
+  console.log(`[test] Hero banner: ${heroBannerImage ? 'generated ✓' : 'not generated'}`)
 
-  const sanityId = await publishBlogPost(draft, coverImageRef)
+  const sanityId = await publishBlogPost(draft, coverImage, heroBannerImage)
   console.log(`\n[test] ✓ Published to Sanity: ${sanityId}`)
   console.log(`[test] Live at: https://legacy-home-search.vercel.app/blog/${draft.slug}`)
 }

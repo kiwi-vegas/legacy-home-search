@@ -16,11 +16,11 @@ export function getSanityWriteClient() {
 
 export async function publishBlogPost(
   draft: BlogPostDraft,
-  coverImageRef?: { _type: 'reference'; _ref: string } | null
+  coverImageRef?: { _type: 'reference'; _ref: string } | null,
+  heroBannerImageRef?: { _type: 'reference'; _ref: string } | null
 ): Promise<string> {
   const client = getSanityWriteClient()
 
-  // Ensure slug is unique by appending timestamp if needed
   const existingSlug = await client.fetch(
     `*[_type == "blogPost" && slug.current == $slug][0]._id`,
     { slug: draft.slug }
@@ -44,6 +44,10 @@ export async function publishBlogPost(
 
   if (coverImageRef) {
     doc.coverImage = { _type: 'image', asset: coverImageRef }
+  }
+
+  if (heroBannerImageRef) {
+    doc.heroBannerImage = { _type: 'image', asset: heroBannerImageRef }
   }
 
   const result = await client.create(doc)

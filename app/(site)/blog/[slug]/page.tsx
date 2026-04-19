@@ -43,7 +43,6 @@ export async function generateMetadata(
 
 function detectCommunities(title: string, slug: string): CommunityKey[] {
   const text = `${title} ${slug}`.toLowerCase()
-  // Strip "Hampton Roads" (spaced or hyphenated) so "hampton" alone isn't a false-positive
   const textNoHR = text.replace(/hampton[\s-]+roads?/gi, '')
   const found: CommunityKey[] = []
   if (text.includes('virginia beach') || text.includes('virginia-beach')) found.push('virginia-beach')
@@ -64,6 +63,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     ? builder.image(post.coverImage).width(1920).url()
     : null
 
+  const heroBannerUrl = post.heroBannerImage
+    ? builder.image(post.heroBannerImage).width(1920).url()
+    : null
+
+  const heroDisplayUrl = heroBannerUrl ?? imgUrl
+
   const pubDate = post.publishedAt
     ? new Date(post.publishedAt).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -80,18 +85,31 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     <article className="blog-post">
 
       {/* ── HERO IMAGE ──────────────────────────────────────────────── */}
-      {imgUrl && (
-        <div className="blog-post-hero">
-          <Image
-            src={imgUrl}
-            alt={post.title}
-            fill
-            priority
-            sizes="100vw"
-            style={{ objectFit: 'cover', objectPosition: 'top center' }}
-          />
-          <div className="blog-post-hero-overlay" />
-        </div>
+      {heroDisplayUrl && (
+        heroBannerUrl ? (
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 1', overflow: 'hidden' }}>
+            <Image
+              src={heroDisplayUrl}
+              alt={post.title}
+              fill
+              priority
+              sizes="100vw"
+              style={{ objectFit: 'cover', objectPosition: 'center' }}
+            />
+          </div>
+        ) : (
+          <div className="blog-post-hero">
+            <Image
+              src={heroDisplayUrl}
+              alt={post.title}
+              fill
+              priority
+              sizes="100vw"
+              style={{ objectFit: 'cover', objectPosition: 'top center' }}
+            />
+            <div className="blog-post-hero-overlay" />
+          </div>
+        )
       )}
 
       {/* ── HEADER ──────────────────────────────────────────────────── */}

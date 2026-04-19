@@ -48,11 +48,11 @@ export async function POST(request: Request) {
   const settled = await Promise.allSettled(
     selectedArticles.map(async (article) => {
       console.log(`[publish] Writing post for: ${article!.title}`)
-      const [draft, coverImageRef] = await Promise.all([
+      const [draft, { coverImage, heroBannerImage }] = await Promise.all([
         writePost(article!),
         fetchAndUploadCoverImage(article!.url, article!.category, article!),
       ])
-      const sanityId = await publishBlogPost(draft, coverImageRef)
+      const sanityId = await publishBlogPost(draft, coverImage, heroBannerImage)
       console.log(`[publish] Published: ${draft.title} → /blog/${draft.slug}`)
       return { id: sanityId, title: draft.title, slug: draft.slug }
     })
