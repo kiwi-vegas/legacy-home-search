@@ -11,7 +11,7 @@
 
 import fs from 'fs'
 import path from 'path'
-import OpenAI, { toFile } from 'openai'
+import OpenAI from 'openai'
 import { getSanityWriteClient } from './sanity-write'
 import type { ScoredArticle } from './types'
 
@@ -130,25 +130,22 @@ async function buildPromptWithGPT4o(
   try {
     const expressionDesc = EXPRESSION_DESCRIPTIONS[expression]
 
-    const textInstruction = `You are a creative director for a Hampton Roads real estate brand. Your job is to write a single image EDITING prompt for gpt-image-1.
-
-The input image is a photo of Barry Jenkins, a professional REALTOR® in a navy suit. We are EDITING this photo into a wide 16:9 blog thumbnail. Barry MUST remain the main subject — his face, glasses, hair, and suit should stay intact.
+    const textInstruction = `You are a YouTube thumbnail designer. Write a single image generation prompt for gpt-image-1.
 
 Article headline: "${article.title}"
 Community: ${community}
-New expression for Barry: ${expressionDesc}
+Barry's gesture/expression: ${expressionDesc}
 
-Write an editing prompt that instructs gpt-image-1 to:
-1. KEEP Barry Jenkins exactly as he appears — same face, glasses, hair, navy suit — but change his expression and pose to: ${expressionDesc}
-2. Place Barry in the LEFT THIRD of a wide 16:9 landscape frame
-3. Replace the background entirely with: ${bgPhoto ? `the community scene shown in the second reference image — enhance it with warm cinematic golden-hour color grading, keeping any recognizable landmarks visible` : `a cinematic ${community}, Virginia scene at golden hour — coastal or neighborhood`}
-4. Render the word "${community}" as large bold white or gold lettering in the upper-RIGHT area of the frame
-5. Below that, add a 3–5 word punchy hook from the headline in clean bold sans-serif
-6. Add one simple graphic element that fits the article tone (upward arrow for good news, dollar sign for value, checkmark for tips)
+Image 1 (attached) is Barry Jenkins — a REALTOR® with blonde-grey hair, white-framed glasses, and a navy three-piece suit. He must appear in the FINAL IMAGE looking completely photorealistic and exactly like himself, positioned in the RIGHT side of the frame, doing the described gesture. Do NOT make him look animated, illustrated, or stylized — he must look like a real photograph of a real person.
 
-The result must feel like a YouTube thumbnail — bold, emotional, immediately readable.
+${bgPhoto ? 'Image 2 (attached) is the background photo of the community — use it as the scene backdrop, keeping any recognizable landmarks visible.' : `Background: a photorealistic ${community}, Virginia scene — boardwalk, waterfront, or neighborhood street at golden hour.`}
 
-Write the editing prompt now. One paragraph. No labels, no headers, just the prompt.`
+The thumbnail must have:
+- Bold, large text on the LEFT side of the frame: the article headline broken into 2–3 short punchy lines, using bright yellow and white lettering with a dark drop shadow outline — exactly like MrBeast YouTube thumbnails
+- Barry on the RIGHT, photorealistic, making the described gesture naturally
+- The overall feel: thumb-stopping, high-energy, like a top YouTube creator made it
+
+Write the image generation prompt now. One paragraph, no labels, no headers.`
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [
       {
@@ -187,42 +184,48 @@ Write the editing prompt now. One paragraph. No labels, no headers, just the pro
   }
 }
 
-// ─── STEP 3: gpt-image-1 edits Barry's photo into the thumbnail ──────────────
-// images.edit() takes Barry's photo as the literal base — his face is guaranteed
-// to be in the result because we're editing his photo, not generating from scratch.
+// ─── STEP 3: gpt-image-1 generates the thumbnail via Responses API ───────────
+// Responses API feeds both photos as reference inputs and generates a fresh
+// composition — Barry's likeness is preserved without pixel-level distortion.
 
 async function generateWithGptImage1(
   openai: OpenAI,
   prompt: string,
   barryPhoto: Buffer,
-  _bgPhoto: Buffer | null
+  bgPhoto: Buffer | null
 ): Promise<Buffer | null> {
-  // Primary: images.edit() with Barry's photo as the base image
+  // Primary: Responses API with Barry photo (+ optional background) as image inputs
   try {
-    console.log('[image-gen-openai] Calling gpt-image-1 images.edit() with Barry photo as base...')
+    console.log('[image-gen-openai] Calling gpt-image-1 via Responses API...')
 
-    const imageFile = await toFile(barryPhoto, 'barry.jpg', { type: 'image/jpeg' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    type ContentPart = { type: 'input_image'; image_url: string } | { type: 'input_text'; text: string }
+    const content: ContentPart[] = [
+      { type: 'input_image', image_url: `data:image/jpeg;base64,${barryPhoto.toString('base64')}` },
+      ...(bgPhoto ? [{ type: 'input_image', image_url: `data:image/jpeg;base64,${bgPhoto.toString('base64')}` } as ContentPart] : []),
+      { type: 'input_text', text: prompt },
+    ]
 
-    const response = await openai.images.edit({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (openai as any).responses.create({
       model: 'gpt-image-1',
-      image: imageFile,
-      prompt,
-      n: 1,
-      size: '1536x1024',
+      input: [{ role: 'user', content }],
     })
 
-    const b64 = response.data?.[0]?.b64_json
-    if (b64) {
-      const buf = Buffer.from(b64, 'base64')
-      console.log(`[image-gen-openai] images.edit() SUCCESS — ${Math.round(buf.length / 1024)}KB`)
-      return buf
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const item of (response?.output ?? []) as any[]) {
+      if (item?.type === 'image_generation_call' && item?.result) {
+        const buf = Buffer.from(item.result as string, 'base64')
+        console.log(`[image-gen-openai] Responses API SUCCESS — ${Math.round(buf.length / 1024)}KB`)
+        return buf
+      }
     }
-    console.warn('[image-gen-openai] images.edit() returned no image data — falling back')
+    console.warn('[image-gen-openai] Responses API returned no image — falling back')
   } catch (err) {
-    console.error('[image-gen-openai] images.edit() error:', err instanceof Error ? err.message : err)
+    console.error('[image-gen-openai] Responses API error:', err instanceof Error ? err.message : err)
   }
 
-  // Fallback: images.generate (text-only — Barry described in prompt but no photo reference)
+  // Fallback: images.generate text-only (Barry described in prompt but no photo input)
   try {
     console.log('[image-gen-openai] Falling back to images.generate (text-only)...')
     const response = await openai.images.generate({
