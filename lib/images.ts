@@ -147,30 +147,30 @@ export async function fetchAndUploadCoverImage(
   category: ArticleCategory,
   article?: import('./types').ScoredArticle
 ): Promise<{ _type: 'reference'; _ref: string } | null> {
-  // 1. Google Imagen 4 / Gemini (primary — custom AI image per article)
+  // 1. OpenAI gpt-image-1 (primary — Barry Jenkins in every thumbnail)
+  if (article && process.env.OPENAI_API_KEY) {
+    console.log(`[images] Generating Barry thumbnail via OpenAI for: "${article.title.slice(0, 60)}"`)
+    const { generateAndUploadCoverImageOpenAI } = await import('./image-gen-openai')
+    const ref = await generateAndUploadCoverImageOpenAI(article)
+    if (ref) {
+      console.log(`[images] OpenAI image generated and uploaded: ${ref._ref}`)
+      return ref
+    }
+    console.warn('[images] OpenAI image generation failed — trying Gemini fallback')
+  } else if (!process.env.OPENAI_API_KEY) {
+    console.warn('[images] OPENAI_API_KEY not set — skipping OpenAI image generation')
+  }
+
+  // 2. Google Gemini (fallback)
   if (article && process.env.GOOGLE_API_KEY) {
-    console.log(`[images] Generating custom image via Google AI for: "${article.title.slice(0, 60)}"`)
+    console.log(`[images] Trying Gemini fallback for: "${article.title.slice(0, 60)}"`)
     const { generateAndUploadCoverImageGemini } = await import('./image-gen-gemini')
     const ref = await generateAndUploadCoverImageGemini(article)
     if (ref) {
-      console.log(`[images] Google AI image generated and uploaded: ${ref._ref}`)
+      console.log(`[images] Gemini image generated and uploaded: ${ref._ref}`)
       return ref
     }
-    console.warn('[images] Google AI image generation failed — trying DALL-E fallback')
-  } else if (!process.env.GOOGLE_API_KEY) {
-    console.warn('[images] GOOGLE_API_KEY not set — skipping AI image generation')
-  }
-
-  // 2. DALL-E 3 fallback
-  if (article && process.env.OPENAI_API_KEY) {
-    console.log('[images] Trying DALL-E 3 fallback...')
-    const { generateAndUploadCoverImage } = await import('./image-gen')
-    const ref = await generateAndUploadCoverImage(article)
-    if (ref) {
-      console.log(`[images] DALL-E image uploaded: ${ref._ref}`)
-      return ref
-    }
-    console.warn('[images] DALL-E failed — falling back to OG image')
+    console.warn('[images] Gemini failed — falling back to OG image')
   }
 
   // 3. OG image from the article URL
