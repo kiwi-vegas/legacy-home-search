@@ -27,9 +27,11 @@
     "openai": "^6.32.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "resend": "^6.9.4"
+    "resend": "^6.9.4",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "@imgly/background-removal-node": "^1.4.5",
     "@tailwindcss/postcss": "^4",
     "@types/cheerio": "^0.22.35",
     "@types/mapbox-gl": "^3.4.1",
