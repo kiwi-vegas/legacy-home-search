@@ -2,16 +2,19 @@
  * Barry Jenkins Thumbnail Generator — OpenAI Pipeline
  *
  * Pipeline:
- *   1. Keyword match  → Barry's expression for this article
- *   2. GPT-4o vision  → writes the full image generation prompt
- *      (sees Barry's photo + community background + headline + expression)
- *   3. gpt-image-1    → generates the thumbnail (Barry + background + text overlays)
+ *   1. Keyword match  → energy/mood for this article
+ *   2. GPT-4o vision  → writes the image.edit() prompt
+ *      (sees Barry's photo + community background + headline + mood)
+ *      GPT-4o describes the community background in text so it can be
+ *      referenced without needing a second image input to images.edit()
+ *   3. gpt-image-1 images.edit() → edits Barry's photo:
+ *      keeps him IDENTICAL, replaces background, adds MrBeast-style text
  *   4. Sanity CDN     → uploaded and referenced
  */
 
 import fs from 'fs'
 import path from 'path'
-import OpenAI from 'openai'
+import OpenAI, { toFile } from 'openai'
 import { getSanityWriteClient } from './sanity-write'
 import type { ScoredArticle } from './types'
 
@@ -59,93 +62,87 @@ function getRandomCommunityPhoto(community: string): Buffer | null {
   }
 }
 
-// ─── BARRY'S EXPRESSION ──────────────────────────────────────────────────────
+// ─── THUMBNAIL MOOD ──────────────────────────────────────────────────────────
+// Mood drives overall energy of the thumbnail (text style, background atmosphere)
+// but does NOT change Barry's appearance — his photo is used as-is.
 
-type BarryExpression =
+type ThumbnailMood =
   | 'shocked'
-  | 'two-thumbs-up'
-  | 'pointing-up'
-  | 'happy'
-  | 'thumbs-up'
-  | 'thumbs-down'
-  | 'weighing'
+  | 'exciting-positive'
+  | 'investment'
+  | 'negative'
+  | 'selling'
+  | 'buying'
+  | 'community'
+  | 'neutral'
 
-const EXPRESSION_DESCRIPTIONS: Record<BarryExpression, string> = {
+const MOOD_DESCRIPTIONS: Record<ThumbnailMood, string> = {
   'shocked':
-    'shocked expression — wide eyes, mouth wide open in disbelief, both hands raised to his cheeks',
-  'two-thumbs-up':
-    'big enthusiastic grin with both thumbs raised high, eyebrows up in excitement',
-  'pointing-up':
-    'pointing one finger confidently upward toward the sky, with a bold assured smile',
-  'happy':
-    'warm, open, welcoming smile — approachable and friendly, slightly leaning forward',
-  'thumbs-up':
-    'single thumbs up with a confident nod and a professional smile',
-  'thumbs-down':
-    'single thumbs down, brow slightly furrowed, an honest "not great" expression',
-  'weighing':
-    'both hands out with palms facing up, weighing invisible options — a thoughtful "hmm, which one?" expression',
+    'high-drama, jaw-dropping energy — urgent red/yellow text, intense atmosphere',
+  'exciting-positive':
+    'celebratory, high-energy — bold yellow text, bright vibrant feel, exciting',
+  'investment':
+    'confident, professional, upward-momentum — bold white/gold text, premium feel',
+  'negative':
+    'serious, honest, cautionary — darker tones, clear factual text styling',
+  'selling':
+    'action-oriented, motivating — bold call-to-action energy, clean modern text',
+  'buying':
+    'welcoming, approachable, optimistic — friendly warm text and atmosphere',
+  'community':
+    'warm, local pride, inviting — neighborhood feel, approachable text',
+  'neutral':
+    'clean, professional, informative — clear text with strong contrast',
 }
 
-function detectExpression(title: string, category: string): BarryExpression {
+function detectMood(title: string, category: string): ThumbnailMood {
   const t = title.toLowerCase()
 
-  // Comparison / versus articles
-  if (/ vs\.? | versus | or | compared? to | which is /.test(t)) return 'weighing'
-
-  // Shocking / extreme stats
+  if (/ vs\.? | versus | compared? to | which is /.test(t)) return 'neutral'
   if (/record|skyrocket|soar|surge|spike|shocking|unbelievable|incredible|historic/.test(t)) return 'shocked'
+  if (/rising|rise|up \d|jump|climb|grow|increas|appreciat|boom|hot market|heating/.test(t)) return 'exciting-positive'
+  if (/invest|roi|return|equity|wealth|profit|cash flow|rental income/.test(t)) return 'investment'
+  if (/fall|drop|declin|cooling|slow|afford|challeng|difficult|concern|worry|problem/.test(t)) return 'negative'
+  if (category === 'selling-tips' || /sell|list your|maximize value|top dollar/.test(t)) return 'selling'
+  if (category === 'buying-tips' || /buy|first[- ]time|how to|guide|tips for/.test(t)) return 'buying'
+  if (category === 'community-spotlight' || /neighborhood|community|living in|best place|why .* great/.test(t)) return 'community'
 
-  // Strongly rising prices / values
-  if (/rising|rise|up \d|jump|climb|grow|increas|appreciat|boom|hot market|heating/.test(t)) return 'two-thumbs-up'
-
-  // Investment / returns / equity
-  if (/invest|roi|return|equity|wealth|profit|cash flow|rental income/.test(t)) return 'pointing-up'
-
-  // Negative / falling / challenges
-  if (/fall|drop|declin|cooling|slow|afford|challeng|difficult|concern|worry|problem/.test(t)) return 'thumbs-down'
-
-  // Selling tips / sell your home
-  if (category === 'selling-tips' || /sell|list your|maximize value|top dollar/.test(t)) return 'thumbs-up'
-
-  // Buying tips / guides
-  if (category === 'buying-tips' || /buy|first[- ]time|how to|guide|tips for/.test(t)) return 'happy'
-
-  // Community spotlight
-  if (category === 'community-spotlight' || /neighborhood|community|living in|best place|why .* great/.test(t)) return 'happy'
-
-  return 'happy'
+  return 'neutral'
 }
 
-// ─── STEP 2: GPT-4o writes the image prompt ──────────────────────────────────
+// ─── STEP 2: GPT-4o writes the images.edit() prompt ─────────────────────────
+// GPT-4o sees both photos. It writes an edit prompt that:
+//   - Keeps Barry IDENTICAL (face, glasses, beard, hair, suit, pose — unchanged)
+//   - Replaces the background (describes community bg from Image 2)
+//   - Adds MrBeast-style bold text overlays on the left
 
 async function buildPromptWithGPT4o(
   openai: OpenAI,
   article: ScoredArticle,
   community: string,
-  expression: BarryExpression,
+  mood: ThumbnailMood,
   barryPhoto: Buffer,
   bgPhoto: Buffer | null
 ): Promise<string | null> {
   try {
-    const expressionDesc = EXPRESSION_DESCRIPTIONS[expression]
+    const moodDesc = MOOD_DESCRIPTIONS[mood]
 
-    const textInstruction = `You are a YouTube thumbnail designer. Write a single image generation prompt for gpt-image-1.
+    const textInstruction = `You are a YouTube thumbnail designer writing a prompt for gpt-image-1 images.edit().
 
-Article headline: "${article.title}"
-Community: ${community}
-Barry's gesture/expression: ${expressionDesc}
+The base image (Image 1, attached) is a photo of Barry Jenkins, a REALTOR® — a man with blonde-reddish hair, white round glasses, a short beard, and a navy three-piece suit with a blue tie. He is standing with hands in pockets, smiling.
 
-Image 1 (attached) is Barry Jenkins — a REALTOR® with blonde-grey hair, white-framed glasses, and a navy three-piece suit. He must appear in the FINAL IMAGE looking completely photorealistic and exactly like himself, positioned in the RIGHT side of the frame, doing the described gesture. Do NOT make him look animated, illustrated, or stylized — he must look like a real photograph of a real person.
+Your prompt must instruct gpt-image-1 to do THREE things:
 
-${bgPhoto ? 'Image 2 (attached) is the background photo of the community — use it as the scene backdrop, keeping any recognizable landmarks visible.' : `Background: a photorealistic ${community}, Virginia scene — boardwalk, waterfront, or neighborhood street at golden hour.`}
+1. KEEP THE PERSON IN IMAGE 1 COMPLETELY UNCHANGED. His face, eyes, expression, smile, glasses, beard, hair color, suit, tie, pocket square, pose, and body position must be 100% identical to the source photo. Do NOT alter the person in any way — not his expression, not his pose, not a single facial feature. He must look exactly like himself.
 
-The thumbnail must have:
-- Bold, large text on the LEFT side of the frame: the article headline broken into 2–3 short punchy lines, using bright yellow and white lettering with a dark drop shadow outline — exactly like MrBeast YouTube thumbnails
-- Barry on the RIGHT, photorealistic, making the described gesture naturally
-- The overall feel: thumb-stopping, high-energy, like a top YouTube creator made it
+2. REPLACE the background (the office with city windows) with: ${bgPhoto
+      ? `the scene visible in Image 2 (attached — the community background photo). Describe that specific scene in vivid detail in the prompt: the landscape, sky, time of day, lighting, colors, any recognizable landmarks or features you see.`
+      : `a photorealistic ${community}, Virginia scene — waterfront boardwalk, coastal neighborhood, or local landmark at golden hour, with warm light and an authentic Hampton Roads feel.`
+    } The background atmosphere should feel: ${moodDesc}.
 
-Write the image generation prompt now. One paragraph, no labels, no headers.`
+3. ADD bold MrBeast-style text overlay on the LEFT half of the frame (the person stays on the RIGHT). The text is the article headline broken into 2–3 short punchy lines. Use bright yellow and white lettering with a thick dark drop-shadow outline. Headline: "${article.title}". Make the text large, readable, and high-contrast.
+
+Write the complete images.edit() prompt now. One paragraph, no headers, no labels. Lead with the instruction to keep the person unchanged.`
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [
       {
@@ -171,12 +168,12 @@ Write the image generation prompt now. One paragraph, no labels, no headers.`
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      max_tokens: 600,
+      max_tokens: 700,
       messages: [{ role: 'user', content }],
     })
 
     const prompt = completion.choices[0]?.message?.content?.trim() ?? null
-    if (prompt) console.log(`[image-gen-openai] GPT-4o prompt preview: ${prompt.slice(0, 120)}...`)
+    if (prompt) console.log(`[image-gen-openai] GPT-4o prompt preview: ${prompt.slice(0, 150)}...`)
     return prompt
   } catch (err) {
     console.error('[image-gen-openai] GPT-4o prompt error:', err instanceof Error ? err.message : err)
@@ -184,48 +181,39 @@ Write the image generation prompt now. One paragraph, no labels, no headers.`
   }
 }
 
-// ─── STEP 3: gpt-image-1 generates the thumbnail via Responses API ───────────
-// Responses API feeds both photos as reference inputs and generates a fresh
-// composition — Barry's likeness is preserved without pixel-level distortion.
+// ─── STEP 3: gpt-image-1 edits Barry's photo ─────────────────────────────────
+// images.edit() keeps Barry's photo as the BASE — his face is always real.
+// The prompt only asks to change the background and add text overlays.
 
 async function generateWithGptImage1(
   openai: OpenAI,
   prompt: string,
-  barryPhoto: Buffer,
-  bgPhoto: Buffer | null
+  barryPhoto: Buffer
 ): Promise<Buffer | null> {
-  // Primary: Responses API with Barry photo (+ optional background) as image inputs
+  // Primary: images.edit() with Barry's actual photo as the base
   try {
-    console.log('[image-gen-openai] Calling gpt-image-1 via Responses API...')
+    console.log('[image-gen-openai] Calling gpt-image-1 via images.edit()...')
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    type ContentPart = { type: 'input_image'; image_url: string } | { type: 'input_text'; text: string }
-    const content: ContentPart[] = [
-      { type: 'input_image', image_url: `data:image/jpeg;base64,${barryPhoto.toString('base64')}` },
-      ...(bgPhoto ? [{ type: 'input_image', image_url: `data:image/jpeg;base64,${bgPhoto.toString('base64')}` } as ContentPart] : []),
-      { type: 'input_text', text: prompt },
-    ]
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await (openai as any).responses.create({
+    const response = await openai.images.edit({
       model: 'gpt-image-1',
-      input: [{ role: 'user', content }],
+      image: await toFile(barryPhoto, 'barry.jpg', { type: 'image/jpeg' }),
+      prompt,
+      n: 1,
+      size: '1536x1024',
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const item of (response?.output ?? []) as any[]) {
-      if (item?.type === 'image_generation_call' && item?.result) {
-        const buf = Buffer.from(item.result as string, 'base64')
-        console.log(`[image-gen-openai] Responses API SUCCESS — ${Math.round(buf.length / 1024)}KB`)
-        return buf
-      }
+    const b64 = response.data?.[0]?.b64_json
+    if (b64) {
+      const buf = Buffer.from(b64, 'base64')
+      console.log(`[image-gen-openai] images.edit() SUCCESS — ${Math.round(buf.length / 1024)}KB`)
+      return buf
     }
-    console.warn('[image-gen-openai] Responses API returned no image — falling back')
+    console.warn('[image-gen-openai] images.edit() returned no image — falling back')
   } catch (err) {
-    console.error('[image-gen-openai] Responses API error:', err instanceof Error ? err.message : err)
+    console.error('[image-gen-openai] images.edit() error:', err instanceof Error ? err.message : err)
   }
 
-  // Fallback: images.generate text-only (Barry described in prompt but no photo input)
+  // Fallback: images.generate text-only
   try {
     console.log('[image-gen-openai] Falling back to images.generate (text-only)...')
     const response = await openai.images.generate({
@@ -275,10 +263,10 @@ export async function generateAndUploadCoverImageOpenAI(
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const community = detectCommunity(article.title)
-    const expression = detectExpression(article.title, article.category)
+    const mood = detectMood(article.title, article.category)
 
     console.log(`[image-gen-openai] Article: "${article.title.slice(0, 60)}"`)
-    console.log(`[image-gen-openai] Community: ${community} | Expression: ${expression}`)
+    console.log(`[image-gen-openai] Community: ${community} | Mood: ${mood}`)
 
     const barryPhoto = getBarryPhoto()
     if (!barryPhoto) {
@@ -288,10 +276,10 @@ export async function generateAndUploadCoverImageOpenAI(
 
     const bgPhoto = getRandomCommunityPhoto(community)
 
-    const prompt = await buildPromptWithGPT4o(openai, article, community, expression, barryPhoto, bgPhoto)
+    const prompt = await buildPromptWithGPT4o(openai, article, community, mood, barryPhoto, bgPhoto)
     if (!prompt) return null
 
-    const imageBuffer = await generateWithGptImage1(openai, prompt, barryPhoto, bgPhoto)
+    const imageBuffer = await generateWithGptImage1(openai, prompt, barryPhoto)
     if (!imageBuffer) return null
 
     return await uploadToSanity(imageBuffer)
