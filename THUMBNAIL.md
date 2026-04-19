@@ -83,14 +83,18 @@ STEP 6 — Upload to Sanity CDN
 
 ## Key Design Principles for the Prompt
 
-### Text treatment (most important)
+### Hero safe zone (critical — read first)
+The thumbnail (1536×1024) is displayed as a blog post hero with a fixed `height: 300px` container and `objectPosition: top center`. At typical desktop widths only the **top ~37–45% of the image is visible**. All text and graphics MUST fit within the **top 55% (top 563px)** of the image — nothing placed below that line will be seen on the blog post page.
+
+### Text treatment
 The GPT-4o instruction must specify all of the following for text:
-- **MASSIVE scale** — at least 15–20% of image height per line
+- **Size** — 9–12% of image height per line (~90–120px). Not larger — text that tall will overflow the safe zone.
+- **2–3 lines maximum** — never 4+ lines; they stack beyond the visible hero area
 - **Heavy/condensed font** — bold, Impact-style, no thin or elegant fonts
-- **Layered effects** — bright yellow OR white fill + thick black stroke (5–8px) + hard drop shadow
-- **Word-level sizing** — key words (numbers, adjectives) can be even larger than surrounding text
-- **Positioned LEFT** — text block fills the left 40–50% of the frame, top to bottom
-- **Color contrast** — alternating yellow and white lines, or gradient fills on key words
+- **Layered effects** — bright yellow OR white fill + thick black stroke (6–8px) + hard drop shadow
+- **Word-level sizing** — key words (numbers, adjectives) can be slightly larger than surrounding lines
+- **Positioned LEFT and TOP** — text block in the LEFT half, anchored to the TOP 50% of the frame
+- **Color contrast** — alternating yellow and white lines
 
 ### Barry's placement
 - **Cropped from chest/waist up** — NOT full body. His face should be large.

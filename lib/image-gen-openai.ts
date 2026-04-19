@@ -159,26 +159,28 @@ async function buildTextOverlayPromptWithGPT4o(
   try {
     const moodDesc = MOOD_DESCRIPTIONS[mood]
 
-    const textInstruction = `You are a professional YouTube thumbnail designer. The attached image is a real photo of ${community}, Virginia — it is the background of a YouTube thumbnail.
+    const textInstruction = `You are a professional YouTube thumbnail designer. The attached image is a real photo of ${community}, Virginia — it is the background of a YouTube thumbnail (1536×1024px).
 
 Write a prompt for gpt-image-1 images.edit() that adds text and graphic elements to this photo. The background scene must remain completely unchanged.
 
 Article headline: "${article.title}"
 Mood/energy: ${moodDesc}
 
+IMPORTANT SIZING CONSTRAINT: The thumbnail is displayed as a blog hero image cropped to its top portion only. ALL text and graphics must be fully contained within the TOP 55% of the image (top 563px of 1024px). Nothing below that line will be visible — do not place any text or graphics below it.
+
 The prompt must instruct gpt-image-1 to:
 
 1. DO NOT alter the background photo in any way — preserve the scene, colors, and composition exactly as-is.
 
-2. ADD MASSIVE BOLD TEXT on the LEFT half of the image only. Break the headline into 2–4 short punchy word-chunks. Each major line must be at least 18–22% of the image height — this is a YouTube thumbnail, the text must be enormous and legible at small sizes. Use a heavy condensed display font (Impact / Bebas Neue style). Apply layered effects: bright YELLOW fill on main lines, pure WHITE fill on secondary lines, THICK BLACK stroke outline (7–9px), hard offset drop shadow. Key words (dollar amounts, percentages, "RECORD", "SHOCKING") should break out even larger than surrounding lines.
+2. ADD BOLD TEXT on the LEFT half of the image only, positioned in the TOP 50% of the image. Break the headline into 2–3 short punchy word-chunks MAXIMUM — no more than 3 lines total. Each line should be 9–12% of the image height (about 90–120px tall). Use a heavy condensed display font (Impact / Bebas Neue style). Apply layered effects: bright YELLOW fill on main lines, pure WHITE fill on secondary lines, THICK BLACK stroke outline (6–8px), hard offset drop shadow. Key words (numbers, "RECORD", "SHOCKING") can be slightly larger than the surrounding lines. All text must be fully above the vertical midpoint of the image.
 
-3. ADD a dark semi-transparent gradient or overlay BEHIND THE TEXT AREA ONLY (left side) to ensure the text is always readable over the photo.
+3. ADD a dark semi-transparent gradient or overlay BEHIND THE TEXT AREA ONLY (left side, top half) to ensure the text is always readable over the photo.
 
-4. ADD ONE graphic accent — choose the best fit: a bold badge/label ("2026", "BREAKING", "MUST KNOW"), a thick arrow pointing toward the right side, or a colored banner strip behind a key line of text.
+4. ADD ONE graphic accent near the text — a bold badge/label ("2026", "BREAKING", "MUST KNOW"), a thick arrow, or a colored banner strip. Keep it within the top 50% of the image.
 
 5. The RIGHT half of the image must remain completely unmodified — a real person will be composited there separately.
 
-Write the complete images.edit() prompt now. Lead with "Do not alter the background photo in any way." 4–5 sentences. Be very specific about text size and styling effects.`
+Write the complete images.edit() prompt now. Lead with "Do not alter the background photo in any way." 4–5 sentences. Emphasize that all elements must stay in the top half of the image.`
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [
       {
