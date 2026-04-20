@@ -3,7 +3,7 @@ import { getSanityWriteClient } from '@/lib/sanity-write'
 
 export async function POST(request: Request) {
   try {
-    const { postId, assetRef, secret } = await request.json()
+    const { postId, assetRef, heroBannerAssetRef, secret } = await request.json()
 
     if (secret !== process.env.ADMIN_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -15,15 +15,20 @@ export async function POST(request: Request) {
 
     const client = getSanityWriteClient()
 
-    await client
-      .patch(postId)
-      .set({
-        coverImage: {
+    const patch = client.patch(postId).set({
+      coverImage: {
+        _type: 'image',
+        asset: { _type: 'reference', _ref: assetRef },
+      },
+      ...(heroBannerAssetRef ? {
+        heroBannerImage: {
           _type: 'image',
-          asset: { _type: 'reference', _ref: assetRef },
+          asset: { _type: 'reference', _ref: heroBannerAssetRef },
         },
-      })
-      .commit()
+      } : {}),
+    })
+
+    await patch.commit()
 
     return NextResponse.json({ success: true })
   } catch (err) {

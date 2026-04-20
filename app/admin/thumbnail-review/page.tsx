@@ -26,6 +26,7 @@ interface CardState {
   status: CardStatus
   assetRef?: string
   previewUrl?: string
+  heroBannerAssetRef?: string | null
   feedback?: string
   error?: string
 }
@@ -105,7 +106,12 @@ function PostCard({
         onStateChange(post._id, { status: 'idle', error: data.error ?? 'Generation failed' })
         return
       }
-      onStateChange(post._id, { status: 'review', assetRef: data.assetRef, previewUrl: data.previewUrl })
+      onStateChange(post._id, {
+        status: 'review',
+        assetRef: data.assetRef,
+        previewUrl: data.previewUrl,
+        heroBannerAssetRef: data.heroBannerAssetRef ?? null,
+      })
     } catch {
       onStateChange(post._id, { status: 'idle', error: 'Network error — try again' })
     }
@@ -118,7 +124,7 @@ function PostCard({
       const res = await fetch('/api/blog/apply-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId: post._id, assetRef: state.assetRef, secret }),
+        body: JSON.stringify({ postId: post._id, assetRef: state.assetRef, heroBannerAssetRef: state.heroBannerAssetRef ?? null, secret }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
@@ -406,7 +412,7 @@ function ThumbnailReviewInner() {
         if (!res.ok || !data.assetRef) {
           setStates((prev) => ({ ...prev, [post._id]: { status: 'idle', error: data.error ?? 'Failed' } }))
         } else {
-          setStates((prev) => ({ ...prev, [post._id]: { status: 'review', assetRef: data.assetRef, previewUrl: data.previewUrl } }))
+          setStates((prev) => ({ ...prev, [post._id]: { status: 'review', assetRef: data.assetRef, previewUrl: data.previewUrl, heroBannerAssetRef: data.heroBannerAssetRef ?? null } }))
         }
       } catch {
         setStates((prev) => ({ ...prev, [post._id]: { status: 'idle', error: 'Network error' } }))

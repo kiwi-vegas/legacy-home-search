@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       whyItMatters: angle,
     }
 
-    const { coverImage } = await fetchAndUploadCoverImage(
+    const { coverImage, heroBannerImage } = await fetchAndUploadCoverImage(
       article.url,
       category as ArticleCategory,
       article
@@ -44,13 +44,20 @@ export async function POST(request: Request) {
     }
 
     // Convert asset ref to CDN preview URL
-    // coverImage._ref format: 'image-{sha1}-{width}x{height}-{format}'
-    const filename = coverImage._ref.replace(/^image-/, '').replace(/-([a-z]+)$/, '.$1')
+    // ref format: 'image-{sha1}-{width}x{height}-{format}'
     const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? '2nr7n3lm'
     const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? 'production'
-    const previewUrl = `https://cdn.sanity.io/images/${projectId}/${dataset}/${filename}?w=800`
+    const toUrl = (ref: string, w: number) => {
+      const filename = ref.replace(/^image-/, '').replace(/-([a-z]+)$/, '.$1')
+      return `https://cdn.sanity.io/images/${projectId}/${dataset}/${filename}?w=${w}`
+    }
 
-    return NextResponse.json({ assetRef: coverImage._ref, previewUrl })
+    return NextResponse.json({
+      assetRef: coverImage._ref,
+      previewUrl: toUrl(coverImage._ref, 800),
+      heroBannerAssetRef: heroBannerImage?._ref ?? null,
+      heroBannerPreviewUrl: heroBannerImage ? toUrl(heroBannerImage._ref, 1200) : null,
+    })
   } catch (err) {
     console.error('[generate-thumbnail]', err)
     return NextResponse.json(
