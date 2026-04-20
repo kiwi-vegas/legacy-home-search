@@ -51,6 +51,11 @@ export default {
       description: 'YouTube-style thumbnail (1536×1024) — Barry on right, text on left',
     },
     {
+  name: 'heroBannerImage',
+  title: 'Hero Banner Image',
+  type: 'image',
+},
+    {
       name: 'heroBannerImage',
       title: 'Hero Banner Image',
       type: 'image',
