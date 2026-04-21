@@ -1,1 +1,20 @@
-{"crons":[{"path":"/api/cron/research","schedule":"0 13 * * *"},{"path":"/api/cron/market-reports","schedule":"0 14 1 * *"}]}
+{
+  "crons": [
+    {
+      "path": "/api/cron/research",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/market-reports",
+      "schedule": "0 14 1 * *"
+    },
+    {
+      "path": "/api/cron/renick-pipeline",
+      "schedule": "5 15 * * 2"
+    },
+    {
+      "path": "/api/cron/learnings-update",
+      "schedule": "0 14 * * 3"
+    }
+  ]
+}
