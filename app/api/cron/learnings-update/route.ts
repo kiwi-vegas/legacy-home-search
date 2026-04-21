@@ -24,6 +24,16 @@ import { generateAndCommitLearnings, ensureBlogPipelineHasLoopSection } from '@/
 
 export const maxDuration = 120
 
+const GA4_PROPERTY_ID = process.env.GA4_PROPERTY_ID || '391852993'
+
+interface GA4PostData {
+  title: string
+  slug: string
+  pageviews7d: number
+  avgTimeOnPage: string
+  organicSessions: number
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -66,14 +76,32 @@ export async function GET(request: Request) {
 
     const publishedTitles: string[] = []
     const skippedTitles: string[] = []
+    const publishedSlugs: { title: string; slug: string }[] = []
 
     for (const post of stagedPosts) {
       const decision = approvalDecisions[post.postId]
       if (decision === 'approve') {
         publishedTitles.push(post.draft.title)
+        publishedSlugs.push({ title: post.draft.title, slug: post.draft.slug })
       } else {
         skippedTitles.push(post.draft.title)
       }
+    }
+
+    // ── Fetch GA4 performance data for published posts ───────────────────
+    let ga4Data: GA4PostData[] | undefined
+    try {
+      const fetched = await fetchGA4PostPerformance(publishedSlugs)
+      if (fetched.length > 0) {
+        ga4Data = fetched
+        log.push(`Fetched GA4 data for ${fetched.length} posts`)
+      } else {
+        log.push('GA4 data unavailable (no results or not configured)')
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      log.push(`WARNING: GA4 fetch failed — ${msg}`)
+      ga4Data = undefined
     }
 
     // ── Step 4: Re-construct dashboard summary from staged post data ─────
@@ -93,8 +121,7 @@ export async function GET(request: Request) {
       approvalDecisions,
       publishedTitles,
       skippedTitles,
-      // GA4 data: not yet integrated — pass undefined, Claude will note it's not available
-      // TODO: wire up Google Analytics Data API to fetch organic sessions per slug
+      ga4Data,
     })
     log.push('LEARNINGS.md updated and committed to GitHub')
 
@@ -162,4 +189,156 @@ function buildDashboardSummaryFromPosts(posts: StagedPost[]) {
     },
     keyTakeaways: [],
   }
+}
+
+/**
+ * Fetches GA4 performance data (pageviews, avg session duration) for each
+ * published blog post slug over the last 7 days.
+ *
+ * GA4 Data API requires OAuth or a service-account token — not an API key.
+ * This implementation reads GOOGLE_API_KEY and:
+ *   - If it looks like a service-account JSON, mints a Bearer token via JWT and
+ *     queries the GA4 Data API.
+ *   - Otherwise, skips gracefully and returns [].
+ */
+async function fetchGA4PostPerformance(
+  slugs: { title: string; slug: string }[]
+): Promise<GA4PostData[]> {
+  if (slugs.length === 0) return []
+
+  const rawKey = process.env.GOOGLE_API_KEY
+  if (!rawKey) return []
+
+  const trimmed = rawKey.trim()
+  if (!trimmed.startsWith('{')) {
+    console.warn('[learnings-update] GOOGLE_API_KEY is not a service-account JSON — skipping GA4')
+    return []
+  }
+
+  let creds: { client_email: string; private_key: string }
+  try {
+    creds = JSON.parse(trimmed)
+  } catch {
+    console.warn('[learnings-update] GOOGLE_API_KEY is not valid JSON — skipping GA4')
+    return []
+  }
+  if (!creds.client_email || !creds.private_key) return []
+
+  const accessToken = await getGoogleAccessToken(creds)
+  if (!accessToken) return []
+
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setUTCDate(endDate.getUTCDate() - 7)
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${GA4_PROPERTY_ID}:runReport`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        dateRanges: [{ startDate: fmt(startDate), endDate: fmt(endDate) }],
+        dimensions: [{ name: 'pagePath' }],
+        metrics: [{ name: 'screenPageViews' }, { name: 'averageSessionDuration' }],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'pagePath',
+            stringFilter: { matchType: 'BEGINS_WITH', value: '/blog/' },
+          },
+        },
+        limit: 1000,
+      }),
+    }
+  )
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`GA4 API ${res.status}: ${text.slice(0, 200)}`)
+  }
+
+  const data = (await res.json()) as {
+    rows?: Array<{ dimensionValues: { value: string }[]; metricValues: { value: string }[] }>
+  }
+  const rows = data.rows || []
+
+  const bySlug = new Map<string, { views: number; avgDuration: number }>()
+  for (const row of rows) {
+    const path = row.dimensionValues[0]?.value || ''
+    const slug = path.replace(/^\/blog\//, '').replace(/\/$/, '')
+    if (!slug) continue
+    const views = parseInt(row.metricValues[0]?.value || '0', 10)
+    const avgDuration = parseFloat(row.metricValues[1]?.value || '0')
+    bySlug.set(slug, { views, avgDuration })
+  }
+
+  return slugs.map(({ title, slug }) => {
+    const entry = bySlug.get(slug)
+    const seconds = entry?.avgDuration ?? 0
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.round(seconds % 60)
+    return {
+      title,
+      slug,
+      pageviews7d: entry?.views ?? 0,
+      avgTimeOnPage: `${mins}m ${secs}s`,
+      // TODO: GA4 Data API doesn't easily separate organic sessions without a
+      // segment/filter on sessionDefaultChannelGroup — populate as 0 for now.
+      organicSessions: 0,
+    }
+  })
+}
+
+/**
+ * Mints a Google OAuth2 access token from a service-account JSON using the
+ * JWT Bearer flow. Scoped to the GA4 Data API (analytics.readonly).
+ */
+async function getGoogleAccessToken(creds: {
+  client_email: string
+  private_key: string
+}): Promise<string | null> {
+  const crypto = await import('crypto')
+  const now = Math.floor(Date.now() / 1000)
+
+  const header = { alg: 'RS256', typ: 'JWT' }
+  const claim = {
+    iss: creds.client_email,
+    scope: 'https://www.googleapis.com/auth/analytics.readonly',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+  }
+
+  const b64url = (s: string | Buffer) =>
+    (Buffer.isBuffer(s) ? s : Buffer.from(s))
+      .toString('base64')
+      .replace(/=+$/, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+
+  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claim))}`
+  const signer = crypto.createSign('RSA-SHA256')
+  signer.update(unsigned)
+  const signature = b64url(signer.sign(creds.private_key.replace(/\\n/g, '\n')))
+  const jwt = `${unsigned}.${signature}`
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Google token endpoint ${res.status}: ${text.slice(0, 200)}`)
+  }
+
+  const data = (await res.json()) as { access_token?: string }
+  return data.access_token || null
 }
