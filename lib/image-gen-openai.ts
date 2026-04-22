@@ -234,7 +234,11 @@ function buildScenePrompt(
     ? 'Place the graphic accent in the LOWER LEFT quadrant of the frame.'
     : 'Place the graphic accent inline with the text on the left side — the banner is too shallow for a stacked lower layout.'
 
-  return `Create a high-impact YouTube-style thumbnail in the MrBeast visual style — cinematic, dramatic, high-energy, saturated.
+  return `⚠️ CRITICAL INSTRUCTION — READ THIS FIRST:
+This image must contain ZERO humans. No people. No person. No figure. No face. No body. No silhouette. No hands. No crowd. Not even a tiny person in the background distance. If any human appears anywhere in this image, the generation has failed.
+The ENTIRE RIGHT THIRD of the image (from 67% width to the right edge) must be completely empty — only sky, water, atmospheric haze, or bokeh. Nothing else. No text. No graphics. No people. This space is reserved.
+
+Create a high-impact YouTube-style thumbnail in the MrBeast visual style — cinematic, dramatic, high-energy, saturated.
 
 ${canvas}
 
@@ -270,7 +274,9 @@ COMPOSITION RULES:
 - Right third: clean empty atmospheric background — no subject of any kind.
 - Overall energy: MrBeast YouTube thumbnail — bold, loud, saturated, readable at tiny sizes.
 
-Remember: NO PERSON ANYWHERE IN THE IMAGE. The right third stays empty atmospheric background.`
+Remember: NO PERSON ANYWHERE IN THE IMAGE. The right third stays empty atmospheric background.
+
+FINAL REMINDER: Zero humans anywhere in this image. Right third = empty atmospheric space only.`
 }
 
 // ─── STEP 2: gpt-image-1 generates the scene (no Barry) ──────────────────────
@@ -282,13 +288,17 @@ async function generateSceneOnly(
   prompt: string,
   assetType: AssetType,
 ): Promise<Buffer | null> {
-  // gpt-image-1 only supports a fixed set of sizes. 1536×1024 is the closest
-  // landscape option — the hero banner is cropped / extended in Sharp afterward.
   const size = '1536x1024'
 
   try {
-    console.log(`[image-gen-openai] [${assetType}] Generating scene (no Barry) via images.edit() with ${backgroundFilename}…`)
-    const referenceFile = await toFile(backgroundBuffer, backgroundFilename, { type: 'image/png' })
+    const sharp = (await import('sharp')).default
+    const processedBg = await sharp(backgroundBuffer)
+      .resize(1536, 1024, { fit: 'cover', position: 'center' })
+      .png()
+      .toBuffer()
+    const referenceFile = await toFile(processedBg, 'background.png', { type: 'image/png' })
+
+    console.log(`[image-gen-openai] [${assetType}] Generating scene (no Barry) via images.edit() with ${backgroundFilename} (pre-processed to 1536x1024 PNG)…`)
     const response = await openai.images.edit({
       model: 'gpt-image-1',
       image: referenceFile,
@@ -303,26 +313,15 @@ async function generateSceneOnly(
       return buf
     }
     console.warn(`[image-gen-openai] [${assetType}] images.edit() returned no image`)
+    return null
   } catch (err) {
-    console.warn(`[image-gen-openai] [${assetType}] images.edit() failed, falling back to images.generate():`, err instanceof Error ? err.message : err)
-    try {
-      const response = await openai.images.generate({
-        model: 'gpt-image-1',
-        prompt,
-        n: 1,
-        size,
-      })
-      const b64 = response.data?.[0]?.b64_json
-      if (b64) {
-        const buf = Buffer.from(b64, 'base64')
-        console.log(`[image-gen-openai] [${assetType}] Scene generated (fallback) — ${Math.round(buf.length / 1024)}KB`)
-        return buf
-      }
-    } catch (fallbackErr) {
-      console.error(`[image-gen-openai] [${assetType}] Scene generation fallback failed:`, fallbackErr instanceof Error ? fallbackErr.message : fallbackErr)
-    }
+    console.error(`[image-gen-openai] [${assetType}] images.edit() failed:`,
+      err instanceof Error ? err.message : err,
+      err instanceof Error && 'status' in err ? (err as any).status : '',
+      err instanceof Error && 'error' in err ? JSON.stringify((err as any).error) : ''
+    )
+    return null
   }
-  return null
 }
 
 // ─── STEP 3: Sharp composites Barry's exact PNG on the right ─────────────────
