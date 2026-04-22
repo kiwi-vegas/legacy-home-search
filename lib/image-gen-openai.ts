@@ -1,39 +1,69 @@
 /**
- * Barry Jenkins Thumbnail Generator — Pure Sharp Compositing Pipeline
- *
- * The background photo is NEVER touched by AI. Ever.
+ * Barry Jenkins Thumbnail Generator — 2-Step Compositing Pipeline
  *
  * Pipeline:
- *   1. Load community photo from public/community-photos/[slug]/  (REQUIRED)
- *   2. sharp → resize to 1536×1024
- *   3. GPT-4o → writes a prompt describing text/graphics to render on a TRANSPARENT canvas
- *   4. gpt-image-1 images.generate() → generates ONLY the text overlay on a black background
- *   5. sharp → extract the text layer using 'screen' blend (drops the black, keeps bright text/graphics)
- *   6. sharp.composite() → text layer over community photo (background untouched)
- *   7. sharp.composite() → Barry's transparent PNG on the right side
- *   8. Upload to Sanity CDN
+ *   1. Detect community + mood + template from article metadata (deterministic)
+ *   2. Build a scene-only prompt — NO person, NO figure, right third reserved as empty atmosphere
+ *   3. gpt-image-1 generates the scene (background + text + graphics on left/center only)
+ *      using the community photo as the single reference image
+ *   4. Sharp composites Barry's exact transparent PNG onto the right side with a soft left-edge fade
+ *   5. Upload to Sanity CDN
  *
- * Why this works when images.edit() didn't:
- *   images.edit() treats the input image as a canvas to modify — it always alters the background
- *   no matter what the prompt says. This pipeline never gives AI the background photo at all.
- *   AI only generates the text/graphics layer in isolation. Sharp does all compositing.
+ * Why this works:
+ *   Previous versions asked gpt-image-1 to recreate Barry from a reference photo. His likeness
+ *   drifted every generation (wrong face, wrong glasses, wrong beard). By generating the scene
+ *   without him and compositing his real PNG in Sharp, Barry is always pixel-exact.
  */
 
 import fs from 'fs'
 import path from 'path'
-import OpenAI from 'openai'
+import OpenAI, { toFile } from 'openai'
 import { getSanityWriteClient } from './sanity-write'
 import type { ScoredArticle } from './types'
 
-// ─── BARRY'S PHOTO ───────────────────────────────────────────────────────────
+// ─── SHARED TYPES ────────────────────────────────────────────────────────────
 
-const BARRY_TRANSPARENT_PATH = path.join(process.cwd(), 'public', 'Barry-AI-transparent.png')
+export type SanityImageRef = { _type: 'reference'; _ref: string }
 
-function getBarryTransparent(): Buffer | null {
-  try {
-    if (!fs.existsSync(BARRY_TRANSPARENT_PATH)) return null
-    return fs.readFileSync(BARRY_TRANSPARENT_PATH)
-  } catch { return null }
+export type DualImageRefs = {
+  coverImage: SanityImageRef | null
+  heroBannerImage: SanityImageRef | null
+}
+
+type AssetType = 'card' | 'hero'
+
+// ─── BARRY'S PHOTO(S) ────────────────────────────────────────────────────────
+
+const BARRY_DIR = path.join(process.cwd(), 'public')
+const DEFAULT_BARRY_FILE = 'Barry-AI-transparent.png'
+
+// Map each mood to a Barry expression filename. Only one asset exists today, so
+// everything points at the default. Drop new PNGs in /public and update this map.
+const MOOD_BARRY_FILE: Record<ThumbnailMood, string> = {
+  'shocked':           DEFAULT_BARRY_FILE,
+  'exciting-positive': DEFAULT_BARRY_FILE,
+  'investment':        DEFAULT_BARRY_FILE,
+  'negative':          DEFAULT_BARRY_FILE,
+  'selling':           DEFAULT_BARRY_FILE,
+  'buying':            DEFAULT_BARRY_FILE,
+  'community':         DEFAULT_BARRY_FILE,
+  'neutral':           DEFAULT_BARRY_FILE,
+}
+
+function selectBarryPhoto(mood: ThumbnailMood): string {
+  const filename = MOOD_BARRY_FILE[mood] ?? DEFAULT_BARRY_FILE
+  return path.join(BARRY_DIR, filename)
+}
+
+function getBarryBuffer(mood: ThumbnailMood): Buffer | null {
+  const primary = selectBarryPhoto(mood)
+  const fallback = path.join(BARRY_DIR, DEFAULT_BARRY_FILE)
+  for (const p of [primary, fallback]) {
+    try {
+      if (fs.existsSync(p)) return fs.readFileSync(p)
+    } catch { /* try next */ }
+  }
+  return null
 }
 
 // ─── COMMUNITY PHOTOS ────────────────────────────────────────────────────────
@@ -52,7 +82,7 @@ function detectCommunity(title: string): string {
   return FALLBACK_COMMUNITY
 }
 
-function getRequiredCommunityPhoto(community: string): { buffer: Buffer; community: string } | null {
+function getRequiredCommunityPhoto(community: string): { buffer: Buffer; community: string; filename: string } | null {
   const candidates = community === FALLBACK_COMMUNITY
     ? [community]
     : [community, FALLBACK_COMMUNITY]
@@ -70,7 +100,7 @@ function getRequiredCommunityPhoto(community: string): { buffer: Buffer; communi
       const chosen = files[Math.floor(Math.random() * files.length)]
       const buffer = fs.readFileSync(path.join(dir, chosen))
       console.log(`[image-gen-openai] Community photo: community-photos/${slug}/${chosen}`)
-      return { buffer, community: c }
+      return { buffer, community: c, filename: chosen }
     } catch (err) {
       console.warn(`[image-gen-openai] Could not read photo for "${c}":`, err instanceof Error ? err.message : err)
     }
@@ -80,7 +110,7 @@ function getRequiredCommunityPhoto(community: string): { buffer: Buffer; communi
   return null
 }
 
-// ─── MOOD SYSTEM ─────────────────────────────────────────────────────────────
+// ─── MOOD + TEMPLATE DETECTION ───────────────────────────────────────────────
 
 type ThumbnailMood =
   | 'shocked'
@@ -92,15 +122,45 @@ type ThumbnailMood =
   | 'community'
   | 'neutral'
 
-const MOOD_STYLES: Record<ThumbnailMood, { line1: string; line2: string; accent: string; overlay: string }> = {
-  'shocked':           { line1: 'bright RED (#FF1A1A)',      line2: 'bright YELLOW (#FFE600)', accent: 'a bold red semi-transparent banner strip behind the text', overlay: 'dark red semi-transparent rectangle behind text block' },
-  'exciting-positive': { line1: 'bright YELLOW (#FFE600)',   line2: 'pure WHITE (#FFFFFF)',    accent: 'a bold upward-pointing gold arrow graphic to the right of the text', overlay: 'dark semi-transparent rectangle behind text block' },
-  'investment':        { line1: 'pure WHITE (#FFFFFF)',       line2: 'bright GOLD (#FFD700)',   accent: 'a bold gold dollar-sign badge or banner', overlay: 'dark semi-transparent rectangle behind text block' },
-  'negative':          { line1: 'pure WHITE (#FFFFFF)',       line2: 'sky BLUE (#38BDF8)',      accent: 'a bold downward-pointing blue arrow graphic', overlay: 'dark semi-transparent rectangle behind text block' },
-  'selling':           { line1: 'bright GREEN (#22C55E)',     line2: 'pure WHITE (#FFFFFF)',    accent: 'a bold green horizontal stripe behind the text', overlay: 'dark semi-transparent rectangle behind text block' },
-  'buying':            { line1: 'pure WHITE (#FFFFFF)',       line2: 'sky BLUE (#38BDF8)',      accent: 'a bold blue house icon or banner badge', overlay: 'dark semi-transparent rectangle behind text block' },
-  'community':         { line1: 'warm ORANGE (#FF8C00)',      line2: 'pure WHITE (#FFFFFF)',    accent: 'a bold location pin graphic above the text', overlay: 'dark semi-transparent rectangle behind text block' },
-  'neutral':           { line1: 'bright YELLOW (#FFE600)',    line2: 'pure WHITE (#FFFFFF)',    accent: 'a bold horizontal yellow stripe behind the text block', overlay: 'dark semi-transparent rectangle behind text block' },
+type TemplateType =
+  | 'market-swing'
+  | 'investment-return'
+  | 'buying-guide'
+  | 'selling-guide'
+  | 'community-spotlight'
+  | 'comparison'
+  | 'generic'
+
+const MOOD_COLORS: Record<ThumbnailMood, { primary: string; secondary: string; accent: string }> = {
+  'shocked':           { primary: '#FF1A1A', secondary: '#FFE600', accent: 'bold red banner strip behind the headline' },
+  'exciting-positive': { primary: '#FFE600', secondary: '#FFFFFF', accent: 'bold upward green/gold arrow in the lower-left' },
+  'investment':        { primary: '#FFFFFF', secondary: '#FFD700', accent: 'gold dollar-sign badge and a wallet graphic with cash' },
+  'negative':          { primary: '#FFFFFF', secondary: '#38BDF8', accent: 'bold downward blue arrow graphic' },
+  'selling':           { primary: '#22C55E', secondary: '#FFFFFF', accent: 'green horizontal stripe and a SOLD-style banner' },
+  'buying':            { primary: '#FFFFFF', secondary: '#38BDF8', accent: 'blue house icon with a key graphic' },
+  'community':         { primary: '#FF8C00', secondary: '#FFFFFF', accent: 'bold location pin graphic above the headline' },
+  'neutral':           { primary: '#FFE600', secondary: '#FFFFFF', accent: 'horizontal yellow stripe behind the text block' },
+}
+
+const MOOD_BARRY_POSE: Record<ThumbnailMood, string> = {
+  'shocked':           'wide-eyed, mouth open in a shocked gasp',
+  'exciting-positive': 'huge enthusiastic smile, energetic',
+  'investment':        'confident smirk, knowing and professional',
+  'negative':          'concerned, furrowed brow, serious expression',
+  'selling':           'confident grin, salesman energy',
+  'buying':            'warm welcoming smile, inviting',
+  'community':         'genuine friendly smile, approachable neighbor',
+  'neutral':           'natural confident smile',
+}
+
+const TEMPLATE_SCENE: Record<TemplateType, string> = {
+  'market-swing':        'a dramatic stock-chart style scene with a bold rising or falling line overlay across the mid-ground',
+  'investment-return':   'a wealth/money scene: a wallet bursting with cash, stacked bills, and a rising green chart in the lower-left',
+  'buying-guide':        'a classic home exterior with a SOLD sign, a key, and a front-door motif',
+  'selling-guide':       'a home with a for-sale sign, a calendar/clock motif, and a green upward price arrow',
+  'community-spotlight': 'a wide establishing shot of the neighborhood with local landmarks and warm golden-hour light',
+  'comparison':          'a split-screen visual with two contrasting sides and a bold VS-style divider',
+  'generic':             'a cinematic real-estate scene with strong leading lines and dramatic lighting',
 }
 
 function detectMood(title: string, category: string): ThumbnailMood {
@@ -116,147 +176,213 @@ function detectMood(title: string, category: string): ThumbnailMood {
   return 'neutral'
 }
 
-// ─── STEP 3: Build the text-layer generation prompt ──────────────────────────
-// This prompt goes to images.generate() — NOT images.edit().
-// AI never sees the background photo. It only generates the text overlay.
-// The output will be text/graphics on a BLACK background.
-// Sharp then uses 'screen' blend mode to composite it — black drops out, bright text stays.
+function detectTemplateType(title: string, category: string): TemplateType {
+  const t = title.toLowerCase()
+  if (/ vs\.? | versus | compared? to /.test(t)) return 'comparison'
+  if (category === 'market-update' || /market|price|rate|trend|forecast/.test(t)) return 'market-swing'
+  if (category === 'investment' || /invest|roi|equity|rental income|cash flow/.test(t)) return 'investment-return'
+  if (category === 'buying-tips' || /buy|first[- ]time home|guide/.test(t)) return 'buying-guide'
+  if (category === 'selling-tips' || /sell|list your|top dollar/.test(t)) return 'selling-guide'
+  if (category === 'community-spotlight' || /neighborhood|community|living in|spotlight/.test(t)) return 'community-spotlight'
+  return 'generic'
+}
 
-function buildTextLayerPrompt(
+const STOPWORDS = new Set([
+  'a','an','the','and','or','but','to','of','in','on','for','with','from','by','at','as','is',
+  'it','this','that','these','those','your','you','are','be','been','was','were','will','can',
+  'could','should','would','do','does','did','not','no','so','if','into','over','under','how',
+  'what','when','where','why','who','which','vs','versus','about','more','most','than'
+])
+
+function extractPowerWords(title: string): string[] {
+  const words = title
+    .replace(/[^\w\s%$-]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter(w => !STOPWORDS.has(w.toLowerCase()))
+  return words.slice(0, 4).map(w => w.toUpperCase())
+}
+
+// ─── STEP 1 PROMPT BUILDER (deterministic, no GPT-4o) ────────────────────────
+
+function buildScenePrompt(
   article: ScoredArticle,
   community: string,
-  mood: ThumbnailMood
+  mood: ThumbnailMood,
+  template: TemplateType,
+  assetType: AssetType,
 ): string {
-  const style = MOOD_STYLES[mood]
+  const colors = MOOD_COLORS[mood]
+  const scene = TEMPLATE_SCENE[template]
+  const power = extractPowerWords(article.title)
 
-  // Break the title into 2 punchy chunks
+  // Break the title into 2 punchy lines for the overlay text.
   const words = article.title.split(' ')
   const mid = Math.ceil(words.length / 2)
   const line1 = words.slice(0, mid).join(' ').toUpperCase()
   const line2 = words.slice(mid).join(' ').toUpperCase()
 
-  return `Generate a text overlay graphic on a PURE BLACK background. This will be composited over a photo using screen blend mode, so the black areas will be invisible and only the bright text and graphics will show through.
+  const canvas = assetType === 'card'
+    ? 'CANVAS: 1536×1024px landscape (a YouTube-style card thumbnail).'
+    : 'CANVAS: 1600×500px wide shallow banner (a website hero banner).'
 
-CANVAS: 1536×1024px, pure black background (#000000). Nothing else in the background — just black.
+  const textSizing = assetType === 'card'
+    ? 'Line 1 110–130px tall, Line 2 95–115px tall.'
+    : 'Line 1 70–90px tall, Line 2 60–75px tall, more compact so it fits the shallow banner.'
 
-LEFT ZONE ONLY (pixels 0–700 wide, top 500px tall): Place ALL elements here.
-RIGHT ZONE (pixels 700–1536): Leave completely black — empty.
+  const accentPlacement = assetType === 'card'
+    ? 'Place the graphic accent in the LOWER LEFT quadrant of the frame.'
+    : 'Place the graphic accent inline with the text on the left side — the banner is too shallow for a stacked lower layout.'
 
-TEXT BLOCK (required):
-- Line 1: "${line1}"
-  - Color: ${style.line1}
-  - Size: 110–130px tall, bold condensed Impact/Bebas Neue style
-  - Black stroke outline: 8px thick on every letter
-  - Hard black drop shadow: 5px offset, no blur
-- Line 2: "${line2}"
-  - Color: ${style.line2}
-  - Size: 95–115px tall, same bold condensed font
-  - Black stroke outline: 8px thick
-  - Hard black drop shadow: 5px offset, no blur
-- Position: top-left area, starting around x=40, y=60
-- Maximum 2 lines — do not add more lines
+  return `Create a high-impact YouTube-style thumbnail in the MrBeast visual style — cinematic, dramatic, high-energy, saturated.
 
-BACKGROUND BEHIND TEXT (required):
-- ${style.overlay}
-- Slightly larger than the text block
-- Opacity ~60–70% — dark but not fully opaque
-- Rounded corners are fine
+${canvas}
 
-GRAPHIC ACCENT (required — pick one):
-- ${style.accent}
-- Place it adjacent to the text block, within the left zone
-- It should be bright and bold, visible against the black background
+REFERENCE PHOTO: Use the provided ${community} community photo as the full background. Preserve its lighting, colors, and landmarks. Push the drama: saturated sunset/golden-hour sky, rich contrast, vibrant color grading.
 
-COMMUNITY LABEL (optional but nice):
-- Small badge or pill shape: "${community}, VA" or "${community}"
-- Place below the main text lines
-- White or yellow text, small (40–50px), bold
+SCENE STYLE: ${scene}.
 
-DO NOT add: any background scene, landscape, buildings, sky, people, photos, or any imagery other than text and simple graphic elements on pure black.`
+⛔ CRITICAL NO-PERSON RULE:
+- DO NOT include any person, human, figure, silhouette, face, body, hand, or mannequin anywhere in this image.
+- The ENTIRE RIGHT THIRD of the image (from roughly 66% of the width to the right edge) must remain EMPTY atmospheric background only — sky, ocean, landscape, bokeh, depth. No text, no graphics, no people. Think "negative space reserved for a subject that will be added later".
+- All text and all graphic elements must live on the LEFT TWO-THIRDS of the frame (from the left edge to roughly 66% of the width).
+
+HEADLINE TEXT (left side, top portion):
+- Line 1: "${line1}" — color ${colors.primary}
+- Line 2: "${line2}" — color ${colors.secondary}
+- Bold condensed sans-serif (Impact / Bebas Neue / Anton style), heavy black stroke outline (8px), hard black drop shadow (no blur).
+- ${textSizing}
+- Maximum 2 lines. Do not invent additional headlines.
+
+POWER-WORD EMPHASIS:
+- Visually emphasize these words if they appear in the title: ${power.join(', ') || '(none)'}. Make them the largest/boldest elements.
+
+GRAPHIC ACCENT (left two-thirds only):
+- ${colors.accent}.
+- ${accentPlacement}
+- Bold, readable, saturated, consistent with the mood color palette (${colors.primary} / ${colors.secondary}).
+
+COMMUNITY LABEL:
+- Small badge reading "${community.toUpperCase()}, VA" in white or yellow, placed under the headline on the left.
+
+COMPOSITION RULES:
+- Left two-thirds: text + graphics + scene drama.
+- Right third: clean empty atmospheric background — no subject of any kind.
+- Overall energy: MrBeast YouTube thumbnail — bold, loud, saturated, readable at tiny sizes.
+
+Remember: NO PERSON ANYWHERE IN THE IMAGE. The right third stays empty atmospheric background.`
 }
 
-// ─── STEP 4: Generate text layer via images.generate() ───────────────────────
-// Generates text/graphics on black. Sharp 'screen' blend makes black transparent.
+// ─── STEP 2: gpt-image-1 generates the scene (no Barry) ──────────────────────
 
-async function generateTextLayer(
+async function generateSceneOnly(
   openai: OpenAI,
-  prompt: string
+  backgroundBuffer: Buffer,
+  backgroundFilename: string,
+  prompt: string,
+  assetType: AssetType,
 ): Promise<Buffer | null> {
+  // gpt-image-1 only supports a fixed set of sizes. 1536×1024 is the closest
+  // landscape option — the hero banner is cropped / extended in Sharp afterward.
+  const size = '1536x1024'
+
   try {
-    console.log('[image-gen-openai] Generating text layer (black background, screen blend)...')
-    const response = await openai.images.generate({
+    console.log(`[image-gen-openai] [${assetType}] Generating scene (no Barry) via images.edit() with ${backgroundFilename}…`)
+    const referenceFile = await toFile(backgroundBuffer, backgroundFilename, { type: 'image/png' })
+    const response = await openai.images.edit({
       model: 'gpt-image-1',
+      image: referenceFile,
       prompt,
       n: 1,
-      size: '1536x1024',
+      size,
     })
     const b64 = response.data?.[0]?.b64_json
     if (b64) {
       const buf = Buffer.from(b64, 'base64')
-      console.log(`[image-gen-openai] Text layer generated — ${Math.round(buf.length / 1024)}KB`)
+      console.log(`[image-gen-openai] [${assetType}] Scene generated — ${Math.round(buf.length / 1024)}KB`)
       return buf
     }
-    console.warn('[image-gen-openai] images.generate() returned no image')
+    console.warn(`[image-gen-openai] [${assetType}] images.edit() returned no image`)
   } catch (err) {
-    console.error('[image-gen-openai] images.generate() error:', err instanceof Error ? err.message : err)
+    console.warn(`[image-gen-openai] [${assetType}] images.edit() failed, falling back to images.generate():`, err instanceof Error ? err.message : err)
+    try {
+      const response = await openai.images.generate({
+        model: 'gpt-image-1',
+        prompt,
+        n: 1,
+        size,
+      })
+      const b64 = response.data?.[0]?.b64_json
+      if (b64) {
+        const buf = Buffer.from(b64, 'base64')
+        console.log(`[image-gen-openai] [${assetType}] Scene generated (fallback) — ${Math.round(buf.length / 1024)}KB`)
+        return buf
+      }
+    } catch (fallbackErr) {
+      console.error(`[image-gen-openai] [${assetType}] Scene generation fallback failed:`, fallbackErr instanceof Error ? fallbackErr.message : fallbackErr)
+    }
   }
   return null
 }
 
-// ─── STEP 5+6: Composite text layer over community photo ─────────────────────
-// 'screen' blend: black (0,0,0) drops out completely, bright colors show through.
-// The community photo background is completely untouched.
-
-async function compositeTextOverBackground(
-  backgroundBuffer: Buffer,
-  textLayerBuffer: Buffer
-): Promise<Buffer> {
-  const sharp = (await import('sharp')).default
-
-  // Resize background to exact canvas size
-  const background = await sharp(backgroundBuffer)
-    .resize(1536, 1024, { fit: 'cover', position: 'center' })
-    .png()
-    .toBuffer()
-
-  // Resize text layer to match (should already be 1536×1024 but ensure it)
-  const textLayer = await sharp(textLayerBuffer)
-    .resize(1536, 1024, { fit: 'fill' })
-    .png()
-    .toBuffer()
-
-  // Composite text over background using 'screen' blend — black becomes transparent
-  const result = await sharp(background)
-    .composite([{ input: textLayer, top: 0, left: 0, blend: 'screen' }])
-    .png()
-    .toBuffer()
-
-  console.log(`[image-gen-openai] Text composited over background — ${Math.round(result.length / 1024)}KB`)
-  return result
-}
-
-// ─── STEP 7: Composite Barry on the right side ───────────────────────────────
+// ─── STEP 3: Sharp composites Barry's exact PNG on the right ─────────────────
 
 async function compositeBarry(
-  backgroundBuffer: Buffer,
-  barryTransparentBuffer: Buffer
+  sceneBuffer: Buffer,
+  barryBuffer: Buffer,
+  assetType: AssetType,
 ): Promise<Buffer> {
   const sharp = (await import('sharp')).default
 
-  const BARRY_W = 710
-  const BARRY_H = 1024
-  const LEFT_OFFSET = 1536 - BARRY_W // 826px from left
+  const canvasW = assetType === 'card' ? 1536 : 1600
+  const canvasH = assetType === 'card' ? 1024 : 500
+  const barryTargetH = assetType === 'card' ? 900 : 420
 
-  const barryResized = await sharp(barryTransparentBuffer)
-    .resize(BARRY_W, BARRY_H, { fit: 'cover', position: 'top' })
-    .toBuffer()
-
-  const result = await sharp(backgroundBuffer)
-    .composite([{ input: barryResized, top: 0, left: LEFT_OFFSET, blend: 'over' }])
+  // Normalize the scene to the final canvas dimensions first so Barry lines up predictably.
+  const scene = await sharp(sceneBuffer)
+    .resize(canvasW, canvasH, { fit: 'cover', position: 'center' })
     .png()
     .toBuffer()
 
-  console.log(`[image-gen-openai] Barry composited — final size ${Math.round(result.length / 1024)}KB`)
+  // Resize Barry by height, preserving aspect ratio. Read actual width back for positioning.
+  const barryResized = await sharp(barryBuffer)
+    .resize({ height: barryTargetH, withoutEnlargement: false })
+    .png()
+    .toBuffer()
+  const { width: barryW = 0, height: barryH = barryTargetH } = await sharp(barryResized).metadata()
+
+  // Subtle left-edge fade so Barry blends into the scene instead of looking pasted on.
+  const fadePx = Math.round(barryW * 0.12)
+  const fadeMask = Buffer.from(
+    `<svg width="${barryW}" height="${barryH}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+          <stop offset="${(fadePx / barryW).toFixed(3)}" stop-color="#FFFFFF" stop-opacity="1"/>
+          <stop offset="1" stop-color="#FFFFFF" stop-opacity="1"/>
+        </linearGradient>
+      </defs>
+      <rect width="${barryW}" height="${barryH}" fill="url(#g)"/>
+    </svg>`
+  )
+
+  const barryFaded = await sharp(barryResized)
+    .composite([{ input: fadeMask, blend: 'dest-in' }])
+    .png()
+    .toBuffer()
+
+  // Right-anchored, bottom-aligned for the card; vertically centered for the shallow hero.
+  const left = Math.max(0, canvasW - barryW)
+  const top = assetType === 'card'
+    ? Math.max(0, canvasH - barryH)
+    : Math.max(0, Math.round((canvasH - barryH) / 2))
+
+  const result = await sharp(scene)
+    .composite([{ input: barryFaded, top, left, blend: 'over' }])
+    .png()
+    .toBuffer()
+
+  console.log(`[image-gen-openai] [${assetType}] Barry composited at ${left},${top} (${barryW}×${barryH}) — final ${Math.round(result.length / 1024)}KB`)
   return result
 }
 
@@ -264,8 +390,8 @@ async function compositeBarry(
 
 async function uploadToSanity(
   buffer: Buffer,
-  filename = `openai-cover-${Date.now()}.png`
-): Promise<{ _type: 'reference'; _ref: string } | null> {
+  filename = `openai-cover-${Date.now()}.png`,
+): Promise<SanityImageRef | null> {
   try {
     const client = getSanityWriteClient()
     const asset = await client.assets.upload('image', buffer, {
@@ -280,181 +406,66 @@ async function uploadToSanity(
   }
 }
 
-// ─── MAIN EXPORT: Card Thumbnail (1536×1024) ─────────────────────────────────
+// ─── SHARED GENERATION CORE ──────────────────────────────────────────────────
 
-export async function generateAndUploadCoverImageOpenAI(
-  article: ScoredArticle
-): Promise<{ _type: 'reference'; _ref: string } | null> {
+async function generateThumbnail(
+  article: ScoredArticle,
+  assetType: AssetType,
+): Promise<SanityImageRef | null> {
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const community = detectCommunity(article.title)
     const mood = detectMood(article.title, article.category)
+    const template = detectTemplateType(article.title, article.category)
 
-    console.log(`[image-gen-openai] Article: "${article.title.slice(0, 60)}"`)
-    console.log(`[image-gen-openai] Community: ${community} | Mood: ${mood}`)
+    console.log(`[image-gen-openai] [${assetType}] Article: "${article.title.slice(0, 60)}"`)
+    console.log(`[image-gen-openai] [${assetType}] Community: ${community} | Mood: ${mood} | Template: ${template}`)
 
-    // Step 1: Load community photo (REQUIRED — no AI background ever)
     const photoResult = getRequiredCommunityPhoto(community)
     if (!photoResult) return null
 
-    // Step 2: Resize background to thumbnail canvas
-    const sharp = (await import('sharp')).default
-    const background = await sharp(photoResult.buffer)
-      .resize(1536, 1024, { fit: 'cover', position: 'center' })
-      .png()
-      .toBuffer()
+    const prompt = buildScenePrompt(article, photoResult.community, mood, template, assetType)
 
-    // Step 3: Build text-layer prompt (AI never sees the background)
-    const textPrompt = buildTextLayerPrompt(article, photoResult.community, mood)
+    const sceneRaw = await generateSceneOnly(openai, photoResult.buffer, photoResult.filename, prompt, assetType)
+    if (!sceneRaw) return null
 
-    // Step 4: Generate text layer on black background
-    const textLayer = await generateTextLayer(openai, textPrompt)
-    if (!textLayer) return null
-
-    // Step 5+6: Composite text over the real community photo
-    const withText = await compositeTextOverBackground(background, textLayer)
-
-    // Step 7: Composite Barry on the right side
-    const barryBuffer = getBarryTransparent()
+    const barryBuffer = getBarryBuffer(mood)
     let finalBuffer: Buffer
 
     if (barryBuffer) {
-      console.log('[image-gen-openai] Compositing Barry (pixel-exact transparent PNG)')
-      finalBuffer = await compositeBarry(withText, barryBuffer)
+      finalBuffer = await compositeBarry(sceneRaw, barryBuffer, assetType)
     } else {
-      console.warn('[image-gen-openai] Barry-AI-transparent.png not found — skipping Barry composite')
-      finalBuffer = withText
+      console.warn(`[image-gen-openai] [${assetType}] No Barry PNG found in /public — uploading scene without him`)
+      const sharp = (await import('sharp')).default
+      const w = assetType === 'card' ? 1536 : 1600
+      const h = assetType === 'card' ? 1024 : 500
+      finalBuffer = await sharp(sceneRaw).resize(w, h, { fit: 'cover', position: 'center' }).png().toBuffer()
     }
 
-    return await uploadToSanity(finalBuffer)
+    const filename = assetType === 'card'
+      ? `openai-cover-${Date.now()}.png`
+      : `openai-hero-banner-${Date.now()}.png`
+
+    return await uploadToSanity(finalBuffer, filename)
   } catch (err) {
-    console.error('[image-gen-openai] Uncaught error:', err instanceof Error ? err.message : err)
+    console.error(`[image-gen-openai] [${assetType}] Uncaught error:`, err instanceof Error ? err.message : err)
     return null
   }
 }
 
-// ─── HERO BANNER (1920×480) ──────────────────────────────────────────────────
+// ─── PUBLIC EXPORTS (signatures unchanged) ───────────────────────────────────
 
-function buildHeroBannerTextPrompt(
+export async function generateAndUploadCoverImageOpenAI(
   article: ScoredArticle,
-  community: string,
-  mood: ThumbnailMood
-): string {
-  const style = MOOD_STYLES[mood]
-
-  const words = article.title.split(' ')
-  const mid = Math.ceil(words.length / 2)
-  const line1 = words.slice(0, mid).join(' ').toUpperCase()
-  const line2 = words.slice(mid).join(' ').toUpperCase()
-
-  return `Generate a text overlay graphic on a PURE BLACK background (#000000). This will be composited over a photo using screen blend mode — black areas become invisible, only bright text and graphics show through.
-
-CANVAS: 1536×1024px (will be cropped to a wide banner afterward), PURE BLACK background. Nothing else.
-
-LEFT ZONE ONLY (pixels 0–700 wide, top 400px tall): Place ALL elements here.
-RIGHT ZONE (pixels 700–1536): Leave completely black — empty.
-
-TEXT BLOCK:
-- Line 1: "${line1}"
-  - Color: ${style.line1}
-  - Size: 70–85px tall, bold condensed Impact/Bebas Neue style
-  - Black stroke: 6px, hard black drop shadow 4px
-- Line 2: "${line2}"
-  - Color: ${style.line2}
-  - Size: 60–75px tall, same font
-  - Black stroke: 6px, hard black drop shadow 4px
-- Position: top-left, starting around x=40, y=40
-- Maximum 2 lines
-
-BACKGROUND BEHIND TEXT: ${style.overlay}, ~60% opacity
-
-GRAPHIC ACCENT: ${style.accent}, bright, in the left zone
-
-COMMUNITY LABEL: Small badge "${community}, VA", white/yellow text, 35–45px, below main text
-
-DO NOT add any background imagery, landscapes, buildings, sky, or photos. Pure black with text and simple graphic elements only.`
+): Promise<SanityImageRef | null> {
+  return generateThumbnail(article, 'card')
 }
 
 export async function generateAndUploadHeroBannerOpenAI(
-  article: ScoredArticle
-): Promise<{ _type: 'reference'; _ref: string } | null> {
-  try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-    const sharp = (await import('sharp')).default
-
-    const community = detectCommunity(article.title)
-    const mood = detectMood(article.title, article.category)
-
-    console.log(`[image-gen-openai] [hero-banner] Article: "${article.title.slice(0, 60)}"`)
-    console.log(`[image-gen-openai] [hero-banner] Community: ${community} | Mood: ${mood}`)
-
-    // Step 1: Load community photo
-    const photoResult = getRequiredCommunityPhoto(community)
-    if (!photoResult) return null
-
-    // Step 2: Resize background to 1920×480
-    const background = await sharp(photoResult.buffer)
-      .resize(1920, 480, { fit: 'cover', position: 'center' })
-      .png()
-      .toBuffer()
-
-    // Step 3: Build hero banner text prompt
-    const textPrompt = buildHeroBannerTextPrompt(article, photoResult.community, mood)
-
-    // Step 4: Generate text layer at 1536×1024 (gpt-image-1's closest wide format)
-    const textLayer = await generateTextLayer(openai, textPrompt)
-    if (!textLayer) return null
-
-    // Step 5: Resize text layer to 1920×480 to match banner
-    const textLayerResized = await sharp(textLayer)
-      .resize(1920, undefined, { fit: 'outside' })
-      .extract({ left: 0, top: 0, width: 1920, height: 480 })
-      .png()
-      .toBuffer()
-
-    // Step 6: Composite text over background using screen blend
-    const withText = await sharp(background)
-      .composite([{ input: textLayerResized, top: 0, left: 0, blend: 'screen' }])
-      .png()
-      .toBuffer()
-
-    // Step 7: Composite Barry on the right side (480×480, flush right)
-    const barryBuffer = getBarryTransparent()
-    let finalBuffer: Buffer
-
-    if (barryBuffer) {
-      const BARRY_W = 480
-      const BARRY_H = 480
-      const LEFT_OFFSET = 1920 - BARRY_W
-
-      const barryResized = await sharp(barryBuffer)
-        .resize(BARRY_W, BARRY_H, { fit: 'cover', position: 'top' })
-        .toBuffer()
-
-      finalBuffer = await sharp(withText)
-        .composite([{ input: barryResized, top: 0, left: LEFT_OFFSET, blend: 'over' }])
-        .png()
-        .toBuffer()
-
-      console.log(`[image-gen-openai] [hero-banner] Barry composited — ${Math.round(finalBuffer.length / 1024)}KB`)
-    } else {
-      console.warn('[image-gen-openai] [hero-banner] Barry-AI-transparent.png not found')
-      finalBuffer = withText
-    }
-
-    return await uploadToSanity(finalBuffer, `openai-hero-banner-${Date.now()}.png`)
-  } catch (err) {
-    console.error('[image-gen-openai] [hero-banner] Uncaught error:', err instanceof Error ? err.message : err)
-    return null
-  }
-}
-
-// ─── COMBINED EXPORT ─────────────────────────────────────────────────────────
-
-export type DualImageRefs = {
-  coverImage: { _type: 'reference'; _ref: string } | null
-  heroBannerImage: { _type: 'reference'; _ref: string } | null
+  article: ScoredArticle,
+): Promise<SanityImageRef | null> {
+  return generateThumbnail(article, 'hero')
 }
 
 export async function generateAndUploadBothImages(article: ScoredArticle): Promise<DualImageRefs> {
