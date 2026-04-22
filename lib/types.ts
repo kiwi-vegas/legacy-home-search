@@ -7,6 +7,8 @@ export type ArticleCategory =
   | 'community-spotlight'
   | 'investment'
   | 'news'
+  | 'cost-breakdown'
+  | 'flood-and-risk'
 
 export interface RawArticle {
   id: string

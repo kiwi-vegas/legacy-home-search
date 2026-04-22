@@ -426,3 +426,90 @@ curl -X POST https://your-domain.com/api/blog/generate-thumbnail \
 |---|---|---|
 | `0 13 * * *` (6 AM PT daily) | `/api/cron/research` | Daily blog research + digest email |
 | `0 14 1 * *` (7 AM PT, 1st of month) | `/api/cron/market-reports` | Sends monthly Altos upload reminder; checks for missing reports |
+
+---
+
+## Enhanced Category Strategy
+*Updated based on Renick Blog Effectiveness Dashboard analysis — April 2026*
+
+### Two New Categories
+
+**`cost-breakdown`** — Dedicated cost/fee/price explainer posts. Renick's #1 format by lift (5 of his top 10 posts). Currently buried inside buying-tips/selling-tips. Give it its own lane. Every post must include a summary table in the first third of the post.
+
+Example titles:
+- "What Are the Closing Costs for Buyers in Virginia Beach — Full Breakdown"
+- "How Much Does a Home Inspection Cost in Hampton Roads in [Year]?"
+- "What Are the HOA Fees in Virginia Beach's Top Neighborhoods?"
+
+**`flood-and-risk`** — Flood zone classification, insurance costs, sea level rise, and environmental risk for Hampton Roads. Norfolk is one of the fastest-sinking US cities. Flood insurance can add hundreds/month to buyer costs. Renick's insurance post drove +1829% lift — his single highest. Currently zero coverage in the pipeline.
+
+Example titles:
+- "What Flood Zone Is My Home In — How to Check Any Hampton Roads Address"
+- "How Much Does Flood Insurance Cost in Virginia Beach? [Year] Rates by Zone"
+- "Is Norfolk Sinking? What Sea Level Rise Means for Home Buyers Right Now"
+
+---
+
+### Format Rules (All Categories)
+
+1. **Question-led titles by default.** "What Does It Cost...", "How Do... Work?", "Is X or Y Better?" Only use statement titles when question form is awkward.
+2. **Include a real number in the title** whenever possible.
+3. **Cost breakdown posts:** Summary table required, placed in the first third of the post.
+4. **Comparison posts:** Must end with an explicit "Best For..." conclusion — don't leave the reader to decide.
+5. **Process guides:** Numbered steps, not prose. Each step: what happens, who does it, how long.
+6. **All market posts:** "What This Means For Hampton Roads Buyers/Sellers" section is non-negotiable.
+7. **Military-angle posts:** Specify active duty vs. veterans vs. both. BAH rates, VA loan entitlement, and PCS timelines vary.
+
+---
+
+### Search Query Templates by Category
+
+```
+market-update:
+  "Hampton Roads home prices [current year]"
+  "Virginia Beach housing market inventory [current month year]"
+  "Norfolk days on market real estate [current quarter year]"
+  "Chesapeake Suffolk home sales data [current year]"
+
+buying-tips:
+  "VA loan requirements Virginia Beach [current year]"
+  "first time home buyer programs Virginia VHDA [current year]"
+  "attorney closing requirement Virginia real estate"
+  "BAH rates Norfolk Virginia Beach [current year]"
+
+selling-tips:
+  "seller closing costs Virginia [current year]"
+  "seller concessions Hampton Roads real estate"
+  "home sale timeline Norfolk Chesapeake [current year]"
+  "Virginia real estate commission rates [current year]"
+
+community-spotlight:
+  "Virginia Beach vs Chesapeake cost of living comparison"
+  "best neighborhoods Norfolk military families"
+  "Hampton Roads school district ratings [current year]"
+  "new development projects Virginia Beach Norfolk [current year]"
+
+investment:
+  "Virginia Beach short term rental regulations [current year]"
+  "rental property cap rates Norfolk Hampton Roads"
+  "Airbnb income Virginia Beach oceanfront [current year]"
+  "VA loan house hacking strategy [current year]"
+
+news:
+  "Virginia real estate law changes [current year]"
+  "Norfolk Virginia Beach zoning news [current year]"
+  "HOA regulations Virginia [current year]"
+  "FHA VA loan limit changes [current year]"
+
+cost-breakdown:
+  "closing costs buyer Virginia Beach [current year]"
+  "home inspection cost Hampton Roads [current year]"
+  "HOA fees Virginia Beach neighborhoods [current year]"
+  "property tax rates Hampton Roads cities comparison"
+
+flood-and-risk:
+  "FEMA flood zone Virginia Beach Norfolk map"
+  "flood insurance cost Hampton Roads [current year]"
+  "elevation certificate Virginia Beach Norfolk"
+  "Norfolk sea level rise home values impact [current year]"
+```
