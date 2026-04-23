@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import VirginiaBeachListings from '@/components/VirginiaBeachListings'
 import HeroSection from '@/components/HeroSection'
-import StatsBar from '@/components/StatsBar'
+import AccoladesSection from '@/components/AccoladesSection'
 import HamptonRoadsMap from '@/components/HamptonRoadsMap'
 import TestimonialsSection from '@/components/TestimonialsSection'
 import LogoBar from '@/components/LogoBar'
@@ -28,7 +28,6 @@ export default async function HomePage() {
     : [
         'Barry Jenkins built Legacy Home Team on a simple belief: every family deserves an agent who treats their home purchase like it\'s the most important transaction in the world — because it is.',
         'With deep roots in Hampton Roads and over a decade of experience, Barry combines a relationship-first approach with advanced digital marketing strategies that give his clients a clear edge.',
-        'In addition to leading a top-performing local team, Barry serves as Senior Realtor in Residence at Ylopo — one of the most recognized real estate marketing platforms in the country. He helps shape the tools and strategies used by thousands of agents nationwide to generate more exposure, attract buyers, and sell homes faster.',
         'A respected industry leader, Barry regularly trains and coaches agents across the country. His ability to blend cutting-edge marketing with real-world experience gives his clients a distinct advantage in today\'s market.',
         'Whether you\'re buying, selling, or relocating, Barry and the Legacy team will guide you every step of the way — with the expertise and care you deserve.',
       ]
@@ -53,8 +52,34 @@ export default async function HomePage() {
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <HeroSection posterUrl={heroPosterUrl} />
 
-      {/* ── STATS ────────────────────────────────────────────────────── */}
-      <StatsBar cmsStats={cmsStats} />
+      {/* ── ACCOLADES ────────────────────────────────────────────────── */}
+      <AccoladesSection cmsStats={cmsStats} />
+
+      {/* ── AS FEATURED IN ───────────────────────────────────────────── */}
+      <LogoBar />
+
+      {/* ── VIRGINIA BEACH LISTINGS ──────────────────────────────────── */}
+      <VirginiaBeachListings />
+
+      {/* ── AREAS WE SERVE ───────────────────────────────────────────── */}
+      <section>
+        <div className="container">
+          <div className="section-header">
+            <span className="section-label">Where We Work</span>
+            <h2>Serving All of Hampton Roads</h2>
+            <p>From oceanfront Virginia Beach to the quiet streets of Chesapeake — we know every corner of the region.</p>
+          </div>
+          <div style={{ height: 520, borderRadius: 'var(--radius-xl)', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+            <HamptonRoadsMap />
+          </div>
+          <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
+            Hover a city to explore — click to view listings and market data.
+          </p>
+        </div>
+      </section>
+
+      {/* ── REVIEWS ──────────────────────────────────────────────────── */}
+      <TestimonialsSection />
 
       {/* ── MEET BARRY ───────────────────────────────────────────────── */}
       <section>
@@ -102,54 +127,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ── ALTOS MARKET TRENDS ─────────────────────────────────────── */}
-      {/* Temporarily hidden — uncomment to restore
-      <section style={{ background: 'var(--off-white)' }}>
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">Market Data</span>
-            <h2>Virginia Beach Market Trends</h2>
-            <p>Live market data updated weekly — so you always know exactly what the Virginia Beach housing market is doing.</p>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <iframe
-              src="https://altos.re/html/s-html/8d125160-7a8d-4cb3-b0a0-c95d4cde0961?scale=1&marketNarrative=true&houses=true&weeklyChange=true&branding=true&size=large"
-              style={{ border: 0, display: 'block', width: 640, maxWidth: '100%', height: 800 }}
-              scrolling="auto"
-              loading="lazy"
-              title="Virginia Beach Market Trends"
-            />
-          </div>
-        </div>
-      </section>
-      */}
-
-      {/* ── AS FEATURED IN ───────────────────────────────────────────── */}
-      <LogoBar />
-
-      {/* ── VIRGINIA BEACH LISTINGS ──────────────────────────────────── */}
-      <VirginiaBeachListings />
-
-      {/* ── AREAS WE SERVE ───────────────────────────────────────────── */}
-      <section>
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">Where We Work</span>
-            <h2>Serving All of Hampton Roads</h2>
-            <p>From oceanfront Virginia Beach to the quiet streets of Chesapeake — we know every corner of the region.</p>
-          </div>
-          <div style={{ height: 520, borderRadius: 'var(--radius-xl)', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-            <HamptonRoadsMap />
-          </div>
-          <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
-            Hover a city to explore — click to view listings and market data.
-          </p>
-        </div>
-      </section>
-
-      {/* ── REVIEWS ──────────────────────────────────────────────────── */}
-      <TestimonialsSection />
 
       {/* ── CONTACT ──────────────────────────────────────────────────── */}
       <section id="contact">

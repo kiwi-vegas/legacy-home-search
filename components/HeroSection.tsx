@@ -1,15 +1,61 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
+const SLIDES = [
+  {
+    eyebrow: 'WELCOME TO',
+    headline: 'LEGACY HOME TEAM',
+    sub: 'Search our exclusive listings.',
+    headlineSize: undefined as string | undefined,
+  },
+  {
+    eyebrow: 'TECHNOLOGY + MARKETING =',
+    headline: 'RESULTS',
+    sub: 'Search our exclusive listings.',
+    headlineSize: undefined as string | undefined,
+  },
+  {
+    eyebrow: 'HAMPTON ROADS',
+    headline: 'MARKETING EXPERTISE',
+    sub: 'Search our exclusive listings.',
+    headlineSize: undefined as string | undefined,
+  },
+  {
+    eyebrow: 'PREMIER REAL ESTATE AGENTS IN THE',
+    headline: 'HAMPTON ROADS AREA,\nVIRGINIA BEACH, SUFFOLK,\nNORFOLK, CHESAPEAKE,\nHAMPTON AND NEWPORT NEWS',
+    sub: null,
+    headlineSize: 'clamp(1.5rem, 3.2vw, 2.8rem)',
+  },
+]
+
+const INTERVAL = 6000
+
 export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
+  const [active, setActive] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setVisible(false)
+      setTimeout(() => {
+        setActive(prev => (prev + 1) % SLIDES.length)
+        setVisible(true)
+      }, 500)
+    }, INTERVAL)
+    return () => clearInterval(timer)
+  }, [])
+
+  const slide = SLIDES[active]
+
   return (
     <section style={{
       position: 'relative',
-      minHeight: 680,
+      minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingTop: 'var(--nav-h)',
       overflow: 'hidden',
     }}>
       {/* Vimeo background video */}
@@ -32,130 +78,127 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
           allow="autoplay; fullscreen"
           title="Hero background video"
         />
-        {/* Gradient overlay — slightly lighter at top for elegance */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.62) 100%)',
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.58) 60%, rgba(0,0,0,0.65) 100%)',
         }} />
       </div>
 
-      {/* Content */}
+      {/* Rotating content */}
       <div style={{
         position: 'relative', zIndex: 2,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         textAlign: 'center',
         padding: '0 24px',
-        maxWidth: 760,
+        maxWidth: 1100,
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.5s ease',
       }}>
+
         {/* Eyebrow */}
         <p style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.18em',
+          fontSize: 13,
+          fontWeight: 400,
+          letterSpacing: '0.26em',
           textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.55)',
+          color: 'rgba(255,255,255,0.75)',
+          fontFamily: "'Marcellus', serif",
           marginBottom: 20,
         }}>
-          Virginia Beach &amp; Hampton Roads
+          {slide.eyebrow}
         </p>
 
         {/* Main headline */}
         <h1 style={{
           color: '#fff',
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 'clamp(2.6rem, 5.5vw, 4.5rem)',
+          fontFamily: "'Marcellus', serif",
+          fontSize: slide.headlineSize ?? 'clamp(2.6rem, 6vw, 5rem)',
           fontWeight: 400,
-          lineHeight: 1.1,
-          letterSpacing: '0.01em',
-          marginBottom: 20,
+          lineHeight: 1.15,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          marginBottom: slide.sub ? 28 : 44,
+          whiteSpace: 'pre-line',
         }}>
-          Hampton Roads' Most Trusted<br />Real Estate Team
+          {slide.headline}
         </h1>
 
         {/* Thin rule */}
-        <div style={{
-          width: 48, height: 2,
-          background: 'rgba(255,255,255,0.4)',
-          borderRadius: 1,
-          marginBottom: 20,
-        }} />
+        {slide.sub && (
+          <div style={{
+            width: 40, height: 1,
+            background: 'rgba(255,255,255,0.45)',
+            marginBottom: 24,
+          }} />
+        )}
 
-        {/* Sub-headline */}
-        <p style={{
-          color: 'rgba(255,255,255,0.72)',
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
-          fontWeight: 300,
-          letterSpacing: '0.04em',
-          lineHeight: 1.6,
-          marginBottom: 44,
-        }}>
-          Thousands of homes. Zero pressure. Always available.
-        </p>
+        {/* Sub */}
+        {slide.sub && (
+          <p style={{
+            color: 'rgba(255,255,255,0.78)',
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)',
+            fontWeight: 300,
+            fontStyle: 'italic',
+            letterSpacing: '0.06em',
+            lineHeight: 1.6,
+            marginBottom: 44,
+          }}>
+            {slide.sub}
+          </p>
+        )}
 
-        {/* CTA buttons */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <a
-            href="https://search.buyingva.com/search?s[locations][0][state]=VA"
-            target="_blank"
-            rel="noopener noreferrer"
+        {/* CTA */}
+        <a
+          href="#listings"
+          style={{
+            display: 'inline-flex', alignItems: 'center',
+            padding: '14px 48px',
+            background: 'transparent',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.70)',
+            fontSize: 12,
+            fontWeight: 400,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            textDecoration: 'none',
+            fontFamily: "'Marcellus', serif",
+            transition: 'background 0.2s, border-color 0.2s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.12)'
+            ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,1)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+            ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.70)'
+          }}
+        >
+          Search All Homes
+        </a>
+      </div>
+
+      {/* Slide indicators */}
+      <div style={{
+        position: 'absolute', bottom: 28, left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex', gap: 8, zIndex: 3,
+      }}>
+        {SLIDES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => { setVisible(false); setTimeout(() => { setActive(i); setVisible(true) }, 300) }}
             style={{
-              display: 'inline-flex', alignItems: 'center',
-              padding: '14px 32px',
-              background: 'var(--accent)',
-              color: '#fff',
-              border: '1.5px solid var(--accent)',
-              borderRadius: 6,
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              textDecoration: 'none',
-              transition: 'background 0.18s, transform 0.18s, box-shadow 0.18s',
-              boxShadow: '0 2px 16px rgba(37,99,235,0.30)',
+              width: i === active ? 24 : 8,
+              height: 2,
+              background: i === active ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.35)',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'width 0.3s ease, background 0.3s ease',
             }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLAnchorElement).style.background = 'var(--accent-hover)'
-              ;(e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLAnchorElement).style.background = 'var(--accent)'
-              ;(e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)'
-            }}
-          >
-            View Properties
-          </a>
-          <a
-            href="https://search.buyingva.com/search?s[isNewConstruction]=true&s[locations][0][state]=VA"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex', alignItems: 'center',
-              padding: '14px 32px',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              border: '1.5px solid rgba(255,255,255,0.45)',
-              borderRadius: 6,
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              textDecoration: 'none',
-              backdropFilter: 'blur(6px)',
-              transition: 'background 0.18s, border-color 0.18s, transform 0.18s',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.15)'
-              ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.7)'
-              ;(e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.08)'
-              ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.45)'
-              ;(e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)'
-            }}
-          >
-            Search All New Homes
-          </a>
-        </div>
+          />
+        ))}
       </div>
     </section>
   )

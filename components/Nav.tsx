@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 const communities = [
   { name: 'Virginia Beach', slug: 'virginia-beach' },
@@ -15,6 +16,7 @@ export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileCommOpen, setMobileCommOpen] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -22,22 +24,29 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Transparent overlay only on the homepage hero (dark video background)
+  const isTransparent = pathname === '/' && !scrolled
+
+  const linkColor = isTransparent ? 'rgba(255,255,255,0.88)' : undefined
+  const barColor = isTransparent ? '#fff' : 'var(--text)'
+  // White logo over dark video; black logo over white nav (on all other pages or after scroll)
+  const logoFilter = isTransparent ? 'brightness(0) invert(1)' : 'brightness(0)'
 
   return (
     <>
-      <nav id="nav" className={scrolled ? 'scrolled' : ''}>
+      <nav id="nav" className={scrolled || !isTransparent ? 'scrolled' : ''}>
         <div className="container nav-inner">
           <Link href="/" className="nav-logo">
-            <img src="/legacy-home-team-logo.png" alt="Legacy Home Team" style={{ height: 38, width: 'auto' }} />
+            <img src="/legacy-home-team-logo.png" alt="Legacy Home Team" style={{ height: 38, width: 'auto', filter: logoFilter, transition: 'filter 0.35s ease' }} />
           </Link>
 
           <div className="nav-links">
-            <Link href="/#contact" className="nav-link">Buy</Link>
-            <a href="https://listings.legacyhomesearch.com/seller" className="nav-link" target="_blank" rel="noopener noreferrer">Sell</a>
+            <Link href="/#contact" className="nav-link" style={{ color: linkColor }}>Buy</Link>
+            <a href="https://listings.legacyhomesearch.com/seller" className="nav-link" style={{ color: linkColor }} target="_blank" rel="noopener noreferrer">Sell</a>
 
             {/* Communities dropdown */}
             <div className="nav-dropdown-wrap">
-              <button className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: linkColor }}>
                 Communities
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5, marginTop: 1 }}>
                   <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -52,11 +61,14 @@ export default function Nav() {
               </div>
             </div>
 
-            <Link href="/team" className="nav-link">Our Team</Link>
-
-            <Link href="/blog" className="nav-link">Blog</Link>
-            <a href="tel:+17578164037" className="nav-link" style={{ fontWeight: 600 }}>(757) 816-4037</a>
-            <Link href="/#contact" className="nav-link nav-cta">Contact Us</Link>
+            <Link href="/team" className="nav-link" style={{ color: linkColor }}>Our Team</Link>
+            <Link href="/blog" className="nav-link" style={{ color: linkColor }}>Blog</Link>
+            <a href="tel:+17578164037" className="nav-link" style={{ fontWeight: 600, color: linkColor }}>(757) 816-4037</a>
+            <Link
+              href="/#contact"
+              className="nav-link nav-cta"
+              style={isTransparent ? { background: 'transparent', border: '1px solid rgba(255,255,255,0.70)', color: '#fff' } : undefined}
+            >Contact Us</Link>
           </div>
 
           <button
@@ -65,9 +77,9 @@ export default function Nav() {
             aria-label="Toggle menu"
             style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}
           >
-            <span style={{ display: 'block', width: 22, height: 2, background: 'var(--text)', marginBottom: 5 }} />
-            <span style={{ display: 'block', width: 22, height: 2, background: 'var(--text)', marginBottom: 5 }} />
-            <span style={{ display: 'block', width: 22, height: 2, background: 'var(--text)' }} />
+            <span style={{ display: 'block', width: 22, height: 2, background: barColor, marginBottom: 5, transition: 'background 0.35s' }} />
+            <span style={{ display: 'block', width: 22, height: 2, background: barColor, marginBottom: 5, transition: 'background 0.35s' }} />
+            <span style={{ display: 'block', width: 22, height: 2, background: barColor, transition: 'background 0.35s' }} />
           </button>
         </div>
       </nav>
@@ -103,7 +115,6 @@ export default function Nav() {
             </div>
           )}
           <Link href="/team" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Our Team</Link>
-
           <Link href="/blog" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Blog</Link>
           <Link href="/#contact" style={{ display: 'block', padding: '12px 0', color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>Contact Us</Link>
         </div>
