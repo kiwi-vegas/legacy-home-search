@@ -36,7 +36,7 @@ type AssetType = 'card' | 'hero'
 // ─── BARRY'S PHOTO(S) ────────────────────────────────────────────────────────
 
 const BARRY_DIR = path.join(process.cwd(), 'public')
-const DEFAULT_BARRY_FILE = 'Barry-AI-transparent.png'
+const DEFAULT_BARRY_FILE = 'barry-transparent.png'
 
 // Map each mood to a Barry expression filename. Only one asset exists today, so
 // everything points at the default. Drop new PNGs in /public and update this map.

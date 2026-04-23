@@ -73,15 +73,19 @@ function buildUserPrompt(title: string, community: string, mood: string): string
   return `Create a high-converting YouTube thumbnail in a MrBeast-style design.
 
 BACKGROUND:
-The attached background image shows ${community}, VA. Use it as the backdrop. Enhance it with dramatic cinematic lighting, rich saturated colors, vibrant sunset tones (deep pink, orange, crimson sky), and high contrast. Apply a dark gradient on the LEFT side only for text readability. The right third of the image must remain as clean, empty, vibrant atmospheric space — sky, water, bokeh, or haze ONLY. No text, no graphics, nothing in the right third.
+Use the attached background image exactly as provided — do NOT alter, recolor, enhance, or add gradients to it. It is already color-corrected and vibrant. Use it as the base layer unchanged.
 
-⚠️ CRITICAL: Do NOT place any person, human, figure, silhouette, or crowd anywhere in the image. The right third is reserved for a composited photo that will be added programmatically after generation.
+The right third of the image (from 67% width to the right edge) must remain as clean, empty atmospheric space from the background photo — no text, no graphics, nothing added here.
 
-TEXT HIERARCHY (left two-thirds only, bold YouTube thumbnail style):
-- TOP small kicker badge: "${community.toUpperCase()}, VA" — small white or yellow text, top-left
-- MAIN headline: Extract the 2–3 most powerful words from "${title}" — render in MASSIVE bright yellow (#FFE600) bold all-caps typography with heavy black stroke and drop shadow. This is the largest element on the left side.
-- SECONDARY banner: Remaining key phrase from the title — white text on a bold red rectangle banner, slightly smaller than the headline
-- SUBTEXT: Supporting context line — smaller, white and yellow mixed, below the red banner
+⚠️ CRITICAL: Do NOT place any person, human, figure, silhouette, or crowd anywhere in the image. The right third is reserved for a composited photo added programmatically after generation.
+
+TEXT HIERARCHY (left two-thirds only):
+Add bold, large, high-contrast text in YouTube thumbnail style with strong visual hierarchy:
+
+- TOP small kicker: "${community.toUpperCase()}, VA" — small white or yellow text, top-left corner
+- MAIN headline: Extract the 2–3 most powerful words from "${title}" — render in MASSIVE bright yellow (#FFE600) bold all-caps typography with heavy black stroke and hard drop shadow. Largest text element on the page.
+- SECONDARY banner: Remaining key phrase — white text on a bold red rectangle, slightly smaller than the headline
+- SUBTEXT: One supporting context line — smaller, white and yellow mixed, below the red banner
 
 All text must be crisp, sharp, and readable — not distorted, not blurry, not warped.
 
@@ -89,13 +93,13 @@ GRAPHIC ELEMENTS (lower-left quadrant only):
 ${moodGraphicsText}
 Add glow effects, drop shadows, and 3D depth to every graphic element to make them pop.
 
-STYLE: Bold, modern, high-energy, extreme saturation, maximum clickability. Optimized for YouTube click-through rate. MrBeast-level visual impact.
+STYLE: Bold, modern, high-energy, extreme saturation, maximum clickability. MrBeast-level visual impact. Optimized for YouTube click-through rate.
 
 CANVAS: 1536x1024px landscape.
-- Left two-thirds: all text + all graphics + scene drama
-- Right third: clean empty atmospheric background only — absolutely nothing here
+- Left two-thirds: all text + all graphics
+- Right third: clean empty background only — absolutely nothing added here
 
-FINAL REMINDER: Zero humans anywhere in the image. Right third = empty atmospheric space only.`
+FINAL REMINDER: Zero humans anywhere. Right third = untouched background only.`
 }
 
 export async function POST(request: Request) {
