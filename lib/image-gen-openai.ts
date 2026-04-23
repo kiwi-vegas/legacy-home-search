@@ -56,6 +56,22 @@ function selectBarryPhoto(mood: ThumbnailMood): string {
   return path.join(BARRY_DIR, filename)
 }
 
+// Map mood keys to expression filenames stored under public/expressions/.
+// Used by the prompt-review API route and the generate-from-prompt flow.
+export const MOOD_EXPRESSION_FILE: Record<string, string> = {
+  'shocked':             'shocked.jpg.png',
+  'exciting-positive':   'happy-mild.png',
+  'investment':          'interested.png',
+  'negative':            'really.png',
+  'selling':             'happy-mild.png',
+  'buying':              'thinking about it.png',
+  'community':           'happy-mild.png',
+  'neutral':             'interesting.png',
+  'surprised':           'surprised.png',
+  'wow':                 'wow-interesting.png',
+  'default':             'interesting.png',
+}
+
 function getBarryBuffer(mood: ThumbnailMood): Buffer | null {
   const primary = selectBarryPhoto(mood)
   const fallback = path.join(BARRY_DIR, DEFAULT_BARRY_FILE)
@@ -72,7 +88,7 @@ function getBarryBuffer(mood: ThumbnailMood): Buffer | null {
 const COMMUNITIES = ['Virginia Beach', 'Chesapeake', 'Norfolk', 'Suffolk', 'Hampton', 'Newport News']
 const FALLBACK_COMMUNITY = 'Virginia Beach'
 
-function detectCommunity(title: string): string {
+export function detectCommunity(title: string): string {
   const lower = title.toLowerCase()
   const stripped = lower.replace(/hampton roads/g, '')
   for (const c of COMMUNITIES) {
@@ -135,7 +151,7 @@ const TEMPLATE_SCENE: Record<TemplateType, string> = {
   'generic':             'a cinematic real-estate scene with strong leading lines and dramatic lighting',
 }
 
-function detectMood(title: string, category: string): ThumbnailMood {
+export function detectMood(title: string, category: string): ThumbnailMood {
   const t = title.toLowerCase()
   if (/ vs\.? | versus | compared? to | which is /.test(t)) return 'neutral'
   if (/record|skyrocket|soar|surge|spike|shocking|unbelievable|incredible|historic/.test(t)) return 'shocked'
@@ -298,14 +314,19 @@ async function generateSceneOnly(
 
 async function compositeBarry(
   sceneBuffer: Buffer,
-  barryBuffer: Buffer,
   assetType: AssetType,
+  barryBuffer?: Buffer,
 ): Promise<Buffer> {
   const sharp = (await import('sharp')).default
 
   const canvasW = assetType === 'card' ? 1536 : 1600
   const canvasH = assetType === 'card' ? 1024 : 500
   const barryTargetH = assetType === 'card' ? 900 : 420
+
+  const resolvedBarry = barryBuffer ?? (() => {
+    const p = path.join(BARRY_DIR, DEFAULT_BARRY_FILE)
+    return fs.readFileSync(p)
+  })()
 
   // Normalize the scene to the final canvas dimensions first so Barry lines up predictably.
   const scene = await sharp(sceneBuffer)
@@ -314,7 +335,7 @@ async function compositeBarry(
     .toBuffer()
 
   // Resize Barry by height, preserving aspect ratio. Read actual width back for positioning.
-  const barryResized = await sharp(barryBuffer)
+  const barryResized = await sharp(resolvedBarry)
     .resize({ height: barryTargetH, withoutEnlargement: false })
     .png()
     .toBuffer()
@@ -400,7 +421,7 @@ async function generateThumbnail(
     let finalBuffer: Buffer
 
     if (barryBuffer) {
-      finalBuffer = await compositeBarry(sceneRaw, barryBuffer, assetType)
+      finalBuffer = await compositeBarry(sceneRaw, assetType, barryBuffer)
     } else {
       console.warn(`[image-gen-openai] [${assetType}] No Barry PNG found in /public — uploading scene without him`)
       const sharp = (await import('sharp')).default
@@ -439,5 +460,46 @@ export async function generateAndUploadBothImages(article: ScoredArticle): Promi
     generateAndUploadCoverImageOpenAI(article),
     generateAndUploadHeroBannerOpenAI(article),
   ])
+  return { coverImage, heroBannerImage }
+}
+
+// ─── APPROVED PROMPT FLOW ────────────────────────────────────────────────────
+//
+// Drives the new "prompt review" step: the user approves a GPT-4o-authored prompt,
+// and we hand it directly to gpt-image-1 without re-deriving mood/community/scene.
+// The expression PNG the user picked is composited on top of the generated scene.
+
+export async function generateFromApprovedPrompt(params: {
+  prompt: string
+  expressionBuffer: Buffer
+  backgroundBuffer: Buffer
+  article: ScoredArticle
+}): Promise<DualImageRefs> {
+  const { prompt, expressionBuffer, article } = params
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+  console.log(`[image-gen-openai] generateFromApprovedPrompt — "${article.title.slice(0, 60)}"`)
+
+  const sceneRaw = await generateSceneOnly(openai, prompt)
+  if (!sceneRaw) return { coverImage: null, heroBannerImage: null }
+
+  const cardBuffer = await compositeBarry(sceneRaw, 'card', expressionBuffer)
+  const coverImage = await uploadToSanity(
+    cardBuffer,
+    `openai-cover-${Date.now()}.png`,
+  )
+
+  // Hero banner: crop-resize from the same generated scene for speed and visual consistency.
+  const sharp = (await import('sharp')).default
+  const heroScene = await sharp(sceneRaw)
+    .resize(1600, 500, { fit: 'cover', position: 'center' })
+    .png()
+    .toBuffer()
+  const heroBuffer = await compositeBarry(heroScene, 'hero', expressionBuffer)
+  const heroBannerImage = await uploadToSanity(
+    heroBuffer,
+    `openai-hero-banner-${Date.now()}.png`,
+  )
+
   return { coverImage, heroBannerImage }
 }

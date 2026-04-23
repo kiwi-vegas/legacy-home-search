@@ -14,13 +14,16 @@ interface Post {
 }
 
 type CardStatus =
-  | 'idle'        // no thumbnail yet
-  | 'generating'  // AI is working
-  | 'uploading'   // user file being uploaded to Sanity
-  | 'review'      // thumbnail ready — awaiting approve or reject
-  | 'rejected'    // user rejected — showing feedback input
-  | 'applying'    // approved, being saved to Sanity
-  | 'applied'     // live on blog
+  | 'idle'
+  | 'generating-prompt'
+  | 'prompt-review'
+  | 'regenerating-prompt'
+  | 'generating'
+  | 'uploading'
+  | 'review'
+  | 'rejected'
+  | 'applying'
+  | 'applied'
 
 interface CardState {
   status: CardStatus
@@ -29,6 +32,13 @@ interface CardState {
   heroBannerAssetRef?: string | null
   feedback?: string
   error?: string
+  prompt?: string
+  promptMood?: string
+  promptCommunity?: string
+  backgroundFile?: string
+  backgroundPreviewUrl?: string
+  expressionFile?: string
+  expressionPreviewUrl?: string
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -117,6 +127,86 @@ function PostCard({
     }
   }, [post, secret, onStateChange])
 
+  const fetchPrompt = useCallback(async (regenerating: boolean) => {
+    onStateChange(post._id, { status: regenerating ? 'regenerating-prompt' : 'generating-prompt' })
+    try {
+      const res = await fetch('/api/blog/generate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post._id,
+          title: post.title,
+          category: post.category,
+          excerpt: post.excerpt,
+          slug: post.slug,
+          secret,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.prompt) {
+        onStateChange(post._id, { status: 'idle', error: data.error ?? 'Prompt generation failed' })
+        return
+      }
+      onStateChange(post._id, {
+        status: 'prompt-review',
+        prompt: data.prompt,
+        promptMood: data.mood,
+        promptCommunity: data.community,
+        backgroundFile: data.backgroundFile,
+        backgroundPreviewUrl: data.backgroundPreviewUrl,
+        expressionFile: data.expressionFile,
+        expressionPreviewUrl: data.expressionPreviewUrl,
+      })
+    } catch {
+      onStateChange(post._id, { status: 'idle', error: 'Network error — try again' })
+    }
+  }, [post, secret, onStateChange])
+
+  const approvePrompt = useCallback(async () => {
+    if (!state.prompt || !state.expressionFile || !state.backgroundFile) return
+    const carry = {
+      prompt: state.prompt,
+      promptMood: state.promptMood,
+      promptCommunity: state.promptCommunity,
+      backgroundFile: state.backgroundFile,
+      backgroundPreviewUrl: state.backgroundPreviewUrl,
+      expressionFile: state.expressionFile,
+      expressionPreviewUrl: state.expressionPreviewUrl,
+    }
+    onStateChange(post._id, { ...carry, status: 'generating' })
+    try {
+      const res = await fetch('/api/blog/generate-from-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post._id,
+          title: post.title,
+          category: post.category,
+          excerpt: post.excerpt,
+          slug: post.slug,
+          prompt: state.prompt,
+          expressionFile: state.expressionFile,
+          backgroundFile: state.backgroundFile,
+          secret,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.assetRef) {
+        onStateChange(post._id, { ...carry, status: 'prompt-review', error: data.error ?? 'Generation failed' })
+        return
+      }
+      onStateChange(post._id, {
+        ...carry,
+        status: 'review',
+        assetRef: data.assetRef,
+        previewUrl: data.previewUrl,
+        heroBannerAssetRef: data.heroBannerAssetRef ?? null,
+      })
+    } catch {
+      onStateChange(post._id, { ...carry, status: 'prompt-review', error: 'Network error — try again' })
+    }
+  }, [post, state, secret, onStateChange])
+
   const approve = useCallback(async () => {
     if (!state.assetRef) return
     onStateChange(post._id, { ...state, status: 'applying' })
@@ -165,6 +255,27 @@ function PostCard({
             <div style={s.spinner} />
             <div style={{ marginTop: 14, fontSize: 13, color: '#2563eb', fontWeight: 600 }}>Generating…</div>
             <div style={{ fontSize: 11, color: '#93c5fd', marginTop: 4 }}>~60–120 seconds</div>
+          </div>
+        )}
+
+        {(state.status === 'generating-prompt' || state.status === 'regenerating-prompt') && (
+          <div style={s.imgPlaceholder}>
+            <div style={s.spinner} />
+            <div style={{ marginTop: 14, fontSize: 13, color: '#2563eb', fontWeight: 600 }}>
+              {state.status === 'regenerating-prompt' ? 'Rewriting prompt…' : 'Writing prompt…'}
+            </div>
+            <div style={{ fontSize: 11, color: '#93c5fd', marginTop: 4 }}>GPT-4o • ~10–20 seconds</div>
+          </div>
+        )}
+
+        {state.status === 'prompt-review' && (
+          <div style={s.imgPlaceholder}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: '#2563eb', textTransform: 'uppercase' }}>
+              Step 1 of 2
+            </div>
+            <div style={{ marginTop: 6, fontSize: 13, color: '#1a1a1a', fontWeight: 600 }}>
+              Prompt ready for review
+            </div>
           </div>
         )}
 
@@ -223,7 +334,7 @@ function PostCard({
           {/* IDLE — Generate or Upload */}
           {state.status === 'idle' && (
             <>
-              <button onClick={() => generate()} style={s.btnPrimary}>
+              <button onClick={() => fetchPrompt(false)} style={s.btnPrimary}>
                 Generate Thumbnail
               </button>
               <button onClick={() => fileInputRef.current?.click()} style={s.btnUpload}>
@@ -248,6 +359,58 @@ function PostCard({
             <button disabled style={s.btnDisabled}>
               {state.status === 'uploading' ? 'Uploading…' : 'Generating…'}
             </button>
+          )}
+
+          {/* GENERATING-PROMPT / REGENERATING-PROMPT — disabled */}
+          {(state.status === 'generating-prompt' || state.status === 'regenerating-prompt') && (
+            <button disabled style={s.btnDisabled}>
+              {state.status === 'regenerating-prompt' ? 'Rewriting prompt…' : 'Writing prompt…'}
+            </button>
+          )}
+
+          {/* PROMPT REVIEW — approve or regenerate */}
+          {state.status === 'prompt-review' && (
+            <div style={s.promptPanel}>
+              <div style={s.promptPreviewRow}>
+                {state.backgroundPreviewUrl && (
+                  <div style={s.promptPreviewBox}>
+                    <div style={s.promptPreviewLabel}>Background</div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={state.backgroundPreviewUrl} alt="Background" style={s.promptPreviewImg} />
+                  </div>
+                )}
+                {state.expressionPreviewUrl && (
+                  <div style={s.promptPreviewBox}>
+                    <div style={s.promptPreviewLabel}>Expression</div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={state.expressionPreviewUrl} alt="Expression" style={s.promptPreviewImg} />
+                  </div>
+                )}
+              </div>
+
+              <div style={s.promptPillRow}>
+                {state.promptCommunity && (
+                  <span style={s.promptPill}>📍 {state.promptCommunity}</span>
+                )}
+                {state.promptMood && (
+                  <span style={{ ...s.promptPill, background: '#fef3c7', color: '#92400e' }}>
+                    ✦ {state.promptMood}
+                  </span>
+                )}
+              </div>
+
+              <div style={s.promptLabel}>Generation prompt</div>
+              <div style={s.promptBox}>{state.prompt}</div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button onClick={approvePrompt} style={{ ...s.btnApprove, flex: 1 }}>
+                  ✓ Approve Prompt &amp; Generate
+                </button>
+                <button onClick={() => fetchPrompt(true)} style={s.btnGhost}>
+                  ↻ Regenerate Prompt
+                </button>
+              </div>
+            </div>
           )}
 
           {/* REVIEW — Approve or Reject + replace option */}
@@ -703,5 +866,71 @@ const s: Record<string, React.CSSProperties> = {
     marginTop: 40, paddingTop: 20,
     borderTop: '1px solid #e0ddd8',
     fontSize: 12, color: '#aaa9a4', lineHeight: 1.8,
+  },
+  promptPanel: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 10,
+  },
+  promptPreviewRow: {
+    display: 'flex',
+    gap: 10,
+  },
+  promptPreviewBox: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
+  promptPreviewLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase' as const,
+    color: '#64748b',
+  },
+  promptPreviewImg: {
+    width: '100%',
+    maxHeight: 160,
+    objectFit: 'cover' as const,
+    borderRadius: 6,
+    border: '1px solid #e0ddd8',
+    display: 'block',
+  },
+  promptPillRow: {
+    display: 'flex',
+    gap: 6,
+    flexWrap: 'wrap' as const,
+  },
+  promptPill: {
+    display: 'inline-block',
+    padding: '3px 9px',
+    borderRadius: 100,
+    fontSize: 11,
+    fontWeight: 600,
+    background: '#eff6ff',
+    color: '#2563eb',
+  },
+  promptLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  promptBox: {
+    maxHeight: 200,
+    overflowY: 'auto' as const,
+    padding: '10px 12px',
+    border: '1px solid #e0ddd8',
+    borderRadius: 8,
+    background: '#faf9f6',
+    fontSize: 12,
+    lineHeight: 1.6,
+    color: '#1a1a1a',
+    whiteSpace: 'pre-wrap' as const,
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
   },
 }
