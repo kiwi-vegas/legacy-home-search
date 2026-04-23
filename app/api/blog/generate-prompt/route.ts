@@ -50,56 +50,52 @@ Output ONLY the image generation prompt. No explanation. No preamble. No markdow
 function buildUserPrompt(title: string, community: string, mood: string): string {
   const moodGraphics: string[] = []
   if (mood === 'exciting-positive' || mood === 'investment') {
-    moodGraphics.push('Green rising bar chart + upward arrow + wallet with cash in lower-left')
+    moodGraphics.push('A bar chart trending upward with a bright green glowing upward arrow')
+    moodGraphics.push('A wallet with cash sticking out')
   }
   if (mood === 'negative') {
-    moodGraphics.push('Red downward arrow, warning badge, falling chart in lower-left')
+    moodGraphics.push('A red downward arrow with a falling chart and warning badge')
   }
   if (mood === 'shocked') {
-    moodGraphics.push('Explosive burst graphics, bold alert badge in lower-left')
+    moodGraphics.push('Explosive burst graphic and bold alert badge')
   }
   if (mood === 'buying') {
-    moodGraphics.push('House icon with glow, key graphic in lower-left')
+    moodGraphics.push('A glowing house icon with a key graphic')
   }
   if (mood === 'selling') {
-    moodGraphics.push('SOLD badge, house with price tag in lower-left')
+    moodGraphics.push('A SOLD badge and house with a price tag graphic')
   }
-  const moodGraphicsText = moodGraphics.length > 0
-    ? moodGraphics.map((s) => `- ${s}`).join('\n')
-    : '- Bold mood-appropriate graphic element in lower-left'
+  if (moodGraphics.length === 0) {
+    moodGraphics.push('A bold mood-appropriate graphic element with glow and depth')
+  }
+  const moodGraphicsText = moodGraphics.map((s) => `- ${s}`).join('\n')
 
-  return `Write a gpt-image-1 prompt that generates ONLY the background scene and text/graphics for a YouTube thumbnail. A real person photo will be composited on the right third later — do NOT include any person.
+  return `Create a high-converting YouTube thumbnail in a MrBeast-style design.
 
-ARTICLE: "${title}"
-COMMUNITY: ${community}
-MOOD: ${mood}
+BACKGROUND:
+The attached background image shows ${community}, VA. Use it as the backdrop. Enhance it with dramatic cinematic lighting, rich saturated colors, vibrant sunset tones (deep pink, orange, crimson sky), and high contrast. Apply a dark gradient on the LEFT side only for text readability. The right third of the image must remain as clean, empty, vibrant atmospheric space — sky, water, bokeh, or haze ONLY. No text, no graphics, nothing in the right third.
 
-BACKGROUND IMAGE: [the attached background photo is provided for reference]
-Use this exact scene/location as the backdrop. Enhance with dramatic cinematic lighting, rich saturated colors, and a dark gradient on the left side for text readability.
+⚠️ CRITICAL: Do NOT place any person, human, figure, silhouette, or crowd anywhere in the image. The right third is reserved for a composited photo that will be added programmatically after generation.
 
-⚠️ CRITICAL — NO PERSON RULE:
-- DO NOT include any person, human, figure, face, body, silhouette, hand, or crowd ANYWHERE in the image.
-- The ENTIRE RIGHT THIRD of the image (from 67% width to the right edge) must remain EMPTY atmospheric background — sky, ocean, bokeh, haze, depth only. No text, no graphics, no people in this zone. This space is reserved for a composited photo.
-- All text and ALL graphic elements must stay on the LEFT TWO-THIRDS only.
+TEXT HIERARCHY (left two-thirds only, bold YouTube thumbnail style):
+- TOP small kicker badge: "${community.toUpperCase()}, VA" — small white or yellow text, top-left
+- MAIN headline: Extract the 2–3 most powerful words from "${title}" — render in MASSIVE bright yellow (#FFE600) bold all-caps typography with heavy black stroke and drop shadow. This is the largest element on the left side.
+- SECONDARY banner: Remaining key phrase from the title — white text on a bold red rectangle banner, slightly smaller than the headline
+- SUBTEXT: Supporting context line — smaller, white and yellow mixed, below the red banner
 
-TEXT & LAYOUT (left two-thirds only):
-- Extract 3-5 power keywords from: "${title}"
-- Bold YouTube-style typography: massive main keywords in yellow (#FFE600) with black stroke
-- Community name "${community.toUpperCase()}, VA" as a small kicker badge at the top-left
-- Red ribbon banner with supporting context text below the headline
-- All text strictly on LEFT two-thirds only
+All text must be crisp, sharp, and readable — not distorted, not blurry, not warped.
 
-GRAPHIC ELEMENTS (left two-thirds only):
+GRAPHIC ELEMENTS (lower-left quadrant only):
 ${moodGraphicsText}
-- Stylized 3D overlays with glow/neon effects matching the mood
+Add glow effects, drop shadows, and 3D depth to every graphic element to make them pop.
 
-STYLE: MrBeast-level YouTube thumbnail — extreme saturation, bold, dramatic, cinematic. High contrast. Maximum clickability.
+STYLE: Bold, modern, high-energy, extreme saturation, maximum clickability. Optimized for YouTube click-through rate. MrBeast-level visual impact.
 
 CANVAS: 1536x1024px landscape.
-LEFT two-thirds: text + graphics + scene drama.
-RIGHT third: clean empty atmospheric background only — absolutely nothing else.
+- Left two-thirds: all text + all graphics + scene drama
+- Right third: clean empty atmospheric background only — absolutely nothing here
 
-FINAL REMINDER: Zero humans anywhere. Right third = empty atmospheric space only. Barry will be added by the compositor.`
+FINAL REMINDER: Zero humans anywhere in the image. Right third = empty atmospheric space only.`
 }
 
 export async function POST(request: Request) {
