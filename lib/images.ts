@@ -9,6 +9,8 @@ const UNSPLASH_CATEGORY_QUERIES: Record<ArticleCategory, string> = {
   'community-spotlight': 'neighborhood community park',
   investment: 'investment property apartments building',
   news: 'city skyline real estate',
+  'cost-breakdown': 'home costs budget finance calculator',
+  'flood-and-risk': 'flood insurance coastal property risk',
 }
 
 const FALLBACK_IMAGE_POOLS: Record<ArticleCategory, string[]> = {
@@ -53,6 +55,20 @@ const FALLBACK_IMAGE_POOLS: Record<ArticleCategory, string[]> = {
     'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=80',
     'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=80',
     'https://images.unsplash.com/photo-1516156008625-3a9d6067fab5?w=1200&q=80',
+  ],
+  'cost-breakdown': [
+    'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&q=80',
+    'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&q=80',
+    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=80',
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&q=80',
+    'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=1200&q=80',
+  ],
+  'flood-and-risk': [
+    'https://images.unsplash.com/photo-1547683905-f686c993aae5?w=1200&q=80',
+    'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1200&q=80',
+    'https://images.unsplash.com/photo-1516156008625-3a9d6067fab5?w=1200&q=80',
+    'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=1200&q=80',
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=80',
   ],
 }
 
