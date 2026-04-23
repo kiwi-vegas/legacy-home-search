@@ -5,7 +5,6 @@ import OpenAI from 'openai'
 import {
   detectCommunity,
   detectMood,
-  MOOD_EXPRESSION_FILE,
 } from '@/lib/image-gen-openai'
 
 export const maxDuration = 120
@@ -130,18 +129,6 @@ export async function POST(request: Request) {
     const bgBuffer = fs.readFileSync(bgAbsolute)
     const bgMime = mimeForPath(bgAbsolute)
 
-    const expressionFilename = MOOD_EXPRESSION_FILE[mood] ?? MOOD_EXPRESSION_FILE['default']
-    const expressionRelative = path.join('expressions', expressionFilename)
-    const expressionAbsolute = path.join(process.cwd(), 'public', 'expressions', expressionFilename)
-    if (!fs.existsSync(expressionAbsolute)) {
-      return NextResponse.json(
-        { error: `Expression file not found: ${expressionRelative}` },
-        { status: 500 },
-      )
-    }
-    const exprBuffer = fs.readFileSync(expressionAbsolute)
-    const exprMime = mimeForPath(expressionAbsolute)
-
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const userText = buildUserPrompt(title, community, mood)
 
@@ -154,7 +141,6 @@ export async function POST(request: Request) {
           content: [
             { type: 'text', text: userText },
             { type: 'image_url', image_url: { url: toDataUrl(bgBuffer, bgMime) } },
-            { type: 'image_url', image_url: { url: toDataUrl(exprBuffer, exprMime) } },
           ],
         },
       ],
@@ -172,8 +158,6 @@ export async function POST(request: Request) {
       community,
       backgroundFile: bgRelative.replace(/\\/g, '/'),
       backgroundPreviewUrl: toDataUrl(bgBuffer, bgMime),
-      expressionFile: expressionRelative.replace(/\\/g, '/'),
-      expressionPreviewUrl: toDataUrl(exprBuffer, exprMime),
     })
   } catch (err) {
     console.error('[generate-prompt]', err)

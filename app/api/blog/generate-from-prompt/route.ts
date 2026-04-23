@@ -1,5 +1,3 @@
-import fs from 'fs'
-import path from 'path'
 import { NextResponse } from 'next/server'
 import { generateFromApprovedPrompt } from '@/lib/image-gen-openai'
 import type { ArticleCategory, ScoredArticle } from '@/lib/types'
@@ -15,7 +13,6 @@ export async function POST(request: Request) {
       excerpt,
       slug,
       prompt,
-      expressionFile,
       backgroundFile,
       secret,
     } = await request.json()
@@ -23,26 +20,9 @@ export async function POST(request: Request) {
     if (secret !== process.env.ADMIN_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (!postId || !title || !category || !prompt || !expressionFile || !backgroundFile) {
+    if (!postId || !title || !category || !prompt || !backgroundFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-
-    const publicDir = path.join(process.cwd(), 'public')
-    const expressionPath = path.join(publicDir, expressionFile)
-    const backgroundPath = path.join(publicDir, backgroundFile)
-
-    if (!expressionPath.startsWith(publicDir) || !backgroundPath.startsWith(publicDir)) {
-      return NextResponse.json({ error: 'Invalid file path' }, { status: 400 })
-    }
-    if (!fs.existsSync(expressionPath)) {
-      return NextResponse.json({ error: `Expression file not found: ${expressionFile}` }, { status: 400 })
-    }
-    if (!fs.existsSync(backgroundPath)) {
-      return NextResponse.json({ error: `Background file not found: ${backgroundFile}` }, { status: 400 })
-    }
-
-    const expressionBuffer = fs.readFileSync(expressionPath)
-    const backgroundBuffer = fs.readFileSync(backgroundPath)
 
     const article: ScoredArticle = {
       id: postId,
@@ -56,8 +36,6 @@ export async function POST(request: Request) {
 
     const { coverImage, heroBannerImage } = await generateFromApprovedPrompt({
       prompt,
-      expressionBuffer,
-      backgroundBuffer,
       article,
     })
 

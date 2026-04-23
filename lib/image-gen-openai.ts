@@ -56,22 +56,6 @@ function selectBarryPhoto(mood: ThumbnailMood): string {
   return path.join(BARRY_DIR, filename)
 }
 
-// Map mood keys to expression filenames stored under public/expressions/.
-// Used by the prompt-review API route and the generate-from-prompt flow.
-export const MOOD_EXPRESSION_FILE: Record<string, string> = {
-  'shocked':             'shocked.jpg.png',
-  'exciting-positive':   'happy-mild.png',
-  'investment':          'interested.png',
-  'negative':            'really.png',
-  'selling':             'happy-mild.png',
-  'buying':              'thinking about it.png',
-  'community':           'happy-mild.png',
-  'neutral':             'interesting.png',
-  'surprised':           'surprised.png',
-  'wow':                 'wow-interesting.png',
-  'default':             'interesting.png',
-}
-
 function getBarryBuffer(mood: ThumbnailMood): Buffer | null {
   const primary = selectBarryPhoto(mood)
   const fallback = path.join(BARRY_DIR, DEFAULT_BARRY_FILE)
@@ -471,8 +455,6 @@ export async function generateAndUploadBothImages(article: ScoredArticle): Promi
 
 export async function generateFromApprovedPrompt(params: {
   prompt: string
-  expressionBuffer: Buffer
-  backgroundBuffer: Buffer
   article: ScoredArticle
 }): Promise<DualImageRefs> {
   const { prompt, article } = params
@@ -483,26 +465,19 @@ export async function generateFromApprovedPrompt(params: {
   const sceneRaw = await generateSceneOnly(openai, prompt)
   if (!sceneRaw) return { coverImage: null, heroBannerImage: null }
 
-  // Always use the real transparent Barry PNG — expression photos are face references only
+  // Always use the real transparent Barry PNG in his suit
   const barryBuffer = getBarryBuffer('neutral')
 
   const cardBuffer = await compositeBarry(sceneRaw, 'card', barryBuffer ?? undefined)
-  const coverImage = await uploadToSanity(
-    cardBuffer,
-    `openai-cover-${Date.now()}.png`,
-  )
+  const coverImage = await uploadToSanity(cardBuffer, `openai-cover-${Date.now()}.png`)
 
-  // Hero banner: crop-resize from the same generated scene for speed and visual consistency.
   const sharp = (await import('sharp')).default
   const heroScene = await sharp(sceneRaw)
     .resize(1600, 500, { fit: 'cover', position: 'center' })
     .png()
     .toBuffer()
   const heroBuffer = await compositeBarry(heroScene, 'hero', barryBuffer ?? undefined)
-  const heroBannerImage = await uploadToSanity(
-    heroBuffer,
-    `openai-hero-banner-${Date.now()}.png`,
-  )
+  const heroBannerImage = await uploadToSanity(heroBuffer, `openai-hero-banner-${Date.now()}.png`)
 
   return { coverImage, heroBannerImage }
 }

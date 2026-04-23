@@ -37,8 +37,6 @@ interface CardState {
   promptCommunity?: string
   backgroundFile?: string
   backgroundPreviewUrl?: string
-  expressionFile?: string
-  expressionPreviewUrl?: string
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -154,8 +152,6 @@ function PostCard({
         promptCommunity: data.community,
         backgroundFile: data.backgroundFile,
         backgroundPreviewUrl: data.backgroundPreviewUrl,
-        expressionFile: data.expressionFile,
-        expressionPreviewUrl: data.expressionPreviewUrl,
       })
     } catch {
       onStateChange(post._id, { status: 'idle', error: 'Network error — try again' })
@@ -163,15 +159,13 @@ function PostCard({
   }, [post, secret, onStateChange])
 
   const approvePrompt = useCallback(async () => {
-    if (!state.prompt || !state.expressionFile || !state.backgroundFile) return
+    if (!state.prompt || !state.backgroundFile) return
     const carry = {
       prompt: state.prompt,
       promptMood: state.promptMood,
       promptCommunity: state.promptCommunity,
       backgroundFile: state.backgroundFile,
       backgroundPreviewUrl: state.backgroundPreviewUrl,
-      expressionFile: state.expressionFile,
-      expressionPreviewUrl: state.expressionPreviewUrl,
     }
     onStateChange(post._id, { ...carry, status: 'generating' })
     try {
@@ -185,7 +179,6 @@ function PostCard({
           excerpt: post.excerpt,
           slug: post.slug,
           prompt: state.prompt,
-          expressionFile: state.expressionFile,
           backgroundFile: state.backgroundFile,
           secret,
         }),
@@ -377,13 +370,6 @@ function PostCard({
                     <div style={s.promptPreviewLabel}>Background</div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={state.backgroundPreviewUrl} alt="Background" style={s.promptPreviewImg} />
-                  </div>
-                )}
-                {state.expressionPreviewUrl && (
-                  <div style={s.promptPreviewBox}>
-                    <div style={s.promptPreviewLabel}>Expression</div>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={state.expressionPreviewUrl} alt="Expression" style={s.promptPreviewImg} />
                   </div>
                 )}
               </div>
