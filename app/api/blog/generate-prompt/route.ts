@@ -152,8 +152,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'GPT-4o returned empty prompt' }, { status: 500 })
     }
 
+    const cleanedPrompt = prompt
+      .replace(/<\|[^|]*\|>/g, '')
+      .replace(/^\s*\n+/, '')
+      .trim()
+
+    if (!cleanedPrompt) {
+      return NextResponse.json({ error: 'GPT-4o returned empty prompt after cleanup' }, { status: 500 })
+    }
+
     return NextResponse.json({
-      prompt,
+      prompt: cleanedPrompt,
       mood,
       community,
       backgroundFile: bgRelative.replace(/\\/g, '/'),
