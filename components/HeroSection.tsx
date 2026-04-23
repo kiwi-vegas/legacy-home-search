@@ -102,7 +102,7 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
           letterSpacing: '0.26em',
           textTransform: 'uppercase',
           color: 'rgba(255,255,255,0.75)',
-          fontFamily: "'Marcellus', serif",
+          fontFamily: "'Montserrat', sans-serif",
           marginBottom: 20,
         }}>
           {slide.eyebrow}
@@ -111,7 +111,7 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
         {/* Main headline */}
         <h1 style={{
           color: '#fff',
-          fontFamily: "'Marcellus', serif",
+          fontFamily: "'Montserrat', sans-serif",
           fontSize: slide.headlineSize ?? 'clamp(2.6rem, 6vw, 5rem)',
           fontWeight: 400,
           lineHeight: 1.15,
@@ -162,7 +162,7 @@ export default function HeroSection({ posterUrl }: { posterUrl?: string }) {
             letterSpacing: '0.22em',
             textTransform: 'uppercase',
             textDecoration: 'none',
-            fontFamily: "'Marcellus', serif",
+            fontFamily: "'Montserrat', sans-serif",
             transition: 'background 0.2s, border-color 0.2s',
           }}
           onMouseEnter={e => {
