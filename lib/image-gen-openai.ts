@@ -3,9 +3,10 @@
  *
  * Pipeline:
  *   1. Detect community + mood + template from article metadata (deterministic)
- *   2. Build a scene-only prompt — NO person, NO figure, right third reserved as empty atmosphere
+ *   2. Build a scene-only prompt — NO person, NO figure, right third reserved as empty atmosphere,
+ *      with the community's landmarks described in text
  *   3. gpt-image-1 generates the scene (background + text + graphics on left/center only)
- *      using the community photo as the single reference image
+ *      via images.generate() — no reference image
  *   4. Sharp composites Barry's exact transparent PNG onto the right side with a soft left-edge fade
  *   5. Upload to Sanity CDN
  *
@@ -17,7 +18,7 @@
 
 import fs from 'fs'
 import path from 'path'
-import OpenAI, { toFile } from 'openai'
+import OpenAI from 'openai'
 import { getSanityWriteClient } from './sanity-write'
 import type { ScoredArticle } from './types'
 
@@ -68,7 +69,6 @@ function getBarryBuffer(mood: ThumbnailMood): Buffer | null {
 
 // ─── COMMUNITY PHOTOS ────────────────────────────────────────────────────────
 
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp'])
 const COMMUNITIES = ['Virginia Beach', 'Chesapeake', 'Norfolk', 'Suffolk', 'Hampton', 'Newport News']
 const FALLBACK_COMMUNITY = 'Virginia Beach'
 
@@ -80,34 +80,6 @@ function detectCommunity(title: string): string {
   }
   if (lower.includes('hampton roads')) return 'Hampton Roads'
   return FALLBACK_COMMUNITY
-}
-
-function getRequiredCommunityPhoto(community: string): { buffer: Buffer; community: string; filename: string } | null {
-  const candidates = community === FALLBACK_COMMUNITY
-    ? [community]
-    : [community, FALLBACK_COMMUNITY]
-
-  for (const c of candidates) {
-    try {
-      const slug = c.toLowerCase().replace(/\s+/g, '-')
-      const dir = path.join(process.cwd(), 'public', 'community-photos', slug)
-      if (!fs.existsSync(dir)) continue
-      const files = fs.readdirSync(dir).filter(f =>
-        IMAGE_EXTENSIONS.has(path.extname(f).toLowerCase()) &&
-        !fs.statSync(path.join(dir, f)).isDirectory()
-      )
-      if (!files.length) continue
-      const chosen = files[Math.floor(Math.random() * files.length)]
-      const buffer = fs.readFileSync(path.join(dir, chosen))
-      console.log(`[image-gen-openai] Community photo: community-photos/${slug}/${chosen}`)
-      return { buffer, community: c, filename: chosen }
-    } catch (err) {
-      console.warn(`[image-gen-openai] Could not read photo for "${c}":`, err instanceof Error ? err.message : err)
-    }
-  }
-
-  console.error('[image-gen-openai] No community photos found — aborting. Add photos to public/community-photos/.')
-  return null
 }
 
 // ─── MOOD + TEMPLATE DETECTION ───────────────────────────────────────────────
@@ -205,6 +177,16 @@ function extractPowerWords(title: string): string[] {
 
 // ─── STEP 1 PROMPT BUILDER (deterministic, no GPT-4o) ────────────────────────
 
+const COMMUNITY_SCENE: Record<string, string> = {
+  'Virginia Beach': 'Virginia Beach boardwalk at dramatic sunset — the famous King Neptune bronze statue in mid-ground, vibrant magenta and crimson sky, ocean horizon, palm trees, cinematic color grading',
+  'Chesapeake': 'Chesapeake waterfront at golden hour — Great Bridge Lock area, marshlands, dramatic sky with orange and gold tones, Virginia cypress trees',
+  'Norfolk': 'Norfolk downtown waterfront at sunset — USS Wisconsin battleship museum, Waterside District, harbor with boats, dramatic sky',
+  'Suffolk': 'Suffolk Virginia countryside at golden hour — historic Main Street, Constant\'s Wharf, peanut fields, warm amber sky',
+  'Hampton': 'Hampton Virginia waterfront at sunset — Virginia Air and Space Science Center, Mill Creek waterway, dramatic golden sky',
+  'Newport News': 'Newport News waterfront at sunset — Mariners\' Museum, James River shore, dramatic cinematic sky',
+  'Hampton Roads': 'Hampton Roads harbor at dramatic sunset — military ships on the water in the distance, harbor skyline, deep crimson and orange sky, cinematic',
+}
+
 function buildScenePrompt(
   article: ScoredArticle,
   community: string,
@@ -215,6 +197,8 @@ function buildScenePrompt(
   const colors = MOOD_COLORS[mood]
   const scene = TEMPLATE_SCENE[template]
   const power = extractPowerWords(article.title)
+  const defaultScene = `${community} Virginia at dramatic sunset — local landmarks visible, vibrant saturated sky, cinematic color grading`
+  const communityScene = COMMUNITY_SCENE[community] ?? defaultScene
 
   // Break the title into 2 punchy lines for the overlay text.
   const words = article.title.split(' ')
@@ -242,7 +226,7 @@ Create a high-impact YouTube-style thumbnail in the MrBeast visual style — cin
 
 ${canvas}
 
-REFERENCE PHOTO: Use the provided ${community} community photo as the full background. Preserve its lighting, colors, and landmarks. Push the drama: saturated sunset/golden-hour sky, rich contrast, vibrant color grading.
+BACKGROUND SCENE: ${communityScene}. Push the drama: saturated sunset/golden-hour sky, rich contrast, vibrant color grading.
 
 SCENE STYLE: ${scene}.
 
@@ -283,42 +267,28 @@ FINAL REMINDER: Zero humans anywhere in this image. Right third = empty atmosphe
 
 async function generateSceneOnly(
   openai: OpenAI,
-  backgroundBuffer: Buffer,
-  backgroundFilename: string,
   prompt: string,
-  assetType: AssetType,
 ): Promise<Buffer | null> {
-  const size = '1536x1024'
-
+  console.log('[image-gen-openai] Calling gpt-image-1 images.generate()...')
   try {
-    const sharp = (await import('sharp')).default
-    const processedBg = await sharp(backgroundBuffer)
-      .resize(1536, 1024, { fit: 'cover', position: 'center' })
-      .png()
-      .toBuffer()
-    const referenceFile = await toFile(processedBg, 'background.png', { type: 'image/png' })
-
-    console.log(`[image-gen-openai] [${assetType}] Generating scene (no Barry) via images.edit() with ${backgroundFilename} (pre-processed to 1536x1024 PNG)…`)
-    const response = await openai.images.edit({
+    const response = await openai.images.generate({
       model: 'gpt-image-1',
-      image: referenceFile,
       prompt,
       n: 1,
-      size,
+      size: '1536x1024',
     })
     const b64 = response.data?.[0]?.b64_json
-    if (b64) {
-      const buf = Buffer.from(b64, 'base64')
-      console.log(`[image-gen-openai] [${assetType}] Scene generated — ${Math.round(buf.length / 1024)}KB`)
-      return buf
+    if (!b64) {
+      console.error('[image-gen-openai] No image data returned')
+      return null
     }
-    console.warn(`[image-gen-openai] [${assetType}] images.edit() returned no image`)
-    return null
+    const buf = Buffer.from(b64, 'base64')
+    console.log(`[image-gen-openai] Scene generated — ${Math.round(buf.length / 1024)}KB`)
+    return buf
   } catch (err) {
-    console.error(`[image-gen-openai] [${assetType}] images.edit() failed:`,
+    console.error('[image-gen-openai] images.generate() failed:',
       err instanceof Error ? err.message : err,
       err instanceof Error && 'status' in err ? (err as any).status : '',
-      err instanceof Error && 'error' in err ? JSON.stringify((err as any).error) : ''
     )
     return null
   }
@@ -421,12 +391,9 @@ async function generateThumbnail(
     console.log(`[image-gen-openai] [${assetType}] Article: "${article.title.slice(0, 60)}"`)
     console.log(`[image-gen-openai] [${assetType}] Community: ${community} | Mood: ${mood} | Template: ${template}`)
 
-    const photoResult = getRequiredCommunityPhoto(community)
-    if (!photoResult) return null
+    const prompt = buildScenePrompt(article, community, mood, template, assetType)
 
-    const prompt = buildScenePrompt(article, photoResult.community, mood, template, assetType)
-
-    const sceneRaw = await generateSceneOnly(openai, photoResult.buffer, photoResult.filename, prompt, assetType)
+    const sceneRaw = await generateSceneOnly(openai, prompt)
     if (!sceneRaw) return null
 
     const barryBuffer = getBarryBuffer(mood)
