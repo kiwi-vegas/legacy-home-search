@@ -475,7 +475,7 @@ export async function generateFromApprovedPrompt(params: {
   backgroundBuffer: Buffer
   article: ScoredArticle
 }): Promise<DualImageRefs> {
-  const { prompt, expressionBuffer, article } = params
+  const { prompt, article } = params
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
   console.log(`[image-gen-openai] generateFromApprovedPrompt — "${article.title.slice(0, 60)}"`)
@@ -483,7 +483,10 @@ export async function generateFromApprovedPrompt(params: {
   const sceneRaw = await generateSceneOnly(openai, prompt)
   if (!sceneRaw) return { coverImage: null, heroBannerImage: null }
 
-  const cardBuffer = await compositeBarry(sceneRaw, 'card', expressionBuffer)
+  // Always use the real transparent Barry PNG — expression photos are face references only
+  const barryBuffer = getBarryBuffer('neutral')
+
+  const cardBuffer = await compositeBarry(sceneRaw, 'card', barryBuffer ?? undefined)
   const coverImage = await uploadToSanity(
     cardBuffer,
     `openai-cover-${Date.now()}.png`,
@@ -495,7 +498,7 @@ export async function generateFromApprovedPrompt(params: {
     .resize(1600, 500, { fit: 'cover', position: 'center' })
     .png()
     .toBuffer()
-  const heroBuffer = await compositeBarry(heroScene, 'hero', expressionBuffer)
+  const heroBuffer = await compositeBarry(heroScene, 'hero', barryBuffer ?? undefined)
   const heroBannerImage = await uploadToSanity(
     heroBuffer,
     `openai-hero-banner-${Date.now()}.png`,
