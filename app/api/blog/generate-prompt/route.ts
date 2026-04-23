@@ -36,69 +36,60 @@ function toDataUrl(buf: Buffer, mime: string): string {
   return `data:${mime};base64,${buf.toString('base64')}`
 }
 
-const SYSTEM_PROMPT = `You are an expert YouTube thumbnail art director specializing in real estate content.
-You write precise, detailed image generation prompts for gpt-image-1.
+const SYSTEM_PROMPT = `You are a world-class YouTube thumbnail designer who has studied every MrBeast, Graham Stephan, and Meet Kevin thumbnail ever made.
 
-CRITICAL RULE: The prompt you write must NEVER include any person, human, figure, face, body, silhouette, or crowd — not even in the background distance.
-The RIGHT THIRD of the image (from 67% width to the right edge) must be described as completely empty atmospheric space — sky, ocean, bokeh, haze only.
-Barry Jenkins (the host) will be composited onto the right third programmatically AFTER generation. Do NOT describe him or any person in the prompt.
+You write image generation prompts for gpt-image-1 that produce jaw-dropping, scroll-stopping YouTube thumbnails.
 
-Your prompt describes ONLY: background scene, text/typography, graphic elements, and mood/style.
-Output ONLY the image generation prompt. No explanation. No preamble. No markdown.`
+Your prompts are HYPER-SPECIFIC. You describe:
+- EXACT font styling: tilt angles, 3D extrusion depth, outline colors, glow colors, mixed weights
+- TOPIC-SPECIFIC graphics: you invent a unique illustration directly tied to the article subject — not generic icons
+- Layered composition with overlapping elements, depth, and energy
+
+CRITICAL RULES you never break:
+1. ZERO humans, figures, faces, silhouettes, or crowds anywhere in the image
+2. The RIGHT THIRD (from 67% width to right edge) stays as clean empty atmospheric space — sky, water, bokeh only. No text, no graphics here.
+3. The background image is used AS-IS — do not ask to recolor or enhance it
+4. All text and graphics on LEFT TWO-THIRDS only
+
+Output ONLY the image generation prompt. No explanation. No preamble. No markdown. No <|token|> artifacts.`
 
 function buildUserPrompt(title: string, community: string, mood: string): string {
-  const moodGraphics: string[] = []
-  if (mood === 'exciting-positive' || mood === 'investment') {
-    moodGraphics.push('A bar chart trending upward with a bright green glowing upward arrow')
-    moodGraphics.push('A wallet with cash sticking out')
-  }
-  if (mood === 'negative') {
-    moodGraphics.push('A red downward arrow with a falling chart and warning badge')
-  }
-  if (mood === 'shocked') {
-    moodGraphics.push('Explosive burst graphic and bold alert badge')
-  }
-  if (mood === 'buying') {
-    moodGraphics.push('A glowing house icon with a key graphic')
-  }
-  if (mood === 'selling') {
-    moodGraphics.push('A SOLD badge and house with a price tag graphic')
-  }
-  if (moodGraphics.length === 0) {
-    moodGraphics.push('A bold mood-appropriate graphic element with glow and depth')
-  }
-  const moodGraphicsText = moodGraphics.map((s) => `- ${s}`).join('\n')
+  return `Design a MrBeast-style YouTube thumbnail for this real estate article.
 
-  return `Create a high-converting YouTube thumbnail in a MrBeast-style design.
+ARTICLE TITLE: "${title}"
+COMMUNITY: ${community}, VA
+MOOD: ${mood}
 
-BACKGROUND:
-Use the attached background image exactly as provided — do NOT alter, recolor, enhance, or add gradients to it. It is already color-corrected and vibrant. Use it as the base layer unchanged.
+BACKGROUND: The attached photo of ${community}, VA is the base layer. Use it exactly as-is — no color changes, no filters, no gradients added to it. The right third of the image must stay as clean open atmospheric space from this background.
 
-The right third of the image (from 67% width to the right edge) must remain as clean, empty atmospheric space from the background photo — no text, no graphics, nothing added here.
+⚠️ NO PERSON RULE: Zero humans, figures, faces, or silhouettes anywhere. Right third = empty atmospheric background only. A photo of the host will be composited programmatically after generation.
 
-⚠️ CRITICAL: Do NOT place any person, human, figure, silhouette, or crowd anywhere in the image. The right third is reserved for a composited photo added programmatically after generation.
+YOUR JOB — write a complete gpt-image-1 prompt that specifies:
 
-TEXT HIERARCHY (left two-thirds only):
-Add bold, large, high-contrast text in YouTube thumbnail style with strong visual hierarchy:
+1. TEXT HIERARCHY (left two-thirds only):
+   - Analyze the article title and extract the most emotionally charged 2-3 word hook
+   - Main headline: those words in MASSIVE styled typography — specify exact colors, outline stroke color, 3D extrusion direction, slight rotation angle (±3-5°), and glow halo color
+   - Secondary element: remaining key phrase on a bold colored banner/ribbon
+   - Kicker: "${community.toUpperCase()}, VA" small badge top-left
+   - Every text element must have: hard drop shadow, color outline, and glow effect specified explicitly
 
-- TOP small kicker: "${community.toUpperCase()}, VA" — small white or yellow text, top-left corner
-- MAIN headline: Extract the 2–3 most powerful words from "${title}" — render in MASSIVE bright yellow (#FFE600) bold all-caps typography with heavy black stroke and hard drop shadow. Largest text element on the page.
-- SECONDARY banner: Remaining key phrase — white text on a bold red rectangle, slightly smaller than the headline
-- SUBTEXT: One supporting context line — smaller, white and yellow mixed, below the red banner
+2. TOPIC-SPECIFIC GRAPHIC (lower-left quadrant):
+   - Invent ONE illustration that is DIRECTLY and UNIQUELY tied to this specific article topic
+   - Think: what physical object or document or visual metaphor represents THIS article's subject?
+   - Examples for appraisal article: a stamped appraisal report document tilted at an angle with "APPRAISAL" header, a house sketch inside it, a bold red "LOW VALUE" stamp overlaid
+   - Examples for mortgage rate article: a giant interest rate percentage number, a Federal Reserve building sketch, a rate chart
+   - Examples for community spotlight: a stylized map pin over a neighborhood aerial view sketch
+   - Describe the graphic with: exact tilt angle, glow color, shadow depth, 3D perspective
+   - This graphic overlaps slightly with the text for dynamic layering
 
-All text must be crisp, sharp, and readable — not distorted, not blurry, not warped.
+3. ENERGY & STYLE:
+   - Extreme saturation, bold contrasts, cinematic depth
+   - Elements feel like they're bursting out of the screen
+   - MrBeast-level visual impact — if someone is scrolling at speed, this stops them
 
-GRAPHIC ELEMENTS (lower-left quadrant only):
-${moodGraphicsText}
-Add glow effects, drop shadows, and 3D depth to every graphic element to make them pop.
+CANVAS: 1536x1024px landscape. Left two-thirds = text + graphic. Right third = empty background.
 
-STYLE: Bold, modern, high-energy, extreme saturation, maximum clickability. MrBeast-level visual impact. Optimized for YouTube click-through rate.
-
-CANVAS: 1536x1024px landscape.
-- Left two-thirds: all text + all graphics
-- Right third: clean empty background only — absolutely nothing added here
-
-FINAL REMINDER: Zero humans anywhere. Right third = untouched background only.`
+Now write the complete gpt-image-1 prompt:`
 }
 
 export async function POST(request: Request) {
