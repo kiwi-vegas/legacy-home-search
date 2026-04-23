@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { loadArticles, recordShownArticles } from '@/lib/store'
 import { writePost } from '@/lib/writer'
-import { fetchAndUploadCoverImage } from '@/lib/images'
 import { publishBlogPost } from '@/lib/sanity-write'
 
 export const maxDuration = 300
@@ -48,11 +47,8 @@ export async function POST(request: Request) {
   const settled = await Promise.allSettled(
     selectedArticles.map(async (article) => {
       console.log(`[publish] Writing post for: ${article!.title}`)
-      const [draft, { coverImage, heroBannerImage }] = await Promise.all([
-        writePost(article!),
-        fetchAndUploadCoverImage(article!.url, article!.category, article!),
-      ])
-      const sanityId = await publishBlogPost(draft, coverImage, heroBannerImage)
+      const draft = await writePost(article!)
+      const sanityId = await publishBlogPost(draft)
       console.log(`[publish] Published: ${draft.title} → /blog/${draft.slug}`)
       return { id: sanityId, title: draft.title, slug: draft.slug }
     })

@@ -14,11 +14,7 @@ export function getSanityWriteClient() {
   })
 }
 
-export async function publishBlogPost(
-  draft: BlogPostDraft,
-  coverImageRef?: { _type: 'reference'; _ref: string } | null,
-  heroBannerImageRef?: { _type: 'reference'; _ref: string } | null
-): Promise<string> {
+export async function publishBlogPost(draft: BlogPostDraft): Promise<string> {
   const client = getSanityWriteClient()
 
   const existingSlug = await client.fetch(
@@ -28,7 +24,7 @@ export async function publishBlogPost(
 
   const finalSlug = existingSlug ? `${draft.slug}-${Date.now()}` : draft.slug
 
-  const doc: { _type: string; [key: string]: any } = {
+  const result = await client.create({
     _type: 'blogPost',
     title: draft.title,
     slug: { _type: 'slug', current: finalSlug },
@@ -40,16 +36,7 @@ export async function publishBlogPost(
     metaDescription: draft.metaDescription,
     authorName: 'Barry Jenkins',
     aiGenerated: false,
-  }
+  })
 
-  if (coverImageRef) {
-    doc.coverImage = { _type: 'image', asset: coverImageRef }
-  }
-
-  if (heroBannerImageRef) {
-    doc.heroBannerImage = { _type: 'image', asset: heroBannerImageRef }
-  }
-
-  const result = await client.create(doc)
   return result._id
 }

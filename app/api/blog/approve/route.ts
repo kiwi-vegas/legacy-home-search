@@ -30,7 +30,6 @@
 import { NextResponse } from 'next/server'
 import { getStagedPost, recordApprovalDecision } from '@/lib/renick-pipeline'
 import { publishBlogPost } from '@/lib/sanity-write'
-import { fetchAndUploadCoverImage } from '@/lib/images'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -152,36 +151,7 @@ async function approveAndPublish(
 ): Promise<string> {
   const { draft } = staged!
 
-  // Generate cover image (thumbnail pipeline — OpenAI → Gemini → OG scrape → Unsplash → fallback)
-  let coverImageRef: { _type: 'reference'; _ref: string } | null = null
-  let heroBannerImageRef: { _type: 'reference'; _ref: string } | null = null
-
-  try {
-    // Build a minimal ScoredArticle so the thumbnail pipeline has full context
-    const article: import('@/lib/types').ScoredArticle = {
-      id: postId,
-      title: draft.title,
-      url: draft.sourceUrl ?? `/blog/${draft.slug}`,
-      content: draft.excerpt ?? draft.title,
-      category: draft.category,
-      relevanceScore: 1,
-      whyItMatters: draft.excerpt ?? draft.title,
-    }
-    const imageResult = await fetchAndUploadCoverImage(
-      draft.sourceUrl ?? `/blog/${draft.slug}`,
-      draft.category,
-      article
-    )
-    coverImageRef = imageResult?.coverImage ?? null
-    heroBannerImageRef = imageResult?.heroBannerImage ?? null
-  } catch (err) {
-    console.warn('[approve] Image generation failed, publishing without images:', err)
-  }
-
-  // Publish to Sanity
-  const sanityId = await publishBlogPost(draft, coverImageRef, heroBannerImageRef)
-
-  // Record approval decision
+  const sanityId = await publishBlogPost(draft)
   await recordApprovalDecision(weekId, postId, 'approve')
 
   return sanityId
@@ -253,7 +223,7 @@ function buildApproveSuccessPage(title: string, blogUrl: string, sanityId: strin
       <p class="status">Live on legacyhometeamlpt.com/blog</p>
       <br>
       <a href="${blogUrl}" class="btn">View Post →</a>
-      <p class="meta">Sanity ID: ${sanityId}<br>Thumbnail generated automatically.</p>
+      <p class="meta">Sanity ID: ${sanityId}<br>Add a thumbnail manually in Sanity Studio.</p>
     </div>
   </div>
 </body>

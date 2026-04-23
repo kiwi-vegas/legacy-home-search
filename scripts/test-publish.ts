@@ -5,7 +5,6 @@
 
 import 'dotenv/config'
 import { writePost } from '../lib/writer'
-import { fetchAndUploadCoverImage } from '../lib/images'
 import { publishBlogPost } from '../lib/sanity-write'
 import type { ScoredArticle } from '../lib/types'
 
@@ -24,21 +23,16 @@ const article: ScoredArticle = {
 async function main() {
   console.log(`\n[test] Publishing: "${article.title}"`)
   console.log(`[test] Category: ${article.category} | Score: ${article.relevanceScore}`)
-  console.log(`[test] Generating blog post + thumbnail...\n`)
+  console.log(`[test] Writing blog post...\n`)
 
-  const [draft, { coverImage, heroBannerImage }] = await Promise.all([
-    writePost(article),
-    fetchAndUploadCoverImage(article.url, article.category, article),
-  ])
+  const draft = await writePost(article)
 
   console.log(`\n[test] Blog post written: "${draft.title}"`)
   console.log(`[test] Slug: /blog/${draft.slug}`)
-  console.log(`[test] Cover image: ${coverImage ? 'generated ✓' : 'fallback used'}`)
-  console.log(`[test] Hero banner: ${heroBannerImage ? 'generated ✓' : 'not generated'}`)
 
-  const sanityId = await publishBlogPost(draft, coverImage, heroBannerImage)
+  const sanityId = await publishBlogPost(draft)
   console.log(`\n[test] ✓ Published to Sanity: ${sanityId}`)
-  console.log(`[test] Live at: https://legacy-home-search.vercel.app/blog/${draft.slug}`)
+  console.log(`[test] Live at: https://legacyhometeamlpt.com/blog/${draft.slug}`)
 }
 
 main().catch((err) => {
