@@ -153,13 +153,27 @@ async function approveAndPublish(
   const { draft } = staged!
 
   // Generate cover image (thumbnail pipeline — OpenAI → Gemini → OG scrape → Unsplash → fallback)
-  let coverImageRef: string | undefined
-  let heroBannerImageRef: string | undefined
+  let coverImageRef: { _type: 'reference'; _ref: string } | null = null
+  let heroBannerImageRef: { _type: 'reference'; _ref: string } | null = null
 
   try {
-    const imageResult = await fetchAndUploadCoverImage(draft.title, draft.sourceUrl)
-    coverImageRef = imageResult?.coverImageRef
-    heroBannerImageRef = imageResult?.heroBannerImageRef
+    // Build a minimal ScoredArticle so the thumbnail pipeline has full context
+    const article: import('@/lib/types').ScoredArticle = {
+      id: postId,
+      title: draft.title,
+      url: draft.sourceUrl ?? `/blog/${draft.slug}`,
+      content: draft.excerpt ?? draft.title,
+      category: draft.category,
+      relevanceScore: 1,
+      whyItMatters: draft.excerpt ?? draft.title,
+    }
+    const imageResult = await fetchAndUploadCoverImage(
+      draft.sourceUrl ?? `/blog/${draft.slug}`,
+      draft.category,
+      article
+    )
+    coverImageRef = imageResult?.coverImage ?? null
+    heroBannerImageRef = imageResult?.heroBannerImage ?? null
   } catch (err) {
     console.warn('[approve] Image generation failed, publishing without images:', err)
   }
