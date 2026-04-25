@@ -100,6 +100,12 @@ export default {
       description: 'Auto-generated Facebook post caption (editable by VA before publishing)',
     },
     {
+      name: 'socialDeclined',
+      title: 'Social Posting Declined',
+      type: 'boolean',
+      description: 'Set to true when this post has been deliberately skipped for Facebook posting',
+    },
+    {
       name: 'coverImage',
       title: 'Cover Image',
       type: 'image',

@@ -166,6 +166,7 @@ export type SanityBlogPost = {
   blotatoPublishedAt?: string
   facebookPostUrl?: string
   socialCopy?: string
+  socialDeclined?: boolean
 }
 
 export type WorkflowStatus =
@@ -212,6 +213,28 @@ export async function getVAQueue(): Promise<SanityBlogPost[]> {
       coverImage, workflowStatus, blotatoPublishStatus, facebookPostUrl, socialCopy
     }`,
     {},
+    { next: { revalidate: 0 } }
+  )
+}
+
+// Posts published to the blog but not yet posted to Facebook (last 21 days)
+export async function getSocialQueue(): Promise<SanityBlogPost[]> {
+  const cutoff = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString()
+  return client.fetch(
+    `*[
+      _type == "blogPost" &&
+      (
+        (!defined(workflowStatus) && (!defined(status) || status == "published")) ||
+        workflowStatus == "published"
+      ) &&
+      !defined(facebookPostUrl) &&
+      socialDeclined != true &&
+      publishedAt > $cutoff
+    ] | order(publishedAt desc)[0...30]{
+      _id, title, "slug": slug.current, publishedAt, category, excerpt,
+      coverImage, workflowStatus, blotatoPublishStatus, facebookPostUrl, socialDeclined, socialCopy
+    }`,
+    { cutoff },
     { next: { revalidate: 0 } }
   )
 }

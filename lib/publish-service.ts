@@ -15,7 +15,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import imageUrlBuilder from '@sanity/image-url'
 import { createClient } from '@sanity/client'
 import { publishToFacebook } from './blotato-client'
-import { markPublishing, markPublished, markPublishFailed } from './content-workflow'
+import { markPublishing, markPublished, markPublishFailed, patchSocialSubmission } from './content-workflow'
 import { getSanityWriteClient } from './sanity-write'
 import type { SanityBlogPost } from '../sanity/queries'
 
@@ -87,6 +87,32 @@ function getSanityImageUrl(coverImage: any): string | null {
 export type PublishResult =
   | { ok: true; postSubmissionId: string }
   | { ok: false; error: string }
+
+// For already-published posts: posts to Facebook only, does not touch workflowStatus
+export async function publishSocialOnly(
+  post: SanityBlogPost,
+  socialCopy?: string,
+): Promise<PublishResult> {
+  const postId = post._id
+  try {
+    const copy = socialCopy?.trim() || (await generateSocialCopy(post))
+    const imageUrl = getSanityImageUrl(post.coverImage)
+    if (!imageUrl) {
+      return { ok: false, error: 'No cover image — cannot post to Facebook without an image.' }
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legacyhomesearch.com'
+    const fullCopy = `${copy}\n\n${appUrl}/blog/${post.slug}`
+
+    const { postSubmissionId } = await publishToFacebook(fullCopy, imageUrl)
+    await patchSocialSubmission(postId, postSubmissionId, copy)
+
+    return { ok: true, postSubmissionId }
+  } catch (err) {
+    console.error('[publish-service] Social-only publish error:', err instanceof Error ? err.message : err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown publish error' }
+  }
+}
 
 export async function publishPostToAll(
   post: SanityBlogPost,

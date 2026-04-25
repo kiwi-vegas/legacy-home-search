@@ -67,6 +67,24 @@ export async function markPublishFailed(postId: string): Promise<void> {
   await transitionStatus(postId, 'publish_failed')
 }
 
+// For already-published posts getting social treatment for the first time
+export async function patchSocialSubmission(
+  postId: string,
+  blotatoPostSubmissionId: string,
+  socialCopy: string,
+): Promise<void> {
+  const client = getSanityWriteClient()
+  await client
+    .patch(postId)
+    .set({ blotatoPostSubmissionId, blotatoPublishStatus: 'pending', socialCopy })
+    .commit()
+}
+
+export async function markSocialDeclined(postId: string): Promise<void> {
+  const client = getSanityWriteClient()
+  await client.patch(postId).set({ socialDeclined: true }).commit()
+}
+
 export async function updateBlotatoStatus(
   postId: string,
   status: 'published' | 'failed',
