@@ -2,106 +2,78 @@
  * Thumbnail asset resolver
  *
  * Maps community slugs → background image public paths.
- * Maps client image types → public paths.
- * Used by the VA media editor to populate asset pickers.
- *
- * All paths are relative to /public and served as static assets.
- * The community detection logic mirrors the blog post page's detectCommunities().
+ * Static manifest — no fs reads. Community photos are 177MB and are served
+ * as CDN static assets; they must NOT be bundled into serverless functions.
  */
 
-import fs from 'fs'
-import path from 'path'
-
-const PUBLIC_DIR = path.join(process.cwd(), 'public')
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type AssetImage = {
-  url: string        // public path, e.g. /community-photos/virginia-beach/img.png
-  label: string      // display name
-  filePath: string   // absolute FS path
+  url: string    // public path, e.g. /community-photos/virginia-beach/img.png
+  label: string  // display name
 }
 
-// ─── Community backgrounds ────────────────────────────────────────────────────
+// ─── Static community background manifests ───────────────────────────────────
 
-const COMMUNITY_DIRS: Record<string, string> = {
-  'virginia-beach': 'community-photos/virginia-beach',
-  'chesapeake':     'community-photos/chesapeake',
-  'norfolk':        'community-photos/norfolk',
-  'hampton':        'community-photos/hampton',
-  'newport-news':   'community-photos/newport-news',
-  'suffolk':        'community-photos/suffolk',
-  'hampton-roads':  'community-photos/hampton-roads',
+const COMMUNITY_BACKGROUNDS: Record<string, AssetImage[]> = {
+  'virginia-beach': [
+    { url: '/community-photos/virginia-beach/virginia_beach1_cinematic.png',  label: 'Virginia Beach 1' },
+    { url: '/community-photos/virginia-beach/Virginia_Beach2_cinematic.png',  label: 'Virginia Beach 2' },
+    { url: '/community-photos/virginia-beach/Virginia_Beach3_cinematic.png',  label: 'Virginia Beach 3' },
+    { url: '/community-photos/virginia-beach/Virginia_Beach4_cinematic.png',  label: 'Virginia Beach 4' },
+  ],
+  'chesapeake': [
+    { url: '/community-photos/chesapeake/Chesapeake1_cinematic.png', label: 'Chesapeake 1' },
+    { url: '/community-photos/chesapeake/Chesapeake2_cinematic.png', label: 'Chesapeake 2' },
+    { url: '/community-photos/chesapeake/Chesapeake3_cinematic.png', label: 'Chesapeake 3' },
+    { url: '/community-photos/chesapeake/Chesapeake4_cinematic.png', label: 'Chesapeake 4' },
+    { url: '/community-photos/chesapeake/Chesapeake5_cinematic.png', label: 'Chesapeake 5' },
+  ],
+  'norfolk': [
+    { url: '/community-photos/norfolk/Norfolk_cinematic1.jpeg', label: 'Norfolk 1' },
+    { url: '/community-photos/norfolk/Norfolk_cinematic2.jpeg', label: 'Norfolk 2' },
+    { url: '/community-photos/norfolk/Norfolk_cinematic3.jpeg', label: 'Norfolk 3' },
+    { url: '/community-photos/norfolk/Norfolk_cinematic4.png',  label: 'Norfolk 4' },
+  ],
+  'hampton': [
+    { url: '/community-photos/hampton/Hampton1_cinematic.png',  label: 'Hampton 1' },
+    { url: '/community-photos/hampton/Hampton2_cinematic.jpeg', label: 'Hampton 2' },
+    { url: '/community-photos/hampton/Hampton3_cinematic.png',  label: 'Hampton 3' },
+    { url: '/community-photos/hampton/Hampton4_cinematic.jpeg', label: 'Hampton 4' },
+    { url: '/community-photos/hampton/Hampton5_cinematic.png',  label: 'Hampton 5' },
+  ],
+  'newport-news': [
+    { url: '/community-photos/newport-news/Newport News1_cinematic.png', label: 'Newport News 1' },
+    { url: '/community-photos/newport-news/Newport News2_cinematic.png', label: 'Newport News 2' },
+    { url: '/community-photos/newport-news/Newport News3_cinematic.png', label: 'Newport News 3' },
+    { url: '/community-photos/newport-news/Newport News4_cinematic.png', label: 'Newport News 4' },
+  ],
+  'suffolk': [
+    { url: '/community-photos/suffolk/Suffolk_cinematic1.png',  label: 'Suffolk 1' },
+    { url: '/community-photos/suffolk/Suffolk_cinematic2.jpeg', label: 'Suffolk 2' },
+    { url: '/community-photos/suffolk/Suffolk_cinematic3.png',  label: 'Suffolk 3' },
+    { url: '/community-photos/suffolk/Suffolk_cinematic4.png',  label: 'Suffolk 4' },
+  ],
+  'hampton-roads': [
+    { url: '/community-photos/hampton-roads/Hampton_Roads-Cinematic1.png', label: 'Hampton Roads 1' },
+    { url: '/community-photos/hampton-roads/Hampton_Roads-Cinematic2.png', label: 'Hampton Roads 2' },
+    { url: '/community-photos/hampton-roads/Hampton_Roads-Cinematic3.png', label: 'Hampton Roads 3' },
+    { url: '/community-photos/hampton-roads/Hampton_Roads-Cinematic4.png', label: 'Hampton Roads 4' },
+  ],
 }
 
 export function getCommunityBackgrounds(communitySlug?: string): AssetImage[] {
-  const dirs: string[] = []
-
-  if (communitySlug && COMMUNITY_DIRS[communitySlug]) {
-    dirs.push(COMMUNITY_DIRS[communitySlug])
+  if (communitySlug && COMMUNITY_BACKGROUNDS[communitySlug]) {
+    const specific = COMMUNITY_BACKGROUNDS[communitySlug]
+    const generic  = COMMUNITY_BACKGROUNDS['hampton-roads'] ?? []
+    return [...specific, ...generic]
   }
-
-  // Always include hampton-roads as a generic fallback set
-  if (!dirs.includes(COMMUNITY_DIRS['hampton-roads'])) {
-    dirs.push(COMMUNITY_DIRS['hampton-roads'])
-  }
-
-  // If no specific community, show all
   if (!communitySlug) {
-    Object.values(COMMUNITY_DIRS).forEach(d => {
-      if (!dirs.includes(d)) dirs.push(d)
-    })
+    return Object.values(COMMUNITY_BACKGROUNDS).flat()
   }
-
-  const images: AssetImage[] = []
-
-  for (const relDir of dirs) {
-    const absDir = path.join(PUBLIC_DIR, relDir)
-    if (!fs.existsSync(absDir)) continue
-
-    const files = fs.readdirSync(absDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f))
-    for (const file of files) {
-      images.push({
-        url: `/${relDir}/${file}`,
-        label: file.replace(/_/g, ' ').replace(/\.(png|jpg|jpeg|webp)$/i, ''),
-        filePath: path.join(absDir, file),
-      })
-    }
-  }
-
-  return images
+  return COMMUNITY_BACKGROUNDS['hampton-roads'] ?? []
 }
-
-// ─── Client images (Barry + expressions) ─────────────────────────────────────
 
 export function getClientImages(): AssetImage[] {
-  const images: AssetImage[] = []
-
-  // Barry transparent cutout
-  const barryPath = path.join(PUBLIC_DIR, 'barry-transparent.png')
-  if (fs.existsSync(barryPath)) {
-    images.push({
-      url: '/barry-transparent.png',
-      label: 'Barry Jenkins',
-      filePath: barryPath,
-    })
-  }
-
-  // Expression variants
-  const expDir = path.join(PUBLIC_DIR, 'expressions')
-  if (fs.existsSync(expDir)) {
-    const files = fs.readdirSync(expDir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f))
-    for (const file of files) {
-      images.push({
-        url: `/expressions/${file}`,
-        label: file.replace(/_/g, ' ').replace(/\.(png|jpg|jpeg|webp)$/i, ''),
-        filePath: path.join(expDir, file),
-      })
-    }
-  }
-
-  return images
+  return [
+    { url: '/barry-transparent.png', label: 'Barry Jenkins' },
+  ]
 }
-
-// Pure helpers (detectCommunitySlug, buildDefaultThumbnailPrompt) live in
-// lib/thumbnail-prompt.ts — client-safe, no fs imports.
