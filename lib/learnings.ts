@@ -26,7 +26,7 @@ async function getGitHubFile(
   path: string
 ): Promise<{ content: string; sha: string } | null> {
   const token = process.env.GITHUB_TOKEN
-  if (!token) throw new Error('GITHUB_TOKEN not set')
+  if (!token) return null
 
   const res = await fetch(
     `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`,

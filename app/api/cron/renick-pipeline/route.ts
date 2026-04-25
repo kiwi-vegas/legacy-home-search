@@ -1,16 +1,18 @@
 /**
  * app/api/cron/renick-pipeline/route.ts
  *
- * Tuesday 8:05 AM PT (15:05 UTC) — Renick → Jenkins content pipeline orchestrator.
+ * Tuesday 8:05 AM PT (15:05 UTC) — Renick → Jenkins idea pipeline.
  *
- * Steps:
+ * New flow (Phase 2):
  *  1. Fetch + parse the Renick dashboard
  *  2. Read LEARNINGS.md for context
  *  3. Extract 5 content patterns (Claude Opus)
  *  4. Research each pattern (Tavily)
- *  5. Generate 5 full blog post drafts (Claude Sonnet)
- *  6. Stage posts in Redis (7-day TTL)
- *  7. Send approval email to Barry
+ *  5. Convert patterns → IdeaCandidate objects (no pre-writing)
+ *  6. Save to unified idea store
+ *
+ * Post writing now happens only when the reviewer approves an idea
+ * at /admin/idea-review.
  */
 
 import { NextResponse } from 'next/server'
@@ -18,23 +20,33 @@ import {
   fetchRenickDashboard,
   extractContentPatterns,
   researchPostIdea,
-  generateBlogPost,
-  stagePostsInRedis,
+  patternsToIdeas,
   buildWeekId,
-  type StagedPost,
 } from '@/lib/renick-pipeline'
 import { readLearnings } from '@/lib/learnings'
-import { sendApprovalEmail } from '@/lib/renick-email'
+import { saveIdea, getCoveredTopics } from '@/lib/idea-store'
 
-export const maxDuration = 300 // 5 min — plenty of time for all AI calls
+export const maxDuration = 300
 
 export async function GET(request: Request) {
-  // Verify cron secret
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  return runRenickPipeline()
+}
 
+export async function POST(request: Request) {
+  const adminSecret = process.env.ADMIN_SECRET
+  if (!adminSecret) return NextResponse.json({ error: 'Not configured' }, { status: 500 })
+  const body = await request.json().catch(() => ({}))
+  if (body.secret !== adminSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  return runRenickPipeline()
+}
+
+async function runRenickPipeline() {
   const weekId = buildWeekId()
   const log: string[] = [`[renick-pipeline] Starting — weekId: ${weekId}`]
 
@@ -42,7 +54,7 @@ export async function GET(request: Request) {
     // ── Step 1: Fetch Renick dashboard ──────────────────────────────────
     log.push('Fetching Renick dashboard...')
     const dashboard = await fetchRenickDashboard()
-    log.push(`Dashboard fetched. Winners: ${dashboard.topPosts.filter(p => p.status === 'Winner').length}`)
+    log.push(`Dashboard fetched. Winners: ${dashboard.topPosts.filter((p) => p.status === 'Winner').length}`)
 
     // ── Step 2: Read LEARNINGS.md ────────────────────────────────────────
     log.push('Reading LEARNINGS.md...')
@@ -54,53 +66,30 @@ export async function GET(request: Request) {
     const patterns = await extractContentPatterns(dashboard, learningsContext)
     log.push(`Patterns extracted: ${patterns.length}`)
 
-    // ── Step 4 + 5: Research + generate posts (sequentially to avoid rate limits) ─
-    const stagedPosts: StagedPost[] = []
-
+    // ── Step 4: Research each pattern ───────────────────────────────────
+    const researchByIndex: Record<number, string> = {}
     for (let i = 0; i < patterns.length; i++) {
-      const pattern = patterns[i]
-      log.push(`[${i + 1}/${patterns.length}] Researching: ${pattern.translatedTitle}`)
-
-      const researchData = await researchPostIdea(pattern)
-      log.push(`[${i + 1}/${patterns.length}] Generating post...`)
-
-      const draft = await generateBlogPost(pattern, researchData, learningsContext)
-
-      // Find the Renick source post that inspired this pattern
-      const sourcePost = dashboard.topPosts.find(
-        (p) => p.title === pattern.exampleRenickTitle
-      )
-
-      const postId = `${weekId}-${i + 1}-${Math.random().toString(36).slice(2, 7)}`
-
-      stagedPosts.push({
-        postId,
-        weekId,
-        pattern,
-        draft,
-        renickSource: pattern.exampleRenickTitle,
-        renickLift: sourcePost ? `${sourcePost.liftPct}%` : `${pattern.avgLiftPct}%`,
-        stagedAt: new Date().toISOString(),
-      })
-
-      log.push(`[${i + 1}/${patterns.length}] Generated: "${draft.title}"`)
+      log.push(`[${i + 1}/${patterns.length}] Researching: ${patterns[i].translatedTitle}`)
+      researchByIndex[i] = await researchPostIdea(patterns[i])
     }
 
-    // ── Step 6: Stage in Redis ───────────────────────────────────────────
-    log.push('Staging posts in Redis...')
-    await stagePostsInRedis(stagedPosts)
-    log.push(`Staged ${stagedPosts.length} posts`)
+    // ── Step 5: Convert patterns to idea candidates (no pre-writing) ────
+    log.push('Converting patterns to idea candidates...')
+    const coveredTopics = await getCoveredTopics()
+    const ideas = patternsToIdeas(patterns, researchByIndex, dashboard, coveredTopics)
+    log.push(`${ideas.length} ideas passed scoring threshold`)
 
-    // ── Step 7: Send approval email ──────────────────────────────────────
-    log.push('Sending approval email to Barry...')
-    await sendApprovalEmail(stagedPosts, weekId)
-    log.push('Approval email sent.')
+    // ── Step 6: Save to unified idea store ──────────────────────────────
+    for (const idea of ideas) {
+      await saveIdea(idea)
+    }
+    log.push(`Saved ${ideas.length} ideas to queue`)
 
     return NextResponse.json({
       success: true,
       weekId,
-      postsGenerated: stagedPosts.length,
-      titles: stagedPosts.map((p) => p.draft.title),
+      ideasQueued: ideas.length,
+      titles: ideas.map((i) => `[${i.score.total}] ${i.title}`),
       log,
     })
   } catch (err) {
@@ -108,7 +97,6 @@ export async function GET(request: Request) {
     log.push(`ERROR: ${message}`)
     console.error('[renick-pipeline] Error:', err)
 
-    // Notify operator of failure
     try {
       await notifyOperatorOfFailure(weekId, message)
     } catch {
@@ -121,8 +109,7 @@ export async function GET(request: Request) {
 
 async function notifyOperatorOfFailure(weekId: string, error: string): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY
-  const operatorEmail = process.env.OPERATOR_EMAIL
-  if (!resendKey || !operatorEmail) return
+  if (!resendKey) return
 
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -132,9 +119,9 @@ async function notifyOperatorOfFailure(weekId: string, error: string): Promise<v
     },
     body: JSON.stringify({
       from: process.env.FROM_EMAIL ?? 'pipeline@legacyhomesearch.com',
-      to: [operatorEmail],
-      subject: `[PIPELINE ERROR] Renick → Jenkins failed — Week of ${weekId}`,
-      text: `The Renick → Jenkins pipeline encountered an error:\n\n${error}\n\nWeek ID: ${weekId}\nTime: ${new Date().toISOString()}`,
+      to: ['kiwi@ylopo.com'],
+      subject: `[PIPELINE ERROR] Renick pipeline failed — Week of ${weekId}`,
+      text: `The Renick pipeline encountered an error:\n\n${error}\n\nWeek ID: ${weekId}\nTime: ${new Date().toISOString()}`,
     }),
   })
 }

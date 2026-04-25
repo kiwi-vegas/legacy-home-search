@@ -36,6 +36,7 @@ export async function publishBlogPost(draft: BlogPostDraft): Promise<string> {
     metaDescription: draft.metaDescription,
     authorName: 'Barry Jenkins',
     aiGenerated: false,
+    workflowStatus: 'media_pending',
   })
 
   return result._id

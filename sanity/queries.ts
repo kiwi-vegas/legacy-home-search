@@ -159,11 +159,33 @@ export type SanityBlogPost = {
   metaDescription?: string
   aiGenerated?: boolean
   sourceUrl?: string
+  // Workflow fields (new posts only)
+  workflowStatus?: WorkflowStatus
+  blotatoPostSubmissionId?: string
+  blotatoPublishStatus?: string
+  blotatoPublishedAt?: string
+  facebookPostUrl?: string
+  socialCopy?: string
 }
+
+export type WorkflowStatus =
+  | 'media_pending'
+  | 'media_ready'
+  | 'publish_pending'
+  | 'publishing'
+  | 'published'
+  | 'publish_failed'
+
+// Backwards-compatible public filter: shows old posts (status=published or undefined) AND
+// new workflow posts (workflowStatus=published). Hides anything in-progress.
+const PUBLIC_FILTER = `(
+  (!defined(workflowStatus) && (!defined(status) || status == "published")) ||
+  workflowStatus == "published"
+)`
 
 export async function getBlogPosts(limit = 20): Promise<SanityBlogPost[]> {
   return client.fetch(
-    `*[_type == "blogPost"] | order(publishedAt desc)[0...$limit]{
+    `*[_type == "blogPost" && ${PUBLIC_FILTER}] | order(publishedAt desc)[0...$limit]{
       _id, title, "slug": slug.current, publishedAt,
       category, excerpt, coverImage, aiGenerated
     }`,
@@ -174,12 +196,36 @@ export async function getBlogPosts(limit = 20): Promise<SanityBlogPost[]> {
 
 export async function getBlogPost(slug: string): Promise<SanityBlogPost | null> {
   return client.fetch(
-    `*[_type == "blogPost" && slug.current == $slug][0]{
+    `*[_type == "blogPost" && slug.current == $slug && ${PUBLIC_FILTER}][0]{
       _id, title, "slug": slug.current, publishedAt,
       category, excerpt, coverImage, heroBannerImage, body, metaTitle, metaDescription, aiGenerated
     }`,
     { slug },
     { next: { revalidate: 60 } }
+  )
+}
+
+export async function getVAQueue(): Promise<SanityBlogPost[]> {
+  return client.fetch(
+    `*[_type == "blogPost" && workflowStatus in ["media_pending", "media_ready", "publish_pending", "publishing", "publish_failed"]] | order(publishedAt desc){
+      _id, title, "slug": slug.current, publishedAt, category, excerpt,
+      coverImage, workflowStatus, blotatoPublishStatus, facebookPostUrl, socialCopy
+    }`,
+    {},
+    { next: { revalidate: 0 } }
+  )
+}
+
+export async function getVAQueuePost(id: string): Promise<SanityBlogPost | null> {
+  return client.fetch(
+    `*[_type == "blogPost" && _id == $id][0]{
+      _id, title, "slug": slug.current, publishedAt, category, excerpt,
+      coverImage, heroBannerImage, body, metaTitle, metaDescription,
+      workflowStatus, blotatoPostSubmissionId, blotatoPublishStatus,
+      blotatoPublishedAt, facebookPostUrl, socialCopy
+    }`,
+    { id },
+    { next: { revalidate: 0 } }
   )
 }
 

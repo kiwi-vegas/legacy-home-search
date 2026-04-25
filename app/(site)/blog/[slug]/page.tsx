@@ -7,6 +7,8 @@ import { getBlogPost, getBlogPosts } from '@/sanity/queries'
 import PortableText from '@/components/PortableText'
 import BlogCommunityListings, { type CommunityKey } from '@/components/BlogCommunityListings'
 
+export const revalidate = 60
+
 const CATEGORY_LABELS: Record<string, string> = {
   'market-update': 'Market Update',
   'buying-tips': 'Buying Tips',
@@ -35,9 +37,34 @@ export async function generateMetadata(
   const { slug } = await params
   const post = await getBlogPost(slug)
   if (!post) return { title: 'Post Not Found' }
+
+  const title = post.metaTitle ?? post.title
+  const description = post.metaDescription ?? post.excerpt ?? ''
+
+  const ogImage = post.coverImage
+    ? builder.image(post.coverImage).width(1200).height(630).fit('crop').url()
+    : post.heroBannerImage
+    ? builder.image(post.heroBannerImage).width(1200).height(630).fit('crop').url()
+    : null
+
   return {
-    title: post.metaTitle ?? post.title,
-    description: post.metaDescription ?? post.excerpt,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      url: `https://legacyhomesearch.com/blog/${slug}`,
+      ...(ogImage && {
+        images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+      }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(ogImage && { images: [ogImage] }),
+    },
   }
 }
 

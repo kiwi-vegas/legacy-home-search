@@ -217,3 +217,28 @@ This is an active iteration area. When thumbnails aren't good enough:
 - [ ] Pre-cut Barry PNG with transparent background + composite via `sharp` for guaranteed placement
 - [ ] Add multiple Barry expression photos for different moods (requires new photos)
 - [ ] A/B test thumbnail styles via GA4 — which styles get more clicks?
+
+---
+
+## New Workflow (Content Machine Phase 1)
+
+Thumbnail creation is now a VA-assisted step in the Content Machine:
+
+1. Post arrives in VA queue at `workflowStatus: 'media_pending'`
+2. VA opens the post editor at `/admin/va-queue/[postId]`
+3. VA edits the pre-filled prompt (auto-generated from article title + category + community)
+4. VA optionally selects a background from `public/community-photos/[city]/`
+5. VA clicks Generate → DALL-E 3 produces the thumbnail (1792×1024 HD)
+6. VA can also upload a pre-made image instead
+7. VA clicks "Mark as Ready" → thumbnail uploaded to Sanity CDN, `workflowStatus: 'media_ready'`
+8. VA clicks Publish → post goes live on website + Facebook simultaneously
+
+### Generation endpoint
+`POST /api/content/generate-thumbnail?secret=...`
+Body: `{ prompt: string }`
+Returns: `{ imageUrl: string }` (DALL-E temp URL, expires ~1hr — download immediately)
+
+### Asset libraries used
+- Backgrounds: `public/community-photos/[city]/` (auto-detected from article text)
+- Client image: `public/barry-transparent.png` + `public/expressions/`
+- Asset picker API: `GET /api/content/assets?secret=...&community=virginia-beach`

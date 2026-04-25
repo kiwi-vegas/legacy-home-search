@@ -12,7 +12,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
-import type { BlogPostDraft, ArticleCategory, PortableTextBlock, PortableTextSpan } from './types'
+import type { BlogPostDraft, ArticleCategory, PortableTextBlock, PortableTextSpan, IdeaCandidate, IdeaAudience } from './types'
+import { sourceTypeLabel } from './source-rules'
+import { scoreRenickPattern, computeTimeliness, SCORE_THRESHOLD } from './scoring'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -488,4 +490,86 @@ export async function getWeekApprovals(
   const raw = await redis.get<string>(`pipeline:approval:${weekId}`)
   if (!raw) return {}
   return typeof raw === 'string' ? JSON.parse(raw) : raw
+}
+
+// ─────────────────────────────────────────────
+// Idea Engine: Convert Patterns → IdeaCandidates
+// (replaces stagePostsInRedis + generateBlogPost in the new pipeline)
+// ─────────────────────────────────────────────
+
+/**
+ * Converts researched content patterns into IdeaCandidate objects for the
+ * unified idea queue. Writing is deferred until the reviewer approves.
+ */
+export function patternsToIdeas(
+  patterns: ContentPattern[],
+  researchByIndex: Record<number, string>,
+  dashboard: RenickDashboardData,
+  coveredTopics: Set<string>,
+): IdeaCandidate[] {
+  const weekId = buildWeekId()
+  const ideas: IdeaCandidate[] = []
+
+  for (let i = 0; i < patterns.length; i++) {
+    const pattern = patterns[i]
+    const research = researchByIndex[i] ?? ''
+
+    // Find the Renick source post for lift data
+    const sourcePost = dashboard.topPosts.find((p) => p.title === pattern.exampleRenickTitle)
+    const liftPct = sourcePost?.liftPct ?? pattern.avgLiftPct
+
+    const score = scoreRenickPattern({
+      avgLiftPct: liftPct,
+      cityTarget: pattern.cityTarget,
+      targetKeyword: pattern.targetKeyword,
+      coveredTopics,
+      translatedTitle: pattern.translatedTitle,
+    })
+
+    // Drop below threshold
+    if (score.total < SCORE_THRESHOLD) continue
+
+    const renickDomain = 'blog.teamrenick.com'
+    const id = `renick-${weekId}-${i + 1}-${Math.random().toString(36).slice(2, 6)}`
+
+    // Infer audiences from category
+    const audienceMap: Record<string, IdeaAudience[]> = {
+      'buying-tips':          ['buyer'],
+      'selling-tips':         ['seller'],
+      'market-update':        ['buyer', 'seller', 'homeowner'],
+      'investment':           ['investor', 'homeowner'],
+      'community-spotlight':  ['buyer', 'local'],
+      'news':                 ['homeowner', 'buyer', 'local'],
+      'cost-breakdown':       ['buyer', 'seller', 'homeowner'],
+      'flood-and-risk':       ['homeowner', 'buyer', 'investor'],
+    }
+    const audiences: IdeaAudience[] = audienceMap[pattern.category] ?? ['buyer', 'homeowner']
+
+    ideas.push({
+      id,
+      weekId,
+      source: 'renick-pattern',
+      title: pattern.translatedTitle,
+      angle: pattern.rationale,
+      whyItMatters: `Based on a proven content pattern that drove +${liftPct}% traffic for a similar market blog. This format (${pattern.type}) consistently delivers high engagement for ${pattern.topicCluster} topics.`,
+      category: pattern.category as ArticleCategory,
+      audiences,
+      contentType: pattern.type,
+      urgency: computeTimeliness(undefined).urgency, // patterns are evergreen
+      score,
+      sourceUrls: [sourcePost?.url ?? 'https://blog.teamrenick.com/blog-effectiveness-dashboard/'],
+      sourceDomains: [renickDomain],
+      sourceLabels: ['Effectiveness Dashboard'],
+      renickTitle: pattern.exampleRenickTitle,
+      renickLift: `+${liftPct}%`,
+      renickPattern: pattern.type,
+      researchData: research,
+      targetKeyword: pattern.targetKeyword,
+      cityTarget: pattern.cityTarget,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    })
+  }
+
+  return ideas.sort((a, b) => b.score.total - a.score.total)
 }

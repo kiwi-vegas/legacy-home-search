@@ -41,7 +41,7 @@ export default function Nav() {
           </Link>
 
           <div className="nav-links">
-            <Link href="/#contact" className="nav-link" style={{ color: linkColor }}>Buy</Link>
+            <Link href="/#listings" className="nav-link" style={{ color: linkColor }}>Buy</Link>
             <a href="https://listings.legacyhomesearch.com/seller" className="nav-link" style={{ color: linkColor }} target="_blank" rel="noopener noreferrer">Sell</a>
 
             {/* Communities dropdown */}
@@ -91,7 +91,7 @@ export default function Nav() {
           padding: '8px 24px 16px', zIndex: 999,
           boxShadow: 'var(--shadow)',
         }}>
-          <Link href="/#contact" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Buy</Link>
+          <Link href="/#listings" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Buy</Link>
           <a href="https://listings.legacyhomesearch.com/seller" target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '12px 0', color: 'var(--text-secondary)', textDecoration: 'none', borderBottom: '1px solid var(--border-light)' }} onClick={() => setMobileOpen(false)}>Sell</a>
           <button
             onClick={() => setMobileCommOpen(!mobileCommOpen)}

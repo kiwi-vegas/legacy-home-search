@@ -513,3 +513,24 @@ flood-and-risk:
   "elevation certificate Virginia Beach Norfolk"
   "Norfolk sea level rise home values impact [current year]"
 ```
+
+---
+
+## Downstream: Content Machine (Phase 1)
+
+After a post is created by this pipeline (`publishBlogPost()` is called), it lands in Sanity with `workflowStatus: 'media_pending'` and is hidden from the public blog.
+
+The VA then picks it up in the Content Queue to complete the thumbnail and publish.
+
+**See:** `CONTENT_MACHINE.md`, `VA_WORKFLOW.md`, `PUBLISHING_WORKFLOW.md` for full downstream details.
+
+### New Status Model
+
+Posts now use `workflowStatus` (replaces the old `status` field for new posts):
+
+| Old | New |
+|-----|-----|
+| `status: 'pending_thumbnail'` | `workflowStatus: 'media_pending'` |
+| `status: 'published'` | `workflowStatus: 'published'` |
+
+Old posts with `status: 'published'` remain unaffected (backwards-compatible GROQ filter).
