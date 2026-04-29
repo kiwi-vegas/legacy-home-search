@@ -54,6 +54,8 @@ export default function VAPostPage() {
   const [socialCopy, setSocialCopy] = useState('')
   const [generatingCaption, setGeneratingCaption] = useState(false)
   const [generateError, setGenerateError] = useState('')
+  const [videoScript, setVideoScript] = useState('')
+  const [generatingScript, setGeneratingScript] = useState(false)
 
   // Publish state
   const [publishState, setPublishState] = useState<PublishState>({ phase: 'idle' })
@@ -81,6 +83,7 @@ export default function VAPostPage() {
             community,
           }))
           setSocialCopy(found.socialCopy ?? '')
+          setVideoScript(found.videoScript ?? '')
 
           if (found.workflowStatus === 'media_ready' || found.workflowStatus === 'published') {
             setThumbnail({ type: 'saved' })
@@ -128,6 +131,26 @@ export default function VAPostPage() {
     }
   }
 
+  // ── Generate video script ────────────────────────────────────────────────────
+  async function handleGenerateScript() {
+    if (!post) return
+    setGeneratingScript(true)
+    try {
+      const res = await fetch(`/api/content/generate-script?secret=${encodeURIComponent(secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: post.title, excerpt: post.excerpt, category: post.category }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed')
+      setVideoScript(data.script)
+    } catch {
+      // leave existing script unchanged
+    } finally {
+      setGeneratingScript(false)
+    }
+  }
+
   // ── Generate thumbnail ───────────────────────────────────────────────────────
   async function handleGenerate() {
     setGenerateError('')
@@ -165,6 +188,7 @@ export default function VAPostPage() {
       const form = new FormData()
       form.append('postId', postId)
       form.append('socialCopy', socialCopy)
+      if (videoScript) form.append('videoScript', videoScript)
 
       if (thumbnail.type === 'upload') {
         form.append('image', thumbnail.file)
@@ -325,6 +349,44 @@ export default function VAPostPage() {
             />
             <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
               The blog post URL will be appended automatically when published.
+            </p>
+          </Card>
+
+          {/* Video script */}
+          <Card title="Video Script">
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
+              <p style={{ fontSize: 12, color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+                A short script for Barry to record a video summary of this article — high-level takeaways, what it means for the local market, and a direct call to action.
+              </p>
+              <button
+                onClick={handleGenerateScript}
+                disabled={generatingScript}
+                style={{
+                  flexShrink: 0,
+                  padding: '5px 14px', background: '#eff6ff', color: '#1e40af',
+                  border: '1px solid #93c5fd', borderRadius: 6, fontSize: 12,
+                  fontWeight: 600, cursor: generatingScript ? 'wait' : 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {generatingScript ? 'Writing…' : '🎬 Generate Script'}
+              </button>
+            </div>
+            <textarea
+              value={videoScript}
+              onChange={e => setVideoScript(e.target.value)}
+              placeholder="Video script will appear here after generating…"
+              rows={14}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: 12, border: '1px solid #e2e8f0', borderRadius: 8,
+                fontSize: 13, lineHeight: 1.7, resize: 'vertical',
+                fontFamily: '"Courier New", Courier, monospace', color: '#1a1a1a',
+                background: '#fafafa',
+              }}
+            />
+            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+              Tip: Edit before recording. Read naturally — don't rush. Scripts run 30–90 seconds depending on the topic.
             </p>
           </Card>
 

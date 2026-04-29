@@ -15,6 +15,14 @@
     {
       "path": "/api/cron/learnings-update",
       "schedule": "0 14 * * 3"
+    },
+    {
+      "path": "/api/cron/events-research",
+      "schedule": "0 16 25 * *"
+    },
+    {
+      "path": "/api/cron/required-topics-coverage",
+      "schedule": "0 16 3 * *"
     }
   ]
 }

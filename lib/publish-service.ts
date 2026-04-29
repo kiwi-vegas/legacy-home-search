@@ -101,7 +101,10 @@ export async function publishSocialOnly(
       return { ok: false, error: 'No cover image — cannot post to Facebook without an image.' }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legacyhomesearch.com'
+    // Use env var only if set AND non-empty; otherwise hard-code production domain
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim())
+      ? process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, '')
+      : 'https://www.legacyhometeamlpt.com'
     const fullCopy = `${copy}\n\n${appUrl}/blog/${post.slug}`
 
     const { postSubmissionId } = await publishToFacebook(fullCopy, imageUrl)
@@ -134,7 +137,10 @@ export async function publishPostToAll(
     }
 
     // Append blog URL to copy
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legacyhomesearch.com'
+    // Use env var only if set AND non-empty; otherwise hard-code production domain
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim())
+      ? process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, '')
+      : 'https://www.legacyhometeamlpt.com'
     const fullCopy = `${copy}\n\n${appUrl}/blog/${post.slug}`
 
     // Call Blotato

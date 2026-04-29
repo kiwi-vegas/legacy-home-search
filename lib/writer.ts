@@ -1,8 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ScoredArticle, BlogPostDraft, PortableTextBlock, PortableTextSpan } from './types'
-
-const SELLER_URL = 'https://listings.legacyhomesearch.com/seller'
-const SELLER_CTA_RE = /\[SELLER_CTA:\s*([^\]]+)\]/
+import type { ScoredArticle, BlogPostDraft } from './types'
+import { markdownToPortableText, lineToBlock } from './portable-text-utils'
 
 function slugify(text: string): string {
   return text
@@ -16,70 +14,6 @@ function slugify(text: string): string {
 
 function makeKey(): string {
   return Math.random().toString(36).slice(2, 10)
-}
-
-function textToPortableText(text: string): PortableTextBlock[] {
-  const lines = text.split('\n').filter((l) => l.trim())
-  return lines.map((line) => {
-    const trimmed = line.trim()
-    let style: PortableTextBlock['style'] = 'normal'
-    let content = trimmed
-
-    if (trimmed.startsWith('## ')) {
-      style = 'h2'
-      content = trimmed.slice(3)
-    } else if (trimmed.startsWith('### ')) {
-      style = 'h3'
-      content = trimmed.slice(4)
-    } else if (trimmed.startsWith('> ')) {
-      style = 'blockquote'
-      content = trimmed.slice(2)
-    }
-
-    const span: PortableTextSpan = {
-      _type: 'span',
-      _key: makeKey(),
-      text: content,
-      marks: [],
-    }
-
-    return {
-      _type: 'block',
-      _key: makeKey(),
-      style,
-      markDefs: [],
-      children: [span],
-    }
-  })
-}
-
-// Converts a plain text line into a PortableText block.
-// If the line contains [SELLER_CTA: link text], that portion becomes an inline
-// hyperlink to the seller portal — the rest of the sentence stays plain text.
-function lineToBlock(line: string): PortableTextBlock {
-  const match = SELLER_CTA_RE.exec(line)
-
-  if (!match) {
-    return textToPortableText(line)[0]
-  }
-
-  const linkText = match[1].trim()
-  const before = line.slice(0, match.index).trimEnd()
-  const after = line.slice(match.index + match[0].length).trimStart()
-  const linkKey = makeKey()
-
-  const children: PortableTextSpan[] = []
-  if (before) children.push({ _type: 'span', _key: makeKey(), text: before + ' ', marks: [] })
-  children.push({ _type: 'span', _key: makeKey(), text: linkText, marks: [linkKey] })
-  if (after) children.push({ _type: 'span', _key: makeKey(), text: ' ' + after, marks: [] })
-
-  return {
-    _type: 'block',
-    _key: makeKey(),
-    style: 'normal',
-    markDefs: [{ _type: 'link', _key: linkKey, href: SELLER_URL }],
-    children,
-  }
 }
 
 export async function writePost(article: ScoredArticle): Promise<BlogPostDraft> {
@@ -112,34 +46,25 @@ Return a JSON object with EXACTLY these fields:
 }
 
 SELLER CTA RULE — this is required:
-Whenever the body mentions sellers, homeowners having equity, or what a home is worth, end that sentence with [SELLER_CTA: Find out what your home is worth →] inline — do not put it on its own line, keep it at the end of the sentence it relates to. Use this no more than 2 times per post, only where it genuinely fits. Example:
-"If you own a home in Hampton Roads, you're likely sitting on more equity than you realize. [SELLER_CTA: Find out what your home is worth →]"
+Whenever the body mentions sellers, homeowners having equity, or what a home is worth, end that sentence with [SELLER_CTA: Find out what your home is worth →] inline — do not put it on its own line, keep it at the end of the sentence it relates to. Use this no more than 2 times per post, only where it genuinely fits.
+Example: "If you own a home in Hampton Roads, you're likely sitting on more equity than you realize. [SELLER_CTA: Find out what your home is worth →]"
+
+EXTERNAL LINK RULE — this is required:
+Whenever you mention a specific named event, festival, business, school, military base, government agency, or organization that has its own website, wrap the FIRST mention in markdown link syntax: [Entity Name](https://official-url.com)
+Only use URLs you are confident are real and official. Do not guess or invent URLs. Skip the link if unsure.
+Good examples: [VHDA](https://www.vhda.com), [Naval Station Norfolk](https://www.cnic.navy.mil/regions/cnrma/installations/ns_norfolk.html), [Virginia Beach City Public Schools](https://www.vbschools.com), [Chesapeake Regional Medical Center](https://www.chesapeakeregional.com)
+Link only the first mention of each entity, not every occurrence.
 
 Return ONLY valid JSON, no markdown fences.`,
       },
     ],
   })
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
-  const data = JSON.parse(text.trim())
+  const raw = response.content[0].type === 'text' ? response.content[0].text : '{}'
+  const data = JSON.parse(raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim())
 
   const bodyText: string = data.body ?? ''
-
-  // Convert bullet points to separate blocks
-  const blocks: PortableTextBlock[] = []
-  const lines = bodyText.split('\n').filter((l: string) => l.trim())
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed.startsWith('- ')) {
-      // Bullet point — strip prefix, then check for inline seller CTA
-      const bulletText = trimmed.slice(2)
-      const block = lineToBlock('• ' + bulletText)
-      blocks.push(block)
-    } else {
-      blocks.push(lineToBlock(trimmed))
-    }
-  }
+  const blocks = markdownToPortableText(bodyText)
 
   // Append source credit block
   blocks.push({

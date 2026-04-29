@@ -9,6 +9,9 @@ export type ArticleCategory =
   | 'news'
   | 'cost-breakdown'
   | 'flood-and-risk'
+  | 'financing'
+  | 'lifestyle'
+  | 'waterfront-living'
 
 export interface RawArticle {
   id: string

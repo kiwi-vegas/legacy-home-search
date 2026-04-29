@@ -167,6 +167,7 @@ export type SanityBlogPost = {
   facebookPostUrl?: string
   socialCopy?: string
   socialDeclined?: boolean
+  videoScript?: string
 }
 
 export type WorkflowStatus =
@@ -245,7 +246,7 @@ export async function getVAQueuePost(id: string): Promise<SanityBlogPost | null>
       _id, title, "slug": slug.current, publishedAt, category, excerpt,
       coverImage, heroBannerImage, body, metaTitle, metaDescription,
       workflowStatus, blotatoPostSubmissionId, blotatoPublishStatus,
-      blotatoPublishedAt, facebookPostUrl, socialCopy
+      blotatoPublishedAt, facebookPostUrl, socialCopy, videoScript
     }`,
     { id },
     { next: { revalidate: 0 } }

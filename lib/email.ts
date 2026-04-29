@@ -49,7 +49,9 @@ export async function sendDigestEmail(articles: ScoredArticle[], date: string): 
   const resendKey = process.env.RESEND_API_KEY
   const fromEmail = process.env.FROM_EMAIL
   const operatorEmail = process.env.OPERATOR_EMAIL
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legacy-home-search.vercel.app'
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim())
+    ? process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, '')
+    : 'https://www.legacyhometeamlpt.com'
   const adminSecret = process.env.ADMIN_SECRET
 
   if (!resendKey || !fromEmail || !operatorEmail) {
@@ -136,7 +138,9 @@ export async function sendMarketReportReadyEmail(
   const resendKey = process.env.RESEND_API_KEY
   const fromEmail = process.env.FROM_EMAIL
   const operatorEmail = process.env.OPERATOR_EMAIL
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legacy-home-search.vercel.app'
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim())
+    ? process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, '')
+    : 'https://www.legacyhometeamlpt.com'
   const adminSecret = process.env.ADMIN_SECRET
 
   if (!resendKey || !fromEmail || !operatorEmail) return
@@ -258,7 +262,7 @@ export async function sendAltosUploadReminderEmail(monthName: string, year: numb
                   <div style="font-size:13px;color:#555550;margin-bottom:12px;">
                     Password: <strong style="color:#1a1a1a;background:#f0f4ff;padding:2px 8px;border-radius:4px;font-family:monospace;">4037</strong>
                   </div>
-                  <a href="https://legacy-home-search.vercel.app/upload" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;">
+                  <a href="https://www.legacyhometeamlpt.com/upload" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;">
                     Go to Upload Page →
                   </a>
                 </td>

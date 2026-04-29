@@ -32,16 +32,16 @@ export async function markMediaReady(
   postId: string,
   coverImageRef: { _type: 'reference'; _ref: string },
   socialCopy: string,
+  videoScript?: string,
 ): Promise<void> {
   const client = getSanityWriteClient()
-  await client
-    .patch(postId)
-    .set({
-      coverImage: { _type: 'image', asset: coverImageRef },
-      socialCopy,
-      workflowStatus: 'media_ready' as WorkflowStatus,
-    })
-    .commit()
+  const patch: Record<string, unknown> = {
+    coverImage: { _type: 'image', asset: coverImageRef },
+    socialCopy,
+    workflowStatus: 'media_ready' as WorkflowStatus,
+  }
+  if (videoScript) patch.videoScript = videoScript
+  await client.patch(postId).set(patch).commit()
 }
 
 export async function markPublishing(postId: string): Promise<void> {

@@ -100,6 +100,13 @@ export default {
       description: 'Auto-generated Facebook post caption (editable by VA before publishing)',
     },
     {
+      name: 'videoScript',
+      title: 'Video Script',
+      type: 'text',
+      rows: 8,
+      description: 'Auto-generated script for Barry to record a short video summary of this article',
+    },
+    {
       name: 'socialDeclined',
       title: 'Social Posting Declined',
       type: 'boolean',
