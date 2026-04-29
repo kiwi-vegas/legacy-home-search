@@ -12,10 +12,14 @@ type ThumbnailState =
 
 type VideoState =
   | { type: 'none' }
-  | { type: 'heygen-generating'; videoId: string; message: string }
   | { type: 'uploading'; progress: number }
   | { type: 'ready'; url: string; filename: string }
   | { type: 'saved'; url: string }
+
+type HeyGenState =
+  | { type: 'idle' }
+  | { type: 'generating'; videoId: string; message: string }
+  | { type: 'ready'; url: string }
 
 type PlatformStatus =
   | { phase: 'idle' }
@@ -70,6 +74,7 @@ export default function VAPostPage() {
   const [videoScript, setVideoScript] = useState('')
   const [generatingScript, setGeneratingScript] = useState(false)
   const [video, setVideo] = useState<VideoState>({ type: 'none' })
+  const [heygenState, setHeygenState] = useState<HeyGenState>({ type: 'idle' })
   const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string | null>(null)
   const [uploadingVideoThumb, setUploadingVideoThumb] = useState(false)
   const heygenPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -160,7 +165,7 @@ export default function VAPostPage() {
     }
   }
 
-  // ── Generate video via HeyGen ────────────────────────────────────────────────
+  // ── Generate base video via HeyGen ──────────────────────────────────────────
   async function handleGenerateHeyGenVideo() {
     if (!videoScript.trim()) return
     if (heygenPollRef.current) clearInterval(heygenPollRef.current)
@@ -175,7 +180,7 @@ export default function VAPostPage() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to start video generation')
 
       const { videoId } = data
-      setVideo({ type: 'heygen-generating', videoId, message: 'Starting render…' })
+      setHeygenState({ type: 'generating', videoId, message: 'Starting render…' })
 
       let elapsed = 0
       heygenPollRef.current = setInterval(async () => {
@@ -184,8 +189,8 @@ export default function VAPostPage() {
         const seconds = elapsed % 60
         const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
 
-        setVideo(prev =>
-          prev.type === 'heygen-generating'
+        setHeygenState(prev =>
+          prev.type === 'generating'
             ? { ...prev, message: `Rendering… ${timeStr}` }
             : prev
         )
@@ -198,21 +203,20 @@ export default function VAPostPage() {
 
           if (statusData.status === 'completed') {
             clearInterval(heygenPollRef.current!)
-            setVideo({ type: 'ready', url: statusData.videoUrl, filename: 'heygen-video.mp4' })
+            setHeygenState({ type: 'ready', url: statusData.videoUrl })
           } else if (statusData.status === 'failed') {
             clearInterval(heygenPollRef.current!)
-            setVideo({ type: 'none' })
+            setHeygenState({ type: 'idle' })
             alert(`HeyGen render failed: ${statusData.error ?? 'Unknown error'}`)
           } else if (elapsed >= 600) {
-            // Stop after 10 minutes
             clearInterval(heygenPollRef.current!)
-            setVideo({ type: 'none' })
+            setHeygenState({ type: 'idle' })
             alert('HeyGen render timed out after 10 minutes. Try again.')
           }
         } catch { /* keep polling */ }
       }, 15000)
     } catch (err) {
-      setVideo({ type: 'none' })
+      setHeygenState({ type: 'idle' })
       alert(err instanceof Error ? err.message : 'Failed to generate video')
     }
   }
@@ -435,7 +439,7 @@ export default function VAPostPage() {
   const canMarkReady = thumbnail.type === 'upload'
   const canPublish = (isReady || isPublished === false) && thumbnail.type === 'saved'
   const publishInProgress = ['saving', 'publishing', 'polling'].includes(publishState.phase)
-  const hasVideo = video.type === 'ready' || video.type === 'saved' || video.type === 'heygen-generating'
+  const hasVideo = video.type === 'ready' || video.type === 'saved'
 
   if (loading) return <PageShell><p style={{ padding: 32, color: '#64748b' }}>Loading…</p></PageShell>
   if (error) return <PageShell><p style={{ padding: 32, color: '#dc2626' }}>{error}</p></PageShell>
@@ -556,106 +560,148 @@ export default function VAPostPage() {
           </Card>
 
           {/* Video upload */}
-          <Card title="Video Upload (YouTube + TikTok)">
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 14px', lineHeight: 1.5 }}>
-              Optional. If Barry records a video, upload it here — it will be published to YouTube and TikTok alongside the Facebook post. Supports MP4, MOV, or WebM (up to 500 MB).
+          <Card title="Video (YouTube + TikTok)">
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 16px', lineHeight: 1.5 }}>
+              Optional. Upload a final video to publish to YouTube and TikTok alongside the Facebook post. Supports MP4, MOV, or WebM up to 500 MB.
             </p>
 
-            {video.type === 'none' && (
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button
-                  onClick={handleGenerateHeyGenVideo}
-                  disabled={!videoScript.trim()}
-                  title={!videoScript.trim() ? 'Generate a video script first' : undefined}
-                  style={{
-                    padding: '10px 20px', background: videoScript.trim() ? '#1E3A5F' : '#e2e8f0',
-                    color: videoScript.trim() ? '#fff' : '#94a3b8',
-                    border: 'none', borderRadius: 8, fontSize: 14,
-                    fontWeight: 600, cursor: videoScript.trim() ? 'pointer' : 'not-allowed',
-                  }}
-                >
-                  🤖 Generate with HeyGen
-                </button>
-                <span style={{ color: '#94a3b8', fontSize: 13 }}>— or —</span>
-                <label style={{
-                  display: 'inline-block',
-                  padding: '10px 20px', background: '#f1f5f9', color: '#475569',
-                  border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14,
-                  fontWeight: 600, cursor: 'pointer',
-                }}>
-                  📹 Upload Video
-                  <input
-                    type="file"
-                    accept="video/mp4,video/quicktime,video/webm,video/x-m4v"
-                    onChange={handleVideoSelect}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+            {/* Step 1: HeyGen base generation */}
+            <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                Step 1 — Generate Base Video (optional)
               </div>
-            )}
 
-            {video.type === 'heygen-generating' && (
-              <div style={{ padding: '14px 16px', background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{ fontSize: 20 }}>🎬</div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1e40af' }}>HeyGen is rendering Barry's video</div>
-                    <div style={{ fontSize: 12, color: '#3b82f6' }}>{video.message}</div>
-                  </div>
-                </div>
-                <div style={{ height: 4, background: '#bfdbfe', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', width: '100%', background: '#3b82f6', borderRadius: 99,
-                    animation: 'pulse 1.5s ease-in-out infinite',
-                  }} />
-                </div>
-                <p style={{ fontSize: 11, color: '#60a5fa', marginTop: 8 }}>
-                  Typically takes 2–5 minutes. You can leave this page open and come back.
-                </p>
-              </div>
-            )}
-
-            {video.type === 'uploading' && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', marginBottom: 6 }}>
-                  <span>Uploading video…</span>
-                  <span>{video.progress}%</span>
-                </div>
-                <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${video.progress}%`, background: '#1E3A5F', borderRadius: 99, transition: 'width 0.3s' }} />
-                </div>
-              </div>
-            )}
-
-            {(video.type === 'ready' || video.type === 'saved') && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8 }}>
-                <span style={{ fontSize: 20 }}>🎥</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>
-                    {video.type === 'saved' ? 'Video saved' : 'Video ready'}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {video.type === 'ready' ? video.filename : video.url.split('/').pop()}
-                  </div>
-                </div>
-                {video.type === 'ready' && (
+              {heygenState.type === 'idle' && (
+                <>
                   <button
-                    onClick={handleRemoveVideo}
-                    style={{ fontSize: 12, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                    onClick={handleGenerateHeyGenVideo}
+                    disabled={!videoScript.trim()}
+                    title={!videoScript.trim() ? 'Generate a video script first' : undefined}
+                    style={{
+                      padding: '9px 18px',
+                      background: videoScript.trim() ? '#1E3A5F' : '#e2e8f0',
+                      color: videoScript.trim() ? '#fff' : '#94a3b8',
+                      border: 'none', borderRadius: 8, fontSize: 13,
+                      fontWeight: 600, cursor: videoScript.trim() ? 'pointer' : 'not-allowed',
+                    }}
                   >
-                    Remove
+                    🤖 Generate with HeyGen
                   </button>
-                )}
+                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+                    Renders a talking-head avatar video from the script above. Download it, edit it to add backgrounds, then upload your final version below.
+                  </p>
+                </>
+              )}
+
+              {heygenState.type === 'generating' && (
+                <div style={{ padding: '14px 16px', background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <div style={{ fontSize: 18 }}>🎬</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1e40af' }}>HeyGen is rendering the base video</div>
+                      <div style={{ fontSize: 12, color: '#3b82f6' }}>{heygenState.message}</div>
+                    </div>
+                  </div>
+                  <div style={{ height: 4, background: '#bfdbfe', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: '100%', background: '#3b82f6', borderRadius: 99, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  </div>
+                  <p style={{ fontSize: 11, color: '#60a5fa', marginTop: 8, marginBottom: 0 }}>
+                    Typically takes 2–5 minutes. This page can stay open.
+                  </p>
+                </div>
+              )}
+
+              {heygenState.type === 'ready' && (
+                <div style={{ padding: '12px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <span style={{ fontSize: 18 }}>✅</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>Base video rendered</span>
+                    <a
+                      href={heygenState.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: '#2563eb', textDecoration: 'none' }}
+                    >
+                      Download ↗
+                    </a>
+                  </div>
+                  <p style={{ fontSize: 11, color: '#166534', margin: '0 0 8px', lineHeight: 1.5 }}>
+                    Open it in HeyGen or a video editor to add backgrounds and graphics, then upload your final cut below.
+                  </p>
+                  <button
+                    onClick={() => setHeygenState({ type: 'idle' })}
+                    style={{ fontSize: 11, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                  >
+                    Generate new base video
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Upload final video */}
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                Step 2 — Upload Final Video
               </div>
-            )}
 
-            {video.type === 'none' && (
-              <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
-                No video uploaded — only Facebook will be published.
-              </p>
-            )}
+              {video.type === 'none' && (
+                <>
+                  <label style={{
+                    display: 'inline-block',
+                    padding: '10px 20px', background: '#f1f5f9', color: '#475569',
+                    border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14,
+                    fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    📹 Upload Video
+                    <input
+                      type="file"
+                      accept="video/mp4,video/quicktime,video/webm,video/x-m4v"
+                      onChange={handleVideoSelect}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+                    No video uploaded — only Facebook will be published.
+                  </p>
+                </>
+              )}
 
-            {/* Video thumbnail (YouTube only — TikTok doesn't support external thumbnails) */}
+              {video.type === 'uploading' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', marginBottom: 6 }}>
+                    <span>Uploading video…</span>
+                    <span>{video.progress}%</span>
+                  </div>
+                  <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${video.progress}%`, background: '#1E3A5F', borderRadius: 99, transition: 'width 0.3s' }} />
+                  </div>
+                </div>
+              )}
+
+              {(video.type === 'ready' || video.type === 'saved') && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8 }}>
+                  <span style={{ fontSize: 20 }}>🎥</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>
+                      {video.type === 'saved' ? 'Video saved' : 'Video ready'}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {video.type === 'ready' ? video.filename : video.url.split('/').pop()}
+                    </div>
+                  </div>
+                  {video.type === 'ready' && (
+                    <button
+                      onClick={handleRemoveVideo}
+                      style={{ fontSize: 12, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* YouTube Thumbnail (only when video is ready — TikTok doesn't support external thumbnails) */}
             {(video.type === 'ready' || video.type === 'saved') && (
               <div style={{ marginTop: 16, borderTop: '1px solid #e2e8f0', paddingTop: 16 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 4 }}>
