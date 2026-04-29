@@ -30,7 +30,7 @@ const CATEGORY_HASHTAGS: Record<string, string[]> = {
   'news':                ['#realestatenews', '#housingmarket', '#mortgagerates'],
 }
 
-function buildTikTokCaption(copy: string, category: string | undefined, articleUrl: string): string {
+export function buildTikTokCaption(copy: string, category: string | undefined, articleUrl: string): string {
   const categoryTags = CATEGORY_HASHTAGS[category ?? ''] ?? []
   const allTags = [...BASE_HASHTAGS, ...categoryTags]
   return `${copy}\n\n${articleUrl}\n\n${allTags.join(' ')}`

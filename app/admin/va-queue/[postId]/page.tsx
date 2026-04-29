@@ -77,6 +77,12 @@ export default function VAPostPage() {
   const [heygenState, setHeygenState] = useState<HeyGenState>({ type: 'idle' })
   const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string | null>(null)
   const [uploadingVideoThumb, setUploadingVideoThumb] = useState(false)
+  const [videoPublishState, setVideoPublishState] = useState<
+    | { phase: 'idle' }
+    | { phase: 'publishing' }
+    | { phase: 'done'; youtube: { postSubmissionId?: string; error?: string }; tiktok: { postSubmissionId?: string; error?: string } }
+    | { phase: 'error'; message: string }
+  >({ phase: 'idle' })
   const heygenPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Publish state
@@ -249,6 +255,28 @@ export default function VAPostPage() {
 
   function handleRemoveVideo() {
     setVideo({ type: 'none' })
+  }
+
+  // ── Publish video only (YouTube + TikTok) for already-published posts ────────
+  async function handlePublishVideoOnly() {
+    if (video.type !== 'ready') return
+    setVideoPublishState({ phase: 'publishing' })
+    try {
+      const res = await fetch(`/api/content/publish-video?secret=${encodeURIComponent(secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId,
+          videoUrl: video.url,
+          ...(videoThumbnailUrl ? { videoThumbnailUrl } : {}),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Publish failed')
+      setVideoPublishState({ phase: 'done', youtube: data.youtube ?? {}, tiktok: data.tiktok ?? {} })
+    } catch (err) {
+      setVideoPublishState({ phase: 'error', message: err instanceof Error ? err.message : 'Publish failed' })
+    }
   }
 
   async function handleVideoThumbnailSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -876,8 +904,46 @@ export default function VAPostPage() {
             )}
 
             {isPublished ? (
-              <div style={{ fontSize: 13, color: '#166534', fontWeight: 600, padding: '8px 0', textAlign: 'center' }}>
-                ✓ Already published
+              <div>
+                <div style={{ fontSize: 13, color: '#166534', fontWeight: 600, padding: '8px 0', textAlign: 'center', marginBottom: 8 }}>
+                  ✓ Already published
+                </div>
+                {video.type === 'ready' && videoPublishState.phase === 'idle' && (
+                  <button
+                    onClick={handlePublishVideoOnly}
+                    style={{
+                      width: '100%', padding: '11px 0',
+                      background: '#1E3A5F', color: '#fff',
+                      border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ▶️ Publish Video to YouTube & TikTok
+                  </button>
+                )}
+                {videoPublishState.phase === 'publishing' && (
+                  <div style={{ fontSize: 13, color: '#64748b', textAlign: 'center', padding: '8px 0' }}>Publishing video…</div>
+                )}
+                {videoPublishState.phase === 'done' && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: 12, fontSize: 13 }}>
+                    <div style={{ fontWeight: 700, color: '#166534', marginBottom: 6 }}>Video published!</div>
+                    {videoPublishState.youtube.error ? (
+                      <div style={{ color: '#991b1b' }}>▶️ YouTube: {videoPublishState.youtube.error}</div>
+                    ) : (
+                      <div style={{ color: '#166534' }}>▶️ YouTube: queued</div>
+                    )}
+                    {videoPublishState.tiktok.error ? (
+                      <div style={{ color: '#991b1b', marginTop: 4 }}>🎵 TikTok: {videoPublishState.tiktok.error}</div>
+                    ) : (
+                      <div style={{ color: '#166534', marginTop: 4 }}>🎵 TikTok: queued</div>
+                    )}
+                  </div>
+                )}
+                {videoPublishState.phase === 'error' && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: 12, fontSize: 13, color: '#991b1b' }}>
+                    {videoPublishState.message}
+                  </div>
+                )}
               </div>
             ) : (
               <button
