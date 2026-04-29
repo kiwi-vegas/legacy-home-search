@@ -111,7 +111,7 @@ function getSanityImageUrl(coverImage: any): string | null {
 
 // ─── Publish result types ─────────────────────────────────────────────────────
 
-export type PlatformResult = { postSubmissionId: string } | null
+export type PlatformResult = { postSubmissionId: string } | { error: string } | null
 
 export type PublishResult =
   | {
@@ -196,21 +196,25 @@ export async function publishPostToAll(
       if (ytOutcome.status === 'fulfilled') {
         ytResult = { postSubmissionId: ytOutcome.value.postSubmissionId }
       } else {
-        console.error('[publish-service] YouTube publish error:', ytOutcome.reason)
+        const msg = ytOutcome.reason instanceof Error ? ytOutcome.reason.message : 'YouTube publish failed'
+        console.error('[publish-service] YouTube publish error:', msg)
+        ytResult = { error: msg }
       }
 
       if (ttOutcome.status === 'fulfilled') {
         ttResult = { postSubmissionId: ttOutcome.value.postSubmissionId }
       } else {
-        console.error('[publish-service] TikTok publish error:', ttOutcome.reason)
+        const msg = ttOutcome.reason instanceof Error ? ttOutcome.reason.message : 'TikTok publish failed'
+        console.error('[publish-service] TikTok publish error:', msg)
+        ttResult = { error: msg }
       }
     }
 
     await markPublished(
       postId,
       fbResult.postSubmissionId,
-      ytResult?.postSubmissionId,
-      ttResult?.postSubmissionId,
+      'postSubmissionId' in (ytResult ?? {}) ? (ytResult as { postSubmissionId: string }).postSubmissionId : undefined,
+      'postSubmissionId' in (ttResult ?? {}) ? (ttResult as { postSubmissionId: string }).postSubmissionId : undefined,
     )
 
     if (!socialCopy) {

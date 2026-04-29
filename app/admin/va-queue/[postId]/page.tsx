@@ -369,9 +369,13 @@ export default function VAPostPage() {
         : { phase: 'idle' }
       const initYt: PlatformStatus = data.youtube?.postSubmissionId
         ? { phase: 'polling', submissionId: data.youtube.postSubmissionId }
+        : data.youtube?.error
+        ? { phase: 'error', message: data.youtube.error }
         : { phase: 'idle' }
       const initTt: PlatformStatus = data.tiktok?.postSubmissionId
         ? { phase: 'polling', submissionId: data.tiktok.postSubmissionId }
+        : data.tiktok?.error
+        ? { phase: 'error', message: data.tiktok.error }
         : { phase: 'idle' }
 
       setPublishState({ phase: 'polling', facebook: initFb, youtube: initYt, tiktok: initTt })
@@ -828,18 +832,15 @@ export default function VAPostPage() {
                   status={publishState.facebook}
                 />
                 {publishState.youtube.phase !== 'idle' && (
-                  <PlatformStatusRow
-                    icon="▶️"
-                    label="YouTube"
-                    status={publishState.youtube}
-                  />
+                  <PlatformStatusRow icon="▶️" label="YouTube" status={publishState.youtube} />
                 )}
                 {publishState.tiktok.phase !== 'idle' && (
-                  <PlatformStatusRow
-                    icon="🎵"
-                    label="TikTok"
-                    status={publishState.tiktok}
-                  />
+                  <PlatformStatusRow icon="🎵" label="TikTok" status={publishState.tiktok} />
+                )}
+                {publishState.youtube.phase === 'idle' && hasVideo && (
+                  <div style={{ fontSize: 12, color: '#94a3b8', padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                    ▶️ YouTube — no video URL saved. Did you click "Mark as Ready" after uploading the video?
+                  </div>
                 )}
               </div>
             )}
