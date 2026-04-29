@@ -20,7 +20,10 @@ export async function POST(request: Request): Promise<Response> {
       request,
       onBeforeGenerateToken: async (_pathname) => {
         return {
-          allowedContentTypes: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'],
+          allowedContentTypes: [
+            'video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v',
+            'image/jpeg', 'image/png', 'image/webp',
+          ],
           maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB
         }
       },
