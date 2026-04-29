@@ -13,6 +13,29 @@ import { markPublishing, markPublished, markPublishFailed, patchSocialSubmission
 import { getSanityWriteClient } from './sanity-write'
 import type { SanityBlogPost } from '../sanity/queries'
 
+// ─── TikTok hashtags ──────────────────────────────────────────────────────────
+
+const BASE_HASHTAGS = [
+  '#hamptonroads', '#virginiabeach', '#realestate', '#realtor',
+  '#norfolk', '#chesapeake', '#suffolk', '#portsmouth',
+  '#barryjenkinsrealtor', '#legacyhometeam',
+]
+
+const CATEGORY_HASHTAGS: Record<string, string[]> = {
+  'market-update':       ['#realestatemarket', '#housingmarket', '#marketupdate', '#homeprices'],
+  'buying-tips':         ['#homebuyer', '#firsttimehomebuyer', '#buyingahome', '#homebuyingtips'],
+  'selling-tips':        ['#homeseller', '#sellingyourhome', '#listingagent', '#homesellingtips'],
+  'community-spotlight': ['#hamptonroadsliving', '#virginiabeachliving', '#movingtovirginia'],
+  'investment':          ['#realestateinvesting', '#investmentproperty', '#rentalincome'],
+  'news':                ['#realestatenews', '#housingmarket', '#mortgagerates'],
+}
+
+function buildTikTokCaption(copy: string, category: string | undefined, articleUrl: string): string {
+  const categoryTags = CATEGORY_HASHTAGS[category ?? ''] ?? []
+  const allTags = [...BASE_HASHTAGS, ...categoryTags]
+  return `${copy}\n\n${articleUrl}\n\n${allTags.join(' ')}`
+}
+
 // ─── Social copy generation ───────────────────────────────────────────────────
 
 export async function generateSocialCopy(post: Pick<SanityBlogPost, 'title' | 'excerpt' | 'category'>): Promise<string> {
@@ -152,9 +175,11 @@ export async function publishPostToAll(
       const videoDescription = `${copy}\n\n${appUrl}/blog/${post.slug}`
 
       // Run YouTube and TikTok concurrently; one failure doesn't block the other
+      const tiktokCaption = buildTikTokCaption(copy, post.category, `${appUrl}/blog/${post.slug}`)
+
       const [ytOutcome, ttOutcome] = await Promise.allSettled([
         publishToYouTube(post.title, videoDescription, post.videoUrl, post.videoThumbnailUrl),
-        publishToTikTok(copy, post.videoUrl),
+        publishToTikTok(tiktokCaption, post.videoUrl),
       ])
 
       if (ytOutcome.status === 'fulfilled') {

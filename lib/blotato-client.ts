@@ -174,6 +174,7 @@ export async function publishToTikTok(
           isBrandedContent: false,
           isYourBrand: false,
           isAiGenerated: false,
+          coverTimestampMs: 0,
         },
       },
     }),
