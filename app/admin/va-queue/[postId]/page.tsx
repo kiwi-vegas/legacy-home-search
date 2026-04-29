@@ -18,6 +18,7 @@ type ThumbnailState =
 
 type VideoState =
   | { type: 'none' }
+  | { type: 'heygen-generating'; videoId: string; message: string }
   | { type: 'uploading'; progress: number }
   | { type: 'ready'; url: string; filename: string }
   | { type: 'saved'; url: string }
@@ -83,6 +84,7 @@ export default function VAPostPage() {
   const [video, setVideo] = useState<VideoState>({ type: 'none' })
   const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string | null>(null)
   const [uploadingVideoThumb, setUploadingVideoThumb] = useState(false)
+  const heygenPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Publish state
   const [publishState, setPublishState] = useState<PublishState>({ phase: 'idle' })
@@ -143,6 +145,7 @@ export default function VAPostPage() {
   // ── Cleanup polls on unmount ─────────────────────────────────────────────────
   useEffect(() => () => {
     Object.values(pollRefs.current).forEach(clearInterval)
+    if (heygenPollRef.current) clearInterval(heygenPollRef.current)
   }, [])
 
   // ── Generate Facebook caption ────────────────────────────────────────────────
@@ -182,6 +185,63 @@ export default function VAPostPage() {
       // leave existing script unchanged
     } finally {
       setGeneratingScript(false)
+    }
+  }
+
+  // ── Generate video via HeyGen ────────────────────────────────────────────────
+  async function handleGenerateHeyGenVideo() {
+    if (!videoScript.trim()) return
+    if (heygenPollRef.current) clearInterval(heygenPollRef.current)
+
+    try {
+      const res = await fetch(`/api/content/generate-heygen-video?secret=${encodeURIComponent(secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script: videoScript }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to start video generation')
+
+      const { videoId } = data
+      setVideo({ type: 'heygen-generating', videoId, message: 'Starting render…' })
+
+      let elapsed = 0
+      heygenPollRef.current = setInterval(async () => {
+        elapsed += 15
+        const minutes = Math.floor(elapsed / 60)
+        const seconds = elapsed % 60
+        const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
+
+        setVideo(prev =>
+          prev.type === 'heygen-generating'
+            ? { ...prev, message: `Rendering… ${timeStr}` }
+            : prev
+        )
+
+        try {
+          const statusRes = await fetch(
+            `/api/content/heygen-status?secret=${encodeURIComponent(secret)}&videoId=${encodeURIComponent(videoId)}`
+          )
+          const statusData = await statusRes.json()
+
+          if (statusData.status === 'completed') {
+            clearInterval(heygenPollRef.current!)
+            setVideo({ type: 'ready', url: statusData.videoUrl, filename: 'heygen-video.mp4' })
+          } else if (statusData.status === 'failed') {
+            clearInterval(heygenPollRef.current!)
+            setVideo({ type: 'none' })
+            alert(`HeyGen render failed: ${statusData.error ?? 'Unknown error'}`)
+          } else if (elapsed >= 600) {
+            // Stop after 10 minutes
+            clearInterval(heygenPollRef.current!)
+            setVideo({ type: 'none' })
+            alert('HeyGen render timed out after 10 minutes. Try again.')
+          }
+        } catch { /* keep polling */ }
+      }, 15000)
+    } catch (err) {
+      setVideo({ type: 'none' })
+      alert(err instanceof Error ? err.message : 'Failed to generate video')
     }
   }
 
@@ -425,7 +485,7 @@ export default function VAPostPage() {
   const canMarkReady = thumbnail.type === 'dalle' || thumbnail.type === 'upload'
   const canPublish = (isReady || isPublished === false) && thumbnail.type === 'saved'
   const publishInProgress = ['saving', 'publishing', 'polling'].includes(publishState.phase)
-  const hasVideo = video.type === 'ready' || video.type === 'saved'
+  const hasVideo = video.type === 'ready' || video.type === 'saved' || video.type === 'heygen-generating'
 
   if (loading) return <PageShell><p style={{ padding: 32, color: '#64748b' }}>Loading…</p></PageShell>
   if (error) return <PageShell><p style={{ padding: 32, color: '#dc2626' }}>{error}</p></PageShell>
@@ -552,20 +612,57 @@ export default function VAPostPage() {
             </p>
 
             {video.type === 'none' && (
-              <label style={{
-                display: 'inline-block',
-                padding: '10px 20px', background: '#f1f5f9', color: '#475569',
-                border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14,
-                fontWeight: 600, cursor: 'pointer',
-              }}>
-                📹 Upload Video
-                <input
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/webm,video/x-m4v"
-                  onChange={handleVideoSelect}
-                  style={{ display: 'none' }}
-                />
-              </label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={handleGenerateHeyGenVideo}
+                  disabled={!videoScript.trim()}
+                  title={!videoScript.trim() ? 'Generate a video script first' : undefined}
+                  style={{
+                    padding: '10px 20px', background: videoScript.trim() ? '#1E3A5F' : '#e2e8f0',
+                    color: videoScript.trim() ? '#fff' : '#94a3b8',
+                    border: 'none', borderRadius: 8, fontSize: 14,
+                    fontWeight: 600, cursor: videoScript.trim() ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  🤖 Generate with HeyGen
+                </button>
+                <span style={{ color: '#94a3b8', fontSize: 13 }}>— or —</span>
+                <label style={{
+                  display: 'inline-block',
+                  padding: '10px 20px', background: '#f1f5f9', color: '#475569',
+                  border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14,
+                  fontWeight: 600, cursor: 'pointer',
+                }}>
+                  📹 Upload Video
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm,video/x-m4v"
+                    onChange={handleVideoSelect}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            )}
+
+            {video.type === 'heygen-generating' && (
+              <div style={{ padding: '14px 16px', background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ fontSize: 20 }}>🎬</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1e40af' }}>HeyGen is rendering Barry's video</div>
+                    <div style={{ fontSize: 12, color: '#3b82f6' }}>{video.message}</div>
+                  </div>
+                </div>
+                <div style={{ height: 4, background: '#bfdbfe', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', width: '100%', background: '#3b82f6', borderRadius: 99,
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }} />
+                </div>
+                <p style={{ fontSize: 11, color: '#60a5fa', marginTop: 8 }}>
+                  Typically takes 2–5 minutes. You can leave this page open and come back.
+                </p>
+              </div>
             )}
 
             {video.type === 'uploading' && (
