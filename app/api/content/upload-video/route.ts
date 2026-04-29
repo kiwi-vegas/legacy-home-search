@@ -25,6 +25,7 @@ export async function POST(request: Request): Promise<Response> {
             'image/jpeg', 'image/png', 'image/webp',
           ],
           maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB
+          addRandomSuffix: true,
         }
       },
       onUploadCompleted: async () => {
