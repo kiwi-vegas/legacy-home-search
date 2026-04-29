@@ -5,14 +5,8 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { upload } from '@vercel/blob/client'
 import type { SanityBlogPost, WorkflowStatus } from '@/sanity/queries'
-import { buildDefaultThumbnailPrompt, detectCommunitySlug } from '@/lib/thumbnail-prompt'
-
-type AssetImage = { url: string; label: string }
-
 type ThumbnailState =
   | { type: 'none' }
-  | { type: 'generating' }
-  | { type: 'dalle'; url: string }
   | { type: 'upload'; file: File; previewUrl: string }
   | { type: 'saved' }
 
@@ -70,15 +64,9 @@ export default function VAPostPage() {
   const [error, setError] = useState('')
 
   // Media editor state
-  const [prompt, setPrompt] = useState('')
-  const [backgrounds, setBackgrounds] = useState<AssetImage[]>([])
-  const [clientImages, setClientImages] = useState<AssetImage[]>([])
-  const [selectedBg, setSelectedBg] = useState<string | null>(null)
-  const [selectedClient, setSelectedClient] = useState<string | null>(null)
   const [thumbnail, setThumbnail] = useState<ThumbnailState>({ type: 'none' })
   const [socialCopy, setSocialCopy] = useState('')
   const [generatingCaption, setGeneratingCaption] = useState(false)
-  const [generateError, setGenerateError] = useState('')
   const [videoScript, setVideoScript] = useState('')
   const [generatingScript, setGeneratingScript] = useState(false)
   const [video, setVideo] = useState<VideoState>({ type: 'none' })
@@ -103,13 +91,6 @@ export default function VAPostPage() {
         setPost(found)
 
         if (found) {
-          const community = detectCommunitySlug(found.title, found.slug ?? '')
-          setPrompt(buildDefaultThumbnailPrompt({
-            title: found.title,
-            category: found.category ?? '',
-            excerpt: found.excerpt,
-            community,
-          }))
           setSocialCopy(found.socialCopy ?? '')
           setVideoScript(found.videoScript ?? '')
 
@@ -122,15 +103,6 @@ export default function VAPostPage() {
           }
           if (found.videoThumbnailUrl) {
             setVideoThumbnailUrl(found.videoThumbnailUrl)
-          }
-
-          const assetRes = await fetch(`/api/content/assets?secret=${encodeURIComponent(secret)}&community=${community ?? ''}`)
-          if (assetRes.ok) {
-            const { backgrounds: bgs, clientImages: cis } = await assetRes.json()
-            setBackgrounds(bgs)
-            setClientImages(cis)
-            if (bgs.length > 0) setSelectedBg(bgs[0].url)
-            if (cis.length > 0) setSelectedClient(cis[0].url)
           }
         }
       } catch {
@@ -293,25 +265,6 @@ export default function VAPostPage() {
     }
   }
 
-  // ── Generate thumbnail ───────────────────────────────────────────────────────
-  async function handleGenerate() {
-    setGenerateError('')
-    setThumbnail({ type: 'generating' })
-    try {
-      const res = await fetch(`/api/content/generate-thumbnail?secret=${encodeURIComponent(secret)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Generation failed')
-      setThumbnail({ type: 'dalle', url: data.imageUrl })
-    } catch (err) {
-      setGenerateError(err instanceof Error ? err.message : 'Generation failed')
-      setThumbnail({ type: 'none' })
-    }
-  }
-
   // ── Upload thumbnail ─────────────────────────────────────────────────────────
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -322,7 +275,7 @@ export default function VAPostPage() {
 
   // ── Mark Ready ───────────────────────────────────────────────────────────────
   async function handleMarkReady() {
-    if (thumbnail.type === 'none' || thumbnail.type === 'generating' || thumbnail.type === 'saved') return
+    if (thumbnail.type !== 'upload') return
 
     setPublishState({ phase: 'saving' })
 
@@ -339,8 +292,6 @@ export default function VAPostPage() {
 
       if (thumbnail.type === 'upload') {
         form.append('image', thumbnail.file)
-      } else if (thumbnail.type === 'dalle') {
-        form.append('imageUrl', thumbnail.url)
       }
 
       const res = await fetch(`/api/content/mark-ready?secret=${encodeURIComponent(secret)}`, {
@@ -474,7 +425,6 @@ export default function VAPostPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const thumbnailPreviewUrl =
-    thumbnail.type === 'dalle' ? thumbnail.url :
     thumbnail.type === 'upload' ? thumbnail.previewUrl :
     thumbnail.type === 'saved' && post?.coverImage?.asset
       ? `https://cdn.sanity.io/images/2nr7n3lm/production/${post.coverImage.asset._ref.replace('image-', '').replace(/-(\w+)$/, '.$1')}`
@@ -482,7 +432,7 @@ export default function VAPostPage() {
 
   const isReady = post?.workflowStatus === 'media_ready'
   const isPublished = post?.workflowStatus === 'published'
-  const canMarkReady = thumbnail.type === 'dalle' || thumbnail.type === 'upload'
+  const canMarkReady = thumbnail.type === 'upload'
   const canPublish = (isReady || isPublished === false) && thumbnail.type === 'saved'
   const publishInProgress = ['saving', 'publishing', 'polling'].includes(publishState.phase)
   const hasVideo = video.type === 'ready' || video.type === 'saved' || video.type === 'heygen-generating'
@@ -752,123 +702,19 @@ export default function VAPostPage() {
             )}
           </Card>
 
-          {/* Thumbnail builder */}
-          {!isPublished && (
-            <Card title="Thumbnail Builder">
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 6 }}>
-                Image Prompt
-              </label>
-              <textarea
-                value={prompt}
-                onChange={e => setPrompt(e.target.value)}
-                rows={6}
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  padding: 12, border: '1px solid #e2e8f0', borderRadius: 8,
-                  fontSize: 13, lineHeight: 1.6, resize: 'vertical',
-                  fontFamily: 'Inter, sans-serif', color: '#1a1a1a',
-                  marginBottom: 16,
-                }}
-              />
-
-              {backgrounds.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 8 }}>
-                    Background Image (for reference)
-                  </label>
-                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                    {backgrounds.slice(0, 8).map(bg => (
-                      <button
-                        key={bg.url}
-                        onClick={() => setSelectedBg(bg.url)}
-                        title={bg.label}
-                        style={{
-                          flexShrink: 0, width: 72, height: 48,
-                          borderRadius: 6, overflow: 'hidden', padding: 0, cursor: 'pointer',
-                          border: selectedBg === bg.url ? '2px solid #1E3A5F' : '2px solid transparent',
-                        }}
-                      >
-                        <img src={bg.url} alt={bg.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {clientImages.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 8 }}>
-                    Client Image
-                  </label>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {clientImages.map(ci => (
-                      <button
-                        key={ci.url}
-                        onClick={() => setSelectedClient(ci.url)}
-                        title={ci.label}
-                        style={{
-                          width: 56, height: 56, borderRadius: 8, overflow: 'hidden',
-                          padding: 0, cursor: 'pointer',
-                          border: selectedClient === ci.url ? '2px solid #1E3A5F' : '2px solid #e2e8f0',
-                          background: '#f8fafc',
-                        }}
-                      >
-                        <img src={ci.url} alt={ci.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                <button
-                  onClick={handleGenerate}
-                  disabled={thumbnail.type === 'generating' || !prompt.trim()}
-                  style={{
-                    padding: '10px 24px', background: '#1E3A5F', color: '#fff',
-                    border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                    cursor: thumbnail.type === 'generating' ? 'wait' : 'pointer',
-                    opacity: thumbnail.type === 'generating' ? 0.7 : 1,
-                  }}
-                >
-                  {thumbnail.type === 'generating' ? 'Generating…' : '✨ Generate Thumbnail'}
-                </button>
-
-                <span style={{ color: '#94a3b8', fontSize: 13 }}>— or —</span>
-
-                <label style={{
-                  padding: '10px 20px', background: '#f1f5f9', color: '#475569',
-                  border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14,
-                  fontWeight: 600, cursor: 'pointer',
-                }}>
-                  Upload Image
-                  <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
-                </label>
-              </div>
-
-              {generateError && (
-                <p style={{ marginTop: 10, fontSize: 13, color: '#dc2626' }}>{generateError}</p>
-              )}
-            </Card>
-          )}
         </div>
 
         {/* ── RIGHT: Preview + Publish ── */}
         <div style={{ position: 'sticky', top: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Thumbnail preview */}
-          <Card title="Thumbnail Preview">
+          {/* Thumbnail */}
+          <Card title="Thumbnail">
             <div style={{
               aspectRatio: '16/9', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
             }}>
               {thumbnailPreviewUrl ? (
                 <img src={thumbnailPreviewUrl} alt="Thumbnail preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : thumbnail.type === 'generating' ? (
-                <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
-                  <div style={{ fontSize: 13 }}>Generating…</div>
-                </div>
               ) : (
                 <div style={{ textAlign: 'center', color: '#94a3b8' }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>🖼</div>
@@ -876,6 +722,27 @@ export default function VAPostPage() {
                 </div>
               )}
             </div>
+
+            {thumbnail.type === 'saved' ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>✓ Thumbnail saved</span>
+                <label style={{ fontSize: 12, color: '#2563eb', cursor: 'pointer', fontWeight: 600 }}>
+                  Replace
+                  <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+                </label>
+              </div>
+            ) : (
+              <label style={{
+                display: 'block', width: '100%', boxSizing: 'border-box', marginBottom: 10,
+                padding: '10px 0', textAlign: 'center',
+                background: '#f1f5f9', color: '#475569',
+                border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14,
+                fontWeight: 600, cursor: 'pointer',
+              }}>
+                📷 Upload Thumbnail
+                <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+              </label>
+            )}
 
             {canMarkReady && (
               <button
@@ -891,12 +758,6 @@ export default function VAPostPage() {
               >
                 {publishState.phase === 'saving' ? 'Saving…' : '✓ Mark as Ready'}
               </button>
-            )}
-
-            {thumbnail.type === 'saved' && (
-              <div style={{ fontSize: 12, color: '#166534', fontWeight: 600, textAlign: 'center', padding: '8px 0' }}>
-                ✓ Thumbnail saved
-              </div>
             )}
           </Card>
 
