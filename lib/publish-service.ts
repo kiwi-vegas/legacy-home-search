@@ -1,20 +1,14 @@
 /**
- * Publish service — orchestrates website + Facebook publish in one action.
+ * Publish service — orchestrates website + social publish in one action.
  *
- * Steps:
- *   1. Transition Sanity workflowStatus → 'publishing'
- *   2. Build social copy (Claude) or use provided copy
- *   3. Get Sanity image URL for Blotato
- *   4. Call Blotato → store postSubmissionId
- *   5. Transition Sanity workflowStatus → 'published'
- *
- * Polling (status resolution) is handled separately by the blotato-status API route.
+ * Always publishes to Facebook (requires cover image).
+ * Publishes to YouTube + TikTok only when post.videoUrl is set.
  */
 
 import Anthropic from '@anthropic-ai/sdk'
 import imageUrlBuilder from '@sanity/image-url'
 import { createClient } from '@sanity/client'
-import { publishToFacebook } from './blotato-client'
+import { publishToFacebook, publishToYouTube, publishToTikTok } from './blotato-client'
 import { markPublishing, markPublished, markPublishFailed, patchSocialSubmission } from './content-workflow'
 import { getSanityWriteClient } from './sanity-write'
 import type { SanityBlogPost } from '../sanity/queries'
@@ -61,7 +55,6 @@ Return ONLY the post caption text, nothing else.`,
     const text = response.content[0].type === 'text' ? response.content[0].text.trim() : ''
     return text
   } catch {
-    // Fallback to basic copy if Claude fails
     return `I've been watching this market for over 20 years, and ${post.title.toLowerCase()} is something every Hampton Roads homeowner and buyer should understand right now. Read the full breakdown on the blog.`
   }
 }
@@ -82,13 +75,21 @@ function getSanityImageUrl(coverImage: any): string | null {
   return builder.image(coverImage).width(1200).url()
 }
 
-// ─── Main publish ─────────────────────────────────────────────────────────────
+// ─── Publish result types ─────────────────────────────────────────────────────
+
+export type PlatformResult = { postSubmissionId: string } | null
 
 export type PublishResult =
-  | { ok: true; postSubmissionId: string }
+  | {
+      ok: true
+      facebook: PlatformResult
+      youtube: PlatformResult
+      tiktok: PlatformResult
+    }
   | { ok: false; error: string }
 
-// For already-published posts: posts to Facebook only, does not touch workflowStatus
+// ─── Social-only (for already-published posts) ────────────────────────────────
+
 export async function publishSocialOnly(
   post: SanityBlogPost,
   socialCopy?: string,
@@ -101,7 +102,6 @@ export async function publishSocialOnly(
       return { ok: false, error: 'No cover image — cannot post to Facebook without an image.' }
     }
 
-    // Use env var only if set AND non-empty; otherwise hard-code production domain
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim())
       ? process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, '')
       : 'https://www.legacyhometeamlpt.com'
@@ -110,12 +110,14 @@ export async function publishSocialOnly(
     const { postSubmissionId } = await publishToFacebook(fullCopy, imageUrl)
     await patchSocialSubmission(postId, postSubmissionId, copy)
 
-    return { ok: true, postSubmissionId }
+    return { ok: true, facebook: { postSubmissionId }, youtube: null, tiktok: null }
   } catch (err) {
     console.error('[publish-service] Social-only publish error:', err instanceof Error ? err.message : err)
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown publish error' }
   }
 }
+
+// ─── Full publish (website + all social platforms) ────────────────────────────
 
 export async function publishPostToAll(
   post: SanityBlogPost,
@@ -126,36 +128,66 @@ export async function publishPostToAll(
   try {
     await markPublishing(postId)
 
-    // Resolve social copy
     const copy = socialCopy?.trim() || (await generateSocialCopy(post))
 
-    // Get cover image URL
     const imageUrl = getSanityImageUrl(post.coverImage)
     if (!imageUrl) {
       await markPublishFailed(postId)
       return { ok: false, error: 'No cover image set — cannot publish to Facebook without an image.' }
     }
 
-    // Append blog URL to copy
-    // Use env var only if set AND non-empty; otherwise hard-code production domain
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim())
       ? process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, '')
       : 'https://www.legacyhometeamlpt.com'
     const fullCopy = `${copy}\n\n${appUrl}/blog/${post.slug}`
 
-    // Call Blotato
-    const { postSubmissionId } = await publishToFacebook(fullCopy, imageUrl)
+    // Always publish to Facebook
+    const fbResult = await publishToFacebook(fullCopy, imageUrl)
 
-    // Mark published in Sanity (workflowStatus + submission ID)
-    await markPublished(postId, postSubmissionId)
+    // Publish to YouTube + TikTok only if a video has been uploaded
+    let ytResult: PlatformResult = null
+    let ttResult: PlatformResult = null
 
-    // Update social copy on doc if it was auto-generated
+    if (post.videoUrl) {
+      const videoDescription = `${copy}\n\n${appUrl}/blog/${post.slug}`
+
+      // Run YouTube and TikTok concurrently; one failure doesn't block the other
+      const [ytOutcome, ttOutcome] = await Promise.allSettled([
+        publishToYouTube(post.title, videoDescription, post.videoUrl),
+        publishToTikTok(copy, post.videoUrl),
+      ])
+
+      if (ytOutcome.status === 'fulfilled') {
+        ytResult = { postSubmissionId: ytOutcome.value.postSubmissionId }
+      } else {
+        console.error('[publish-service] YouTube publish error:', ytOutcome.reason)
+      }
+
+      if (ttOutcome.status === 'fulfilled') {
+        ttResult = { postSubmissionId: ttOutcome.value.postSubmissionId }
+      } else {
+        console.error('[publish-service] TikTok publish error:', ttOutcome.reason)
+      }
+    }
+
+    await markPublished(
+      postId,
+      fbResult.postSubmissionId,
+      ytResult?.postSubmissionId,
+      ttResult?.postSubmissionId,
+    )
+
     if (!socialCopy) {
       const writeClient = getSanityWriteClient()
       await writeClient.patch(postId).set({ socialCopy: copy }).commit()
     }
 
-    return { ok: true, postSubmissionId }
+    return {
+      ok: true,
+      facebook: { postSubmissionId: fbResult.postSubmissionId },
+      youtube: ytResult,
+      tiktok: ttResult,
+    }
   } catch (err) {
     console.error('[publish-service] Publish error:', err instanceof Error ? err.message : err)
     try { await markPublishFailed(postId) } catch { /* ignore secondary error */ }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getPostStatus } from '@/lib/blotato-client'
-import { updateBlotatoStatus } from '@/lib/content-workflow'
+import { updateBlotatoStatus, updateVideoPublishStatus } from '@/lib/content-workflow'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +12,7 @@ export async function GET(request: Request) {
 
   const postSubmissionId = searchParams.get('postSubmissionId')
   const postId = searchParams.get('postId')
+  const platform = (searchParams.get('platform') ?? 'facebook') as 'facebook' | 'youtube' | 'tiktok'
 
   if (!postSubmissionId || !postId) {
     return NextResponse.json({ error: 'postSubmissionId and postId are required' }, { status: 400 })
@@ -20,9 +21,12 @@ export async function GET(request: Request) {
   try {
     const status = await getPostStatus(postSubmissionId)
 
-    // Persist resolved status back to Sanity
     if (status.status === 'published' || status.status === 'failed') {
-      await updateBlotatoStatus(postId, status.status, status.postUrl)
+      if (platform === 'facebook') {
+        await updateBlotatoStatus(postId, status.status, status.postUrl)
+      } else {
+        await updateVideoPublishStatus(postId, platform, status.status, status.postUrl)
+      }
     }
 
     return NextResponse.json(status)

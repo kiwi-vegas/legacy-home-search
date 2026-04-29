@@ -33,6 +33,7 @@ export async function markMediaReady(
   coverImageRef: { _type: 'reference'; _ref: string },
   socialCopy: string,
   videoScript?: string,
+  videoUrl?: string,
 ): Promise<void> {
   const client = getSanityWriteClient()
   const patch: Record<string, unknown> = {
@@ -41,6 +42,7 @@ export async function markMediaReady(
     workflowStatus: 'media_ready' as WorkflowStatus,
   }
   if (videoScript) patch.videoScript = videoScript
+  if (videoUrl) patch.videoUrl = videoUrl
   await client.patch(postId).set(patch).commit()
 }
 
@@ -51,16 +53,18 @@ export async function markPublishing(postId: string): Promise<void> {
 export async function markPublished(
   postId: string,
   blotatoPostSubmissionId: string,
+  youtubePostSubmissionId?: string,
+  tiktokPostSubmissionId?: string,
 ): Promise<void> {
   const client = getSanityWriteClient()
-  await client
-    .patch(postId)
-    .set({
-      workflowStatus: 'published' as WorkflowStatus,
-      blotatoPostSubmissionId,
-      blotatoPublishStatus: 'pending',
-    })
-    .commit()
+  const patch: Record<string, unknown> = {
+    workflowStatus: 'published' as WorkflowStatus,
+    blotatoPostSubmissionId,
+    blotatoPublishStatus: 'pending',
+  }
+  if (youtubePostSubmissionId) patch.youtubePostSubmissionId = youtubePostSubmissionId
+  if (tiktokPostSubmissionId) patch.tiktokPostSubmissionId = tiktokPostSubmissionId
+  await client.patch(postId).set(patch).commit()
 }
 
 export async function markPublishFailed(postId: string): Promise<void> {
@@ -99,6 +103,22 @@ export async function updateBlotatoStatus(
         blotatoPublishedAt: new Date().toISOString(),
         facebookPostUrl: postUrl ?? null,
       }),
+    })
+    .commit()
+}
+
+export async function updateVideoPublishStatus(
+  postId: string,
+  platform: 'youtube' | 'tiktok',
+  status: 'published' | 'failed',
+  postUrl?: string,
+): Promise<void> {
+  const client = getSanityWriteClient()
+  const urlField = platform === 'youtube' ? 'youtubePostUrl' : 'tiktokPostUrl'
+  await client
+    .patch(postId)
+    .set({
+      ...(status === 'published' && postUrl ? { [urlField]: postUrl } : {}),
     })
     .commit()
 }

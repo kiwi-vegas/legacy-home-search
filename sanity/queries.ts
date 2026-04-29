@@ -168,6 +168,11 @@ export type SanityBlogPost = {
   socialCopy?: string
   socialDeclined?: boolean
   videoScript?: string
+  videoUrl?: string
+  youtubePostSubmissionId?: string
+  tiktokPostSubmissionId?: string
+  youtubePostUrl?: string
+  tiktokPostUrl?: string
 }
 
 export type WorkflowStatus =
@@ -246,7 +251,9 @@ export async function getVAQueuePost(id: string): Promise<SanityBlogPost | null>
       _id, title, "slug": slug.current, publishedAt, category, excerpt,
       coverImage, heroBannerImage, body, metaTitle, metaDescription,
       workflowStatus, blotatoPostSubmissionId, blotatoPublishStatus,
-      blotatoPublishedAt, facebookPostUrl, socialCopy, videoScript
+      blotatoPublishedAt, facebookPostUrl, socialCopy, videoScript,
+      videoUrl, youtubePostSubmissionId, tiktokPostSubmissionId,
+      youtubePostUrl, tiktokPostUrl
     }`,
     { id },
     { next: { revalidate: 0 } }

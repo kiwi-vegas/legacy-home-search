@@ -113,6 +113,36 @@ export default {
       description: 'Set to true when this post has been deliberately skipped for Facebook posting',
     },
     {
+      name: 'videoUrl',
+      title: 'Video URL',
+      type: 'url',
+      description: 'Vercel Blob URL of the uploaded video (used for YouTube + TikTok publishing)',
+    },
+    {
+      name: 'youtubePostSubmissionId',
+      title: 'YouTube Submission ID',
+      type: 'string',
+      description: 'Returned by Blotato after YouTube post is submitted',
+    },
+    {
+      name: 'tiktokPostSubmissionId',
+      title: 'TikTok Submission ID',
+      type: 'string',
+      description: 'Returned by Blotato after TikTok post is submitted',
+    },
+    {
+      name: 'youtubePostUrl',
+      title: 'YouTube Video URL',
+      type: 'url',
+      description: 'URL of the published YouTube video (returned by Blotato)',
+    },
+    {
+      name: 'tiktokPostUrl',
+      title: 'TikTok Video URL',
+      type: 'url',
+      description: 'URL of the published TikTok video (returned by Blotato)',
+    },
+    {
       name: 'coverImage',
       title: 'Cover Image',
       type: 'image',

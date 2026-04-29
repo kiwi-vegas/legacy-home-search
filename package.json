@@ -16,6 +16,7 @@
     "@sanity/image-url": "^2.0.3",
     "@sanity/vision": "^5.17.1",
     "@upstash/redis": "^1.37.0",
+    "@vercel/blob": "^2.3.3",
     "cheerio": "^1.2.0",
     "framer-motion": "^12.38.0",
     "locomotive-scroll": "^5.0.1",

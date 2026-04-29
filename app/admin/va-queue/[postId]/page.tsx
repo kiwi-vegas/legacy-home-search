@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { upload } from '@vercel/blob/client'
 import type { SanityBlogPost, WorkflowStatus } from '@/sanity/queries'
 import { buildDefaultThumbnailPrompt, detectCommunitySlug } from '@/lib/thumbnail-prompt'
 
@@ -11,16 +12,39 @@ type AssetImage = { url: string; label: string }
 type ThumbnailState =
   | { type: 'none' }
   | { type: 'generating' }
-  | { type: 'dalle'; url: string }      // temp DALL-E URL
+  | { type: 'dalle'; url: string }
   | { type: 'upload'; file: File; previewUrl: string }
-  | { type: 'saved' }                   // already saved to Sanity (media_ready)
+  | { type: 'saved' }
+
+type VideoState =
+  | { type: 'none' }
+  | { type: 'uploading'; progress: number }
+  | { type: 'ready'; url: string; filename: string }
+  | { type: 'saved'; url: string }
+
+type PlatformStatus =
+  | { phase: 'idle' }
+  | { phase: 'publishing' }
+  | { phase: 'polling'; submissionId: string }
+  | { phase: 'done'; postUrl?: string }
+  | { phase: 'error'; message: string }
 
 type PublishState =
   | { phase: 'idle' }
   | { phase: 'saving' }
   | { phase: 'publishing' }
-  | { phase: 'polling'; postSubmissionId: string }
-  | { phase: 'done'; facebookUrl?: string }
+  | {
+      phase: 'polling'
+      facebook: PlatformStatus
+      youtube: PlatformStatus
+      tiktok: PlatformStatus
+    }
+  | {
+      phase: 'done'
+      facebook: PlatformStatus
+      youtube: PlatformStatus
+      tiktok: PlatformStatus
+    }
   | { phase: 'error'; message: string }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -56,10 +80,11 @@ export default function VAPostPage() {
   const [generateError, setGenerateError] = useState('')
   const [videoScript, setVideoScript] = useState('')
   const [generatingScript, setGeneratingScript] = useState(false)
+  const [video, setVideo] = useState<VideoState>({ type: 'none' })
 
   // Publish state
   const [publishState, setPublishState] = useState<PublishState>({ phase: 'idle' })
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({})
 
   // ── Load post ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -74,7 +99,6 @@ export default function VAPostPage() {
         setPost(found)
 
         if (found) {
-          // Pre-fill prompt
           const community = detectCommunitySlug(found.title, found.slug ?? '')
           setPrompt(buildDefaultThumbnailPrompt({
             title: found.title,
@@ -89,7 +113,10 @@ export default function VAPostPage() {
             setThumbnail({ type: 'saved' })
           }
 
-          // Load asset pickers
+          if (found.videoUrl) {
+            setVideo({ type: 'saved', url: found.videoUrl })
+          }
+
           const assetRes = await fetch(`/api/content/assets?secret=${encodeURIComponent(secret)}&community=${community ?? ''}`)
           if (assetRes.ok) {
             const { backgrounds: bgs, clientImages: cis } = await assetRes.json()
@@ -108,10 +135,12 @@ export default function VAPostPage() {
     load()
   }, [postId, secret])
 
-  // ── Cleanup poll on unmount ──────────────────────────────────────────────────
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+  // ── Cleanup polls on unmount ─────────────────────────────────────────────────
+  useEffect(() => () => {
+    Object.values(pollRefs.current).forEach(clearInterval)
+  }, [])
 
-  // ── Generate Facebook caption ─────────────────────────────────────────────────
+  // ── Generate Facebook caption ────────────────────────────────────────────────
   async function handleGenerateCaption() {
     if (!post) return
     setGeneratingCaption(true)
@@ -149,6 +178,36 @@ export default function VAPostPage() {
     } finally {
       setGeneratingScript(false)
     }
+  }
+
+  // ── Video upload via Vercel Blob ─────────────────────────────────────────────
+  async function handleVideoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setVideo({ type: 'uploading', progress: 0 })
+
+    try {
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: `/api/content/upload-video?secret=${encodeURIComponent(secret)}`,
+        onUploadProgress: ({ percentage }) => {
+          setVideo({ type: 'uploading', progress: Math.round(percentage) })
+        },
+      })
+
+      setVideo({ type: 'ready', url: blob.url, filename: file.name })
+    } catch (err) {
+      setVideo({ type: 'none' })
+      alert(err instanceof Error ? err.message : 'Video upload failed')
+    }
+
+    // Reset input so the same file can be re-selected
+    e.target.value = ''
+  }
+
+  function handleRemoveVideo() {
+    setVideo({ type: 'none' })
   }
 
   // ── Generate thumbnail ───────────────────────────────────────────────────────
@@ -190,6 +249,10 @@ export default function VAPostPage() {
       form.append('socialCopy', socialCopy)
       if (videoScript) form.append('videoScript', videoScript)
 
+      const videoUrl = video.type === 'ready' ? video.url :
+                       video.type === 'saved' ? video.url : null
+      if (videoUrl) form.append('videoUrl', videoUrl)
+
       if (thumbnail.type === 'upload') {
         form.append('image', thumbnail.file)
       } else if (thumbnail.type === 'dalle') {
@@ -205,11 +268,48 @@ export default function VAPostPage() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to save')
 
       setThumbnail({ type: 'saved' })
+      if (video.type === 'ready') {
+        setVideo(prev => prev.type === 'ready' ? { type: 'saved', url: prev.url } : prev)
+      }
       setPost(prev => prev ? { ...prev, workflowStatus: 'media_ready' as WorkflowStatus } : prev)
       setPublishState({ phase: 'idle' })
     } catch (err) {
       setPublishState({ phase: 'error', message: err instanceof Error ? err.message : 'Save failed' })
     }
+  }
+
+  // ── Poll a single platform ───────────────────────────────────────────────────
+  function startPoll(
+    platform: 'facebook' | 'youtube' | 'tiktok',
+    submissionId: string,
+    onUpdate: (status: PlatformStatus) => void,
+  ) {
+    let attempts = 0
+    const interval = setInterval(async () => {
+      attempts++
+      try {
+        const res = await fetch(
+          `/api/content/blotato-status?secret=${encodeURIComponent(secret)}&postSubmissionId=${encodeURIComponent(submissionId)}&postId=${encodeURIComponent(postId)}&platform=${platform}`
+        )
+        const data = await res.json()
+
+        if (data.status === 'published') {
+          clearInterval(interval)
+          delete pollRefs.current[platform]
+          onUpdate({ phase: 'done', postUrl: data.postUrl })
+        } else if (data.status === 'failed') {
+          clearInterval(interval)
+          delete pollRefs.current[platform]
+          onUpdate({ phase: 'error', message: data.errorMessage ?? `${platform} publish failed` })
+        } else if (attempts >= 30) {
+          clearInterval(interval)
+          delete pollRefs.current[platform]
+          onUpdate({ phase: 'done' })
+        }
+      } catch { /* keep trying */ }
+    }, 10000)
+
+    pollRefs.current[platform] = interval
   }
 
   // ── Publish ──────────────────────────────────────────────────────────────────
@@ -225,33 +325,63 @@ export default function VAPostPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Publish failed')
 
-      const { postSubmissionId } = data
-      setPublishState({ phase: 'polling', postSubmissionId })
+      const initFb: PlatformStatus = data.facebook?.postSubmissionId
+        ? { phase: 'polling', submissionId: data.facebook.postSubmissionId }
+        : { phase: 'idle' }
+      const initYt: PlatformStatus = data.youtube?.postSubmissionId
+        ? { phase: 'polling', submissionId: data.youtube.postSubmissionId }
+        : { phase: 'idle' }
+      const initTt: PlatformStatus = data.tiktok?.postSubmissionId
+        ? { phase: 'polling', submissionId: data.tiktok.postSubmissionId }
+        : { phase: 'idle' }
 
-      // Poll for Blotato status
-      let attempts = 0
-      pollRef.current = setInterval(async () => {
-        attempts++
-        try {
-          const statusRes = await fetch(
-            `/api/content/blotato-status?secret=${encodeURIComponent(secret)}&postSubmissionId=${encodeURIComponent(postSubmissionId)}&postId=${encodeURIComponent(postId)}`
-          )
-          const statusData = await statusRes.json()
+      setPublishState({ phase: 'polling', facebook: initFb, youtube: initYt, tiktok: initTt })
+      setPost(prev => prev ? { ...prev, workflowStatus: 'published' as WorkflowStatus } : prev)
 
-          if (statusData.status === 'published') {
-            clearInterval(pollRef.current!)
-            setPublishState({ phase: 'done', facebookUrl: statusData.postUrl })
-            setPost(prev => prev ? { ...prev, workflowStatus: 'published' as WorkflowStatus } : prev)
-          } else if (statusData.status === 'failed') {
-            clearInterval(pollRef.current!)
-            setPublishState({ phase: 'error', message: statusData.errorMessage ?? 'Facebook publish failed' })
-          } else if (attempts >= 30) {
-            // Stop polling after 5 min; status already saved in Sanity
-            clearInterval(pollRef.current!)
-            setPublishState({ phase: 'done' })
-          }
-        } catch { /* ignore poll errors, keep trying */ }
-      }, 10000)
+      // Track resolved statuses so we know when all are done
+      const resolved = { facebook: initFb.phase === 'idle', youtube: initYt.phase === 'idle', tiktok: initTt.phase === 'idle' }
+      const statuses: Record<string, PlatformStatus> = { facebook: initFb, youtube: initYt, tiktok: initTt }
+
+      function checkAllDone() {
+        if (resolved.facebook && resolved.youtube && resolved.tiktok) {
+          setPublishState({ phase: 'done', facebook: statuses.facebook, youtube: statuses.youtube, tiktok: statuses.tiktok })
+        }
+      }
+
+      if (data.facebook?.postSubmissionId) {
+        startPoll('facebook', data.facebook.postSubmissionId, (s) => {
+          statuses.facebook = s
+          resolved.facebook = true
+          setPublishState(prev => prev.phase === 'polling' ? { ...prev, facebook: s } : prev)
+          checkAllDone()
+        })
+      } else {
+        resolved.facebook = true
+      }
+
+      if (data.youtube?.postSubmissionId) {
+        startPoll('youtube', data.youtube.postSubmissionId, (s) => {
+          statuses.youtube = s
+          resolved.youtube = true
+          setPublishState(prev => prev.phase === 'polling' ? { ...prev, youtube: s } : prev)
+          checkAllDone()
+        })
+      } else {
+        resolved.youtube = true
+      }
+
+      if (data.tiktok?.postSubmissionId) {
+        startPoll('tiktok', data.tiktok.postSubmissionId, (s) => {
+          statuses.tiktok = s
+          resolved.tiktok = true
+          setPublishState(prev => prev.phase === 'polling' ? { ...prev, tiktok: s } : prev)
+          checkAllDone()
+        })
+      } else {
+        resolved.tiktok = true
+      }
+
+      checkAllDone()
     } catch (err) {
       setPublishState({ phase: 'error', message: err instanceof Error ? err.message : 'Publish failed' })
     }
@@ -271,6 +401,7 @@ export default function VAPostPage() {
   const canMarkReady = thumbnail.type === 'dalle' || thumbnail.type === 'upload'
   const canPublish = (isReady || isPublished === false) && thumbnail.type === 'saved'
   const publishInProgress = ['saving', 'publishing', 'polling'].includes(publishState.phase)
+  const hasVideo = video.type === 'ready' || video.type === 'saved'
 
   if (loading) return <PageShell><p style={{ padding: 32, color: '#64748b' }}>Loading…</p></PageShell>
   if (error) return <PageShell><p style={{ padding: 32, color: '#dc2626' }}>{error}</p></PageShell>
@@ -294,7 +425,7 @@ export default function VAPostPage() {
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: '1fr 420px', gap: 32, alignItems: 'start' }}>
 
-        {/* ── LEFT: Article Context + Thumbnail Builder ── */}
+        {/* ── LEFT ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
           {/* Article context */}
@@ -390,10 +521,73 @@ export default function VAPostPage() {
             </p>
           </Card>
 
+          {/* Video upload */}
+          <Card title="Video Upload (YouTube + TikTok)">
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 14px', lineHeight: 1.5 }}>
+              Optional. If Barry records a video, upload it here — it will be published to YouTube and TikTok alongside the Facebook post. Supports MP4, MOV, or WebM (up to 500 MB).
+            </p>
+
+            {video.type === 'none' && (
+              <label style={{
+                display: 'inline-block',
+                padding: '10px 20px', background: '#f1f5f9', color: '#475569',
+                border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14,
+                fontWeight: 600, cursor: 'pointer',
+              }}>
+                📹 Upload Video
+                <input
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm,video/x-m4v"
+                  onChange={handleVideoSelect}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            )}
+
+            {video.type === 'uploading' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', marginBottom: 6 }}>
+                  <span>Uploading video…</span>
+                  <span>{video.progress}%</span>
+                </div>
+                <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${video.progress}%`, background: '#1E3A5F', borderRadius: 99, transition: 'width 0.3s' }} />
+                </div>
+              </div>
+            )}
+
+            {(video.type === 'ready' || video.type === 'saved') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8 }}>
+                <span style={{ fontSize: 20 }}>🎥</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>
+                    {video.type === 'saved' ? 'Video saved' : 'Video ready'}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {video.type === 'ready' ? video.filename : video.url.split('/').pop()}
+                  </div>
+                </div>
+                {video.type === 'ready' && (
+                  <button
+                    onClick={handleRemoveVideo}
+                    style={{ fontSize: 12, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            )}
+
+            {video.type === 'none' && (
+              <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+                No video uploaded — only Facebook will be published.
+              </p>
+            )}
+          </Card>
+
           {/* Thumbnail builder */}
           {!isPublished && (
             <Card title="Thumbnail Builder">
-              {/* Prompt editor */}
               <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 6 }}>
                 Image Prompt
               </label>
@@ -410,7 +604,6 @@ export default function VAPostPage() {
                 }}
               />
 
-              {/* Background picker */}
               {backgrounds.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 8 }}>
@@ -435,7 +628,6 @@ export default function VAPostPage() {
                 </div>
               )}
 
-              {/* Client image picker */}
               {clientImages.length > 0 && (
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 8 }}>
@@ -461,7 +653,6 @@ export default function VAPostPage() {
                 </div>
               )}
 
-              {/* Generate button */}
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   onClick={handleGenerate}
@@ -519,7 +710,6 @@ export default function VAPostPage() {
               )}
             </div>
 
-            {/* Mark Ready button */}
             {canMarkReady && (
               <button
                 onClick={handleMarkReady}
@@ -545,13 +735,40 @@ export default function VAPostPage() {
 
           {/* Publish panel */}
           <Card title="Publish">
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 12, lineHeight: 1.5 }}>
               Pressing Publish will:
             </p>
-            <ul style={{ fontSize: 13, color: '#475569', lineHeight: 1.8, margin: '0 0 20px', paddingLeft: 18 }}>
+            <ul style={{ fontSize: 13, color: '#475569', lineHeight: 1.8, margin: '0 0 16px', paddingLeft: 18 }}>
               <li>Make the post live on the website</li>
               <li>Post to the Legacy Home Team Facebook page</li>
+              {hasVideo && <li>Upload the video to YouTube</li>}
+              {hasVideo && <li>Post the video to TikTok</li>}
             </ul>
+
+            {/* Per-platform publish status */}
+            {(publishState.phase === 'polling' || publishState.phase === 'done') && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                <PlatformStatusRow
+                  icon="👥"
+                  label="Facebook"
+                  status={publishState.facebook}
+                />
+                {publishState.youtube.phase !== 'idle' && (
+                  <PlatformStatusRow
+                    icon="▶️"
+                    label="YouTube"
+                    status={publishState.youtube}
+                  />
+                )}
+                {publishState.tiktok.phase !== 'idle' && (
+                  <PlatformStatusRow
+                    icon="🎵"
+                    label="TikTok"
+                    status={publishState.tiktok}
+                  />
+                )}
+              </div>
+            )}
 
             {publishState.phase === 'error' && (
               <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: '#991b1b' }}>
@@ -561,23 +778,25 @@ export default function VAPostPage() {
 
             {publishState.phase === 'done' && (
               <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: '#166534' }}>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>✓ Published successfully!</div>
-                <div>Post is live on the website.</div>
-                {publishState.facebookUrl && (
-                  <a href={publishState.facebookUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', display: 'block', marginTop: 4 }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>✓ Published!</div>
+                <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', display: 'block' }}>
+                  View blog post →
+                </a>
+                {publishState.facebook.phase === 'done' && publishState.facebook.postUrl && (
+                  <a href={publishState.facebook.postUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', display: 'block', marginTop: 4 }}>
                     View Facebook post →
                   </a>
                 )}
-                <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', display: 'block', marginTop: 4 }}>
-                  View blog post →
-                </a>
-              </div>
-            )}
-
-            {publishState.phase === 'polling' && (
-              <div style={{ background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>✓ Post submitted!</div>
-                <div>Waiting for Facebook confirmation…</div>
+                {publishState.youtube.phase === 'done' && publishState.youtube.postUrl && (
+                  <a href={publishState.youtube.postUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', display: 'block', marginTop: 4 }}>
+                    View YouTube video →
+                  </a>
+                )}
+                {publishState.tiktok.phase === 'done' && publishState.tiktok.postUrl && (
+                  <a href={publishState.tiktok.postUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', display: 'block', marginTop: 4 }}>
+                    View TikTok post →
+                  </a>
+                )}
               </div>
             )}
 
@@ -614,6 +833,36 @@ export default function VAPostPage() {
         </div>
       </div>
     </PageShell>
+  )
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function PlatformStatusRow({ icon, label, status }: {
+  icon: string
+  label: string
+  status: PlatformStatus
+}) {
+  const isPolling = status.phase === 'polling'
+  const isDone = status.phase === 'done'
+  const isError = status.phase === 'error'
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '8px 12px',
+      background: isDone ? '#f0fdf4' : isError ? '#fef2f2' : '#eff6ff',
+      border: `1px solid ${isDone ? '#86efac' : isError ? '#fca5a5' : '#93c5fd'}`,
+      borderRadius: 8, fontSize: 13,
+    }}>
+      <span>{icon}</span>
+      <span style={{ fontWeight: 600, color: isDone ? '#166534' : isError ? '#991b1b' : '#1e40af' }}>
+        {label}
+      </span>
+      <span style={{ marginLeft: 'auto', color: isDone ? '#166534' : isError ? '#991b1b' : '#1e40af' }}>
+        {isPolling ? 'Waiting…' : isDone ? '✓ Published' : isError ? `✗ ${status.message}` : ''}
+      </span>
+    </div>
   )
 }
 

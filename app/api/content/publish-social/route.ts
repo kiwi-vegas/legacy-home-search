@@ -29,5 +29,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.error }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, postSubmissionId: result.postSubmissionId })
+  return NextResponse.json({ ok: true, postSubmissionId: result.facebook?.postSubmissionId })
 }
