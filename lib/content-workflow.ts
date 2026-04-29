@@ -61,6 +61,7 @@ export async function markPublished(
   const client = getSanityWriteClient()
   const patch: Record<string, unknown> = {
     workflowStatus: 'published' as WorkflowStatus,
+    publishedAt: new Date().toISOString(),
     blotatoPostSubmissionId,
     blotatoPublishStatus: 'pending',
   }
