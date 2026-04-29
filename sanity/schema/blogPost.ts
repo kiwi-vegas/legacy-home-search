@@ -119,6 +119,12 @@ export default {
       description: 'Vercel Blob URL of the uploaded video (used for YouTube + TikTok publishing)',
     },
     {
+      name: 'videoThumbnailUrl',
+      title: 'Video Thumbnail URL',
+      type: 'url',
+      description: 'Vercel Blob URL of the custom thumbnail for YouTube (optional)',
+    },
+    {
       name: 'youtubePostSubmissionId',
       title: 'YouTube Submission ID',
       type: 'string',

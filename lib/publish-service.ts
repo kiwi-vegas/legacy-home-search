@@ -153,7 +153,7 @@ export async function publishPostToAll(
 
       // Run YouTube and TikTok concurrently; one failure doesn't block the other
       const [ytOutcome, ttOutcome] = await Promise.allSettled([
-        publishToYouTube(post.title, videoDescription, post.videoUrl),
+        publishToYouTube(post.title, videoDescription, post.videoUrl, post.videoThumbnailUrl),
         publishToTikTok(copy, post.videoUrl),
       ])
 

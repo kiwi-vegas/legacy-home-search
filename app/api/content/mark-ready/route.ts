@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   let socialCopy: string
   let videoScript: string | undefined
   let videoUrl: string | undefined
+  let videoThumbnailUrl: string | undefined
   let imageBuffer: Buffer | null = null
   let imageFilename: string = 'thumbnail.jpg'
   let imageUrl: string | null = null
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     socialCopy = (form.get('socialCopy') as string) ?? ''
     videoScript = (form.get('videoScript') as string) || undefined
     videoUrl = (form.get('videoUrl') as string) || undefined
+    videoThumbnailUrl = (form.get('videoThumbnailUrl') as string) || undefined
     imageUrl = (form.get('imageUrl') as string) ?? null
 
     const file = form.get('image') as File | null
@@ -40,6 +42,7 @@ export async function POST(request: Request) {
     socialCopy = body.socialCopy ?? ''
     videoScript = body.videoScript || undefined
     videoUrl = body.videoUrl || undefined
+    videoThumbnailUrl = body.videoThumbnailUrl || undefined
     imageUrl = body.imageUrl ?? null
   }
 
@@ -74,7 +77,7 @@ export async function POST(request: Request) {
       assetRef = { _type: 'reference', _ref: asset._id }
     }
 
-    await markMediaReady(postId, assetRef, socialCopy, videoScript, videoUrl)
+    await markMediaReady(postId, assetRef, socialCopy, videoScript, videoUrl, videoThumbnailUrl)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

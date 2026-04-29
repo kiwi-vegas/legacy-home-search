@@ -34,6 +34,7 @@ export async function markMediaReady(
   socialCopy: string,
   videoScript?: string,
   videoUrl?: string,
+  videoThumbnailUrl?: string,
 ): Promise<void> {
   const client = getSanityWriteClient()
   const patch: Record<string, unknown> = {
@@ -43,6 +44,7 @@ export async function markMediaReady(
   }
   if (videoScript) patch.videoScript = videoScript
   if (videoUrl) patch.videoUrl = videoUrl
+  if (videoThumbnailUrl) patch.videoThumbnailUrl = videoThumbnailUrl
   await client.patch(postId).set(patch).commit()
 }
 

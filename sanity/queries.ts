@@ -169,6 +169,7 @@ export type SanityBlogPost = {
   socialDeclined?: boolean
   videoScript?: string
   videoUrl?: string
+  videoThumbnailUrl?: string
   youtubePostSubmissionId?: string
   tiktokPostSubmissionId?: string
   youtubePostUrl?: string
@@ -252,7 +253,7 @@ export async function getVAQueuePost(id: string): Promise<SanityBlogPost | null>
       coverImage, heroBannerImage, body, metaTitle, metaDescription,
       workflowStatus, blotatoPostSubmissionId, blotatoPublishStatus,
       blotatoPublishedAt, facebookPostUrl, socialCopy, videoScript,
-      videoUrl, youtubePostSubmissionId, tiktokPostSubmissionId,
+      videoUrl, videoThumbnailUrl, youtubePostSubmissionId, tiktokPostSubmissionId,
       youtubePostUrl, tiktokPostUrl
     }`,
     { id },

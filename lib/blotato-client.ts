@@ -27,8 +27,7 @@ function getHeaders(): Record<string, string> {
 }
 
 function getFacebookAccountId(): string {
-  // Support both new and legacy env var name
-  const id = process.env.BLOTATO_FACEBOOK_ACCOUNT_ID ?? process.env.BLOTATO_ACCOUNT_ID
+  const id = process.env.BLOTATO_FACEBOOK_ACCOUNT_ID
   if (!id) throw new Error('BLOTATO_FACEBOOK_ACCOUNT_ID env var is not set')
   return id
 }
@@ -109,6 +108,7 @@ export async function publishToYouTube(
   title: string,
   description: string,
   videoUrl: string,
+  thumbnailUrl?: string,
 ): Promise<BlotatoPublishResult> {
   const accountId = getYouTubeAccountId()
 
@@ -128,6 +128,7 @@ export async function publishToYouTube(
           title,
           privacyStatus: 'public',
           shouldNotifySubscribers: true,
+          ...(thumbnailUrl ? { thumbnailUrl } : {}),
         },
       },
     }),

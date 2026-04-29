@@ -81,6 +81,8 @@ export default function VAPostPage() {
   const [videoScript, setVideoScript] = useState('')
   const [generatingScript, setGeneratingScript] = useState(false)
   const [video, setVideo] = useState<VideoState>({ type: 'none' })
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string | null>(null)
+  const [uploadingVideoThumb, setUploadingVideoThumb] = useState(false)
 
   // Publish state
   const [publishState, setPublishState] = useState<PublishState>({ phase: 'idle' })
@@ -115,6 +117,9 @@ export default function VAPostPage() {
 
           if (found.videoUrl) {
             setVideo({ type: 'saved', url: found.videoUrl })
+          }
+          if (found.videoThumbnailUrl) {
+            setVideoThumbnailUrl(found.videoThumbnailUrl)
           }
 
           const assetRes = await fetch(`/api/content/assets?secret=${encodeURIComponent(secret)}&community=${community ?? ''}`)
@@ -210,6 +215,24 @@ export default function VAPostPage() {
     setVideo({ type: 'none' })
   }
 
+  async function handleVideoThumbnailSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingVideoThumb(true)
+    try {
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: `/api/content/upload-video?secret=${encodeURIComponent(secret)}`,
+      })
+      setVideoThumbnailUrl(blob.url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Thumbnail upload failed')
+    } finally {
+      setUploadingVideoThumb(false)
+      e.target.value = ''
+    }
+  }
+
   // ── Generate thumbnail ───────────────────────────────────────────────────────
   async function handleGenerate() {
     setGenerateError('')
@@ -252,6 +275,7 @@ export default function VAPostPage() {
       const videoUrl = video.type === 'ready' ? video.url :
                        video.type === 'saved' ? video.url : null
       if (videoUrl) form.append('videoUrl', videoUrl)
+      if (videoThumbnailUrl) form.append('videoThumbnailUrl', videoThumbnailUrl)
 
       if (thumbnail.type === 'upload') {
         form.append('image', thumbnail.file)
@@ -582,6 +606,52 @@ export default function VAPostPage() {
               <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
                 No video uploaded — only Facebook will be published.
               </p>
+            )}
+
+            {/* Video thumbnail (YouTube only — TikTok doesn't support external thumbnails) */}
+            {(video.type === 'ready' || video.type === 'saved') && (
+              <div style={{ marginTop: 16, borderTop: '1px solid #e2e8f0', paddingTop: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: 4 }}>
+                  YouTube Thumbnail <span style={{ fontWeight: 400, color: '#94a3b8' }}>(optional)</span>
+                </label>
+                <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 10px', lineHeight: 1.5 }}>
+                  Custom thumbnail for YouTube. JPG or PNG, 1280×720 recommended. TikTok uses a frame from the video automatically.
+                </p>
+
+                {videoThumbnailUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <img
+                      src={videoThumbnailUrl}
+                      alt="Video thumbnail"
+                      style={{ width: 120, height: 68, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#166534' }}>✓ Thumbnail ready</div>
+                      <label style={{ fontSize: 11, color: '#2563eb', cursor: 'pointer', display: 'block', marginTop: 4 }}>
+                        Replace
+                        <input type="file" accept="image/*" onChange={handleVideoThumbnailSelect} style={{ display: 'none' }} />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'inline-block',
+                    padding: '8px 16px', background: '#f1f5f9', color: '#475569',
+                    border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13,
+                    fontWeight: 600, cursor: uploadingVideoThumb ? 'wait' : 'pointer',
+                    opacity: uploadingVideoThumb ? 0.7 : 1,
+                  }}>
+                    {uploadingVideoThumb ? 'Uploading…' : '🖼 Upload YouTube Thumbnail'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleVideoThumbnailSelect}
+                      disabled={uploadingVideoThumb}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                )}
+              </div>
             )}
           </Card>
 
