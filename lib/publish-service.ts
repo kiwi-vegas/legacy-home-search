@@ -56,22 +56,33 @@ export async function generateSocialCopy(post: Pick<SanityBlogPost, 'title' | 'e
       max_tokens: 300,
       messages: [{
         role: 'user',
-        content: `Write a 2-3 sentence Facebook post caption for a real estate blog article written by Barry Jenkins.
+        content: `Write a 2-3 sentence Facebook post caption for a real estate blog article written by Barry Jenkins, a local agent in Hampton Roads, Virginia Beach.
 
-About Barry: He's been a real estate agent in the Hampton Roads area for over 20 years, lives in Virginia Beach, has sold thousands of homes, and his own family is rooted here. He writes these articles to give buyers and homeowners a straight-talking, informed perspective on the local market — what changes mean for their wallets, their decisions, and their lives. He's not selling anything in these posts; he's sharing what he knows so his community can make smarter decisions.
+The caption is a teaser — it should make someone stop scrolling and want to read the article. Lead with the most compelling angle of the story, not with Barry's credentials.
 
-Tone: Conversational, warm, knowledgeable. First person as Barry. Feels like advice from a trusted neighbor who happens to know the market cold — not a pitch. Specific beats generic. Give them a genuine reason to click.
+HOOK VARIETY — rotate between these approaches based on what fits the article best. Never use the same opener twice:
+- A surprising or counterintuitive fact from the topic ("Most people assume X — but the data says something different.")
+- A question that hits a real concern buyers or sellers have ("Thinking about selling this spring? There's one number you need to see first.")
+- A consequence or stakes opener ("What's happening to mortgage rates right now could change your timeline.")
+- A local-specific hook that makes Hampton Roads residents feel seen ("If you own a home in Virginia Beach, this one's worth reading.")
+- A myth-busting opener ("There's a lot of noise about the housing market right now. Here's what's actually true.")
+- A direct-value opener ("Here's what closing costs actually look like for buyers in Hampton Roads — broken down clearly.")
+- A client-story angle ("A buyer asked me this week if now is a good time. My honest answer is in this article.")
 
-End with a natural call to action to read the full article — not "click the link below" but something that flows from the content.
-
-No hashtags. Minimal emojis (only if it genuinely fits).
+Rules:
+- Write in first person as Barry, but don't open with "I've been in real estate for X years" or any version of his tenure
+- Barry can reference his experience or local knowledge mid-caption or at the end — just not as the hook
+- Conversational, warm, direct. Feels like a trusted neighbor sharing something useful, not a pitch
+- End with a natural call to action that flows from the content
+- No hashtags. Minimal emojis (only if it genuinely fits the tone)
+- 2-3 sentences max
 
 Article:
 Title: ${post.title}
 Category: ${categoryLabels[post.category ?? ''] ?? post.category}
 Excerpt: ${post.excerpt ?? ''}
 
-Return ONLY the post caption text, nothing else.`,
+Return ONLY the caption text, nothing else.`,
       }],
     })
 
